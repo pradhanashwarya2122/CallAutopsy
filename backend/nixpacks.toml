@@ -1,0 +1,17 @@
+# Fallback build config for Railway if you want Nixpacks instead of the Dockerfile.
+# (Docker takes precedence when railway.json says builder=DOCKERFILE.)
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci --no-audit --no-fund || npm install --no-audit --no-fund"]
+
+[phases.build]
+cmds = [
+  "npm run build",
+  "mkdir -p dist/db && cp src/db/schema.sql dist/db/schema.sql",
+]
+
+[start]
+cmd = "node dist/index.js"
