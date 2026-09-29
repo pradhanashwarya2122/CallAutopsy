@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useLiveCallFeed } from '../hooks/useLiveCallFeed';
 import PageChrome from '../components/PageChrome';
 
 /* ============================================================
@@ -245,10 +246,13 @@ function Healing() {
    ============================================================ */
 function QueueStatsPanel() {
   const [stats, setStats] = useState(null);
+  const { lastEvent, connected } = useLiveCallFeed({ max: 8 });
+  const tick = () => api.queueStats().then(setStats).catch(() => setStats({ error: true }));
   useEffect(() => {
-    const tick = () => api.queueStats().then(setStats).catch(() => setStats({ error: true }));
-    tick(); const id = setInterval(tick, 4000); return () => clearInterval(id);
+    tick(); const id = setInterval(tick, 6000); return () => clearInterval(id);
   }, []);
+  // Refresh instantly on any call event over the WebSocket
+  useEffect(() => { if (lastEvent) tick(); }, [lastEvent]);
   if (!stats || stats.error) return (
     <div className="pc-panel"><p className="pc-h">Retry queue</p><p className="pc-sub">Queue backend unreachable.</p></div>
   );
@@ -262,8 +266,13 @@ function QueueStatsPanel() {
   ];
   return (
     <div className="pc-panel">
-      <p className="pc-h">Retry queue</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, textAlign: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <p className="pc-h" style={{ margin: 0 }}>Retry queue</p>
+        <span className="mono" style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: connected ? 'var(--green)' : 'var(--mute)' }}>
+          {connected ? '● live' : '○ poll'}
+        </span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, textAlign: 'center', marginTop: 12 }}>
         {items.map(([k, v, tone]) => (
           <div key={k}>
             <p className="mono" style={{ fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--mute)', margin: 0 }}>{k}</p>

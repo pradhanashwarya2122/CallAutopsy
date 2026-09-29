@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useLiveCallFeed } from '../hooks/useLiveCallFeed';
 import { ClipboardIcon, WaveformIcon, AlertIcon, CheckIcon, PlayIcon } from '../components/Icons';
 import { Skeleton, TableSkeleton } from '../components/Skeleton';
 import headAirway from '../assets/head-airway.png';
@@ -88,6 +89,11 @@ const CSS = `
   box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 28px -20px rgba(60,45,20,.5)}
 .ap-brand{display:flex;align-items:center;gap:10px;font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:#2b281f;white-space:nowrap}
 .ap-brand i{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#e2372b,#f0a23a)}
+.ap-live{display:inline-flex;align-items:center;gap:6px;margin-left:14px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);background:rgba(255,255,255,.4)}
+.ap-live.on{color:var(--green);border-color:#8ccaa9;background:var(--green-bg)}
+.ap-live .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.ap-live.on .dot{animation:ap-pulse 1.4s ease-in-out infinite}
+@keyframes ap-pulse{0%,100%{opacity:.35}50%{opacity:1}}
 
 .ap-head{display:block;margin-top:22px;position:relative;z-index:1;overflow:hidden;
   padding:22px 28px 22px 32px;border:1px solid rgba(206,198,178,.95);border-radius:14px;
@@ -905,9 +911,17 @@ export default function Dashboard() {
     refresh();
     if (DEMO) setSamples(DEMO_SAMPLES);
     else api.listSamples().then(setSamples).catch(() => setSamples([]));
+    // Fallback polling as safety net; the WebSocket does the real work below.
     const t = setInterval(refresh, POLL_MS);
     return () => clearInterval(t);
   }, [refresh]);
+
+  // Live WebSocket feed → refresh instantly on any call lifecycle event.
+  const { lastEvent, connected: wsConnected } = useLiveCallFeed({ max: 32 });
+  useEffect(() => {
+    if (!lastEvent) return;
+    if (lastEvent.type === 'call.completed' || lastEvent.type === 'call.started') refresh();
+  }, [lastEvent, refresh]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -928,7 +942,12 @@ export default function Dashboard() {
       <div className="ap-rail" style={{ top: 680, fontSize: 10.5 }} aria-hidden="true">STT<br />LLM<br />TTS<br />Analyze<br />Fix</div>
 
       <div className="ap-topbar">
-        <div className="ap-brand"><i />CallAutopsy</div>
+        <div className="ap-brand">
+          <i />CallAutopsy
+          <span className={`ap-live ${wsConnected ? 'on' : ''}`} title={wsConnected ? 'Real-time feed connected' : 'Falling back to polling'}>
+            <span className="dot" />{wsConnected ? 'Live' : 'Poll'}
+          </span>
+        </div>
         <nav className="ap-nav" aria-label="Primary">
           <span className="on" aria-current="page">Dashboard</span>
           {NAV.map((n) => <Link key={n.to} to={n.to}>{n.label}</Link>)}
