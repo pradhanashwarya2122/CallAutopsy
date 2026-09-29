@@ -60,8 +60,8 @@ const CSS = `
   background:linear-gradient(135deg,rgba(255,255,255,.78),rgba(255,250,236,.52));
   -webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);
   box-shadow:0 1px 0 rgba(255,255,255,.95) inset,0 22px 44px -26px rgba(60,45,20,.4),0 2px 6px rgba(60,45,20,.06)}
-.pc-head::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#e2372b,#f0a23a 50%,#1e88ff)}
 .pc-head::after{content:'';position:absolute;right:-70px;top:-90px;width:300px;height:300px;background:radial-gradient(circle,rgba(226,55,43,.11),transparent 65%);pointer-events:none}
+
 .pc-head > *{position:relative;z-index:1}
 .pc-eyebrow{display:flex;align-items:center;gap:12px;font-size:11.5px;letter-spacing:.32em;text-transform:uppercase;color:#4a4536}
 .pc-title{font-family:var(--serif);font-weight:500;font-size:48px;line-height:1;letter-spacing:-.028em;margin:10px 0 0;color:var(--ink)}

@@ -69,7 +69,96 @@ const CSS = `
 @media(max-width:1100px){.lp .brand span{display:none}.lp .g4{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:820px){.lp .links{display:none}.lp .g3,.lp .g4{grid-template-columns:1fr}.lp .sec{padding:48px 20px}}
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+
+/* ---- feature tiles (moved out of iframe, native) ---- */
+.lp .features{padding:56px clamp(16px,6vw,96px);border-top:1px solid var(--line);background:var(--paper)}
+.lp .features .row{display:grid;grid-template-columns:repeat(4,1fr);gap:0;align-items:start}
+.lp .features .col{padding:0 26px;border-left:1px solid var(--line);display:flex;gap:16px}
+.lp .features .col:first-child{border-left:0;padding-left:0}
+.lp .features .ico{flex:none;width:44px;height:44px;border-radius:8px;border:1px solid #eab8b4;background:#f8ded9;color:var(--red);display:grid;place-items:center}
+.lp .features .col h3{font-family:'Newsreader',serif;font-size:22px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+.lp .features .col p{font-size:14.5px;line-height:1.5;color:#4a443b;margin:0}
+@media(max-width:1100px){.lp .features .row{grid-template-columns:repeat(2,1fr);gap:32px 0}.lp .features .col{border-left:0;padding:0}}
+@media(max-width:640px){.lp .features .row{grid-template-columns:1fr}}
+
+/* ---- how-it-works ---- */
+.lp .how{padding:72px clamp(16px,6vw,96px);border-top:1px solid var(--line);display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:start;background:#faf6ea}
+@media(max-width:1100px){.lp .how{grid-template-columns:1fr;gap:40px}}
+.lp .how h2{font-size:clamp(30px,3.4vw,42px);margin:6px 0 10px}
+.lp .how .subtitle{font-size:17px;color:#4a443b;margin:0 0 32px;max-width:520px}
+.lp .steps{display:grid;grid-template-columns:repeat(2,1fr);gap:26px 20px}
+.lp .step{display:flex;gap:14px}
+.lp .step .n{flex:none;width:34px;height:34px;border-radius:50%;background:#8F1414;color:#fff;display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;letter-spacing:.02em}
+.lp .step .n.dark{background:#1a1815}
+.lp .step h4{font-family:'Newsreader',serif;font-size:19px;font-weight:600;margin:5px 0 4px;letter-spacing:-.01em}
+.lp .step p{font-size:14px;color:#4a443b;margin:0;line-height:1.5}
+
+/* ---- example autopsy card ---- */
+.lp .autopsy{background:#fbf9f4;border:1px solid #E2DDD1;border-radius:10px;padding:22px 24px;box-shadow:0 20px 40px -24px rgba(60,45,20,.35)}
+.lp .autopsy .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.lp .autopsy .head h3{font-family:'Newsreader',serif;font-weight:600;font-size:24px;letter-spacing:-.01em;margin:0}
+.lp .autopsy .head a{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:var(--red);text-decoration:none}
+.lp .autopsy .ts{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a7350;margin:0 0 14px}
+.lp .autopsy .cod{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;background:#fce4e0;border:1px solid #f3c3bc;border-radius:8px;padding:12px 14px;margin-bottom:14px}
+.lp .autopsy .cod .icon{flex:none;width:30px;height:30px;border-radius:5px;background:#E5493E;color:#fff;display:grid;place-items:center}
+.lp .autopsy .cod .msg small{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:#a12a26;margin-bottom:2px}
+.lp .autopsy .cod .msg b{display:block;font-family:'IBM Plex Mono',monospace;font-weight:600;color:#B5261C;font-size:14px;letter-spacing:-.01em;margin-bottom:2px}
+.lp .autopsy .cod .msg span{display:block;font-size:11.5px;line-height:1.4;color:#7d2419;max-width:260px}
+.lp .autopsy .cod .pill{border-left:1px solid rgba(226,55,43,.22);padding-left:14px;text-align:right}
+.lp .autopsy .cod .pill small{display:block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.06em;color:#a12a26;margin-bottom:2px;text-transform:uppercase}
+.lp .autopsy .cod .pill b{font-family:'IBM Plex Mono',monospace;font-weight:600;color:#B5261C;font-size:16px}
+.lp .autopsy .stages{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid #EFE9DA;border-radius:6px;margin-bottom:14px}
+.lp .autopsy .stages > div{padding:9px 12px;border-left:1px solid #EFE9DA}
+.lp .autopsy .stages > div:first-child{border-left:0}
+.lp .autopsy .stages small{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8a7350;letter-spacing:.06em;text-transform:uppercase}
+.lp .autopsy .stages b{display:block;font-size:13px;margin-top:2px}
+.lp .autopsy .stages span{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4a443b}
+.lp .autopsy .tabs{display:flex;gap:14px;border-bottom:1px solid #EFE9DA;padding-bottom:6px;margin-bottom:12px}
+.lp .autopsy .tabs span{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a7350;letter-spacing:.06em}
+.lp .autopsy .tabs span.on{color:var(--ink);font-weight:600;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:-7px}
+.lp .autopsy .pair{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch}
+.lp .autopsy .pair .arrow{align-self:center;color:#8a7350}
+.lp .autopsy .clip{border:1px solid #EFE9DA;border-radius:6px;padding:10px 12px;background:#f4f0e5}
+.lp .autopsy .clip.hall{background:#fce4e0;border-color:#f3c3bc}
+.lp .autopsy .clip .lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8a7350;letter-spacing:.05em;margin:0 0 6px}
+.lp .autopsy .clip.hall .lbl{color:#a12a26}
+.lp .autopsy .clip .quote{font-size:12px;line-height:1.5;color:#4a443b;margin:6px 0 0}
+.lp .autopsy .clip.hall .quote{color:#7d2419}
+.lp .autopsy .bars{display:flex;gap:2px;align-items:center;height:30px}
+.lp .autopsy .bars i{flex:1;background:#8a7350;border-radius:1px}
+.lp .autopsy .clip.hall .bars i{background:#c0301f}
 `;
+
+/* ---- inline SVG icon components ---- */
+const TriIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l10 18H2L12 3z" /><path d="M12 10v5M12 18v.1" /></svg>
+);
+const DocIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h9l4 4v14H6z" /><path d="M15 3v4h4M9 12h6M9 16h6" /></svg>
+);
+const ClipIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1M9 11h6M9 15h6" /></svg>
+);
+const DolIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M14.5 9c-.5-1-1.5-1.5-2.5-1.5S9.5 8.3 9.5 9.5c0 3 5.5 1.5 5.5 4.5 0 1.2-1 2-2.5 2-1.2 0-2.2-.6-2.7-1.6M12 6v1.5M12 16.5V18" /></svg>
+);
+const RightArrow = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+);
+
+const FEATURES = [
+  { icon: TriIcon,  t: '7 Realistic Failure Types',  d: 'bad_stt, hallucination, tts_glitch, timeout, user_hangup, network_drop, exception' },
+  { icon: DocIcon,  t: 'Automatic Classification',   d: 'Identify root cause across STT, LLM, and TTS with high accuracy.' },
+  { icon: ClipIcon, t: 'Detailed Autopsy Reports',   d: 'Human-readable, technical reports with evidence, transcripts, and timelines.' },
+  { icon: DolIcon,  t: 'Real Dollar Cost Tracking',  d: 'See the true cost of every failure and reduce wasted spend.' },
+];
+
+const STEPS = [
+  { n: '01', t: 'Inject a failure',      d: 'Configure fault type and parameters.',    dark: false },
+  { n: '02', t: 'Run a voice call',      d: 'Use a sample or record live audio.',      dark: true  },
+  { n: '03', t: 'Analyze pipeline',      d: 'STT → LLM → TTS with detailed metrics.', dark: true  },
+  { n: '04', t: 'Get autopsy report',    d: 'Root cause, evidence, cost, and recommendations.', dark: true  },
+];
 
 export default function LandingHome() {
   const [scale, setScale] = useState(1);
@@ -91,7 +180,7 @@ export default function LandingHome() {
     return () => window.removeEventListener('message', onMsg);
   }, [nav]);
 
-  const NATIVE_HEIGHT = 1030;
+  const NATIVE_HEIGHT = 550;
   const height = NATIVE_HEIGHT * scale;
   const enter = () => nav('/app');
   const top = () => window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -133,6 +222,98 @@ export default function LandingHome() {
             transformOrigin: 'top left',
           }}
         />
+      </section>
+
+      {/* ---- feature tiles (extracted from iframe into native React) ---- */}
+      <section className="features" id="features">
+        <div className="row">
+          {FEATURES.map(({ icon: I, t, d }) => (
+            <div key={t} className="col">
+              <div className="ico"><I /></div>
+              <div>
+                <h3>{t}</h3>
+                <p>{d}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ---- how it works + example autopsy report ---- */}
+      <section className="how" id="how-it-works">
+        <div>
+          <p className="eyebrow">01 · How it works</p>
+          <h2>Inject. Run. Diagnose. Fix.</h2>
+          <p className="subtitle">Simulate real-world failures and get a complete autopsy for every failed call.</p>
+          <div className="steps">
+            {STEPS.map((s) => (
+              <div key={s.n} className="step">
+                <span className={`n ${s.dark ? 'dark' : ''}`}>{s.n}</span>
+                <div>
+                  <h4>{s.t}</h4>
+                  <p>{s.d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <aside className="autopsy" aria-label="Example autopsy report">
+          <p className="eyebrow" style={{ margin: 0 }}>Example autopsy report</p>
+          <div className="head">
+            <h3>Case #3E2F9C2A</h3>
+            <a href="#" onClick={(e) => { e.preventDefault(); enter(); }}>View full report →</a>
+          </div>
+          <p className="ts">2026-09-27 14:32:11Z</p>
+
+          <div className="cod">
+            <div className="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 3l10 18H2L12 3z" /><path d="M12 10v5M12 18v.1" /></svg>
+            </div>
+            <div className="msg">
+              <small>CAUSE OF DEATH</small>
+              <b>Hallucination</b>
+              <span>Model generated incorrect information not grounded in audio.</span>
+            </div>
+            <div className="pill"><small>Total Cost</small><b>$0.004312</b></div>
+            <div className="pill"><small>Total Latency</small><b>2.384s</b></div>
+          </div>
+
+          <div className="stages">
+            <div><small>STT</small><b>Deepgram</b><span>0.821s · $0.001231</span></div>
+            <div><small>LLM</small><b>OpenAI</b><span>1.103s · $0.006441</span></div>
+            <div><small>TTS</small><b>ElevenLabs</b><span>0.460s · $0.000640</span></div>
+          </div>
+
+          <div className="tabs">
+            <span className="on">Transcript</span>
+            <span>Timeline</span>
+            <span>Technical Details</span>
+            <span>Recommendation</span>
+          </div>
+
+          <div className="pair">
+            <div className="clip">
+              <p className="lbl">User (audio)</p>
+              <div className="bars" aria-hidden="true">
+                {Array.from({ length: 26 }).map((_, i) => (
+                  <i key={i} style={{ height: `${20 + Math.abs(Math.sin(i * 0.9)) * 60}%` }} />
+                ))}
+              </div>
+              <p className="quote">"Can you tell me the refund policy?"</p>
+            </div>
+            <div className="arrow"><RightArrow /></div>
+            <div className="clip hall">
+              <p className="lbl">Model Response (hallucination)</p>
+              <div className="bars" aria-hidden="true">
+                {Array.from({ length: 26 }).map((_, i) => (
+                  <i key={i} style={{ height: `${20 + Math.abs(Math.cos(i * 1.1)) * 60}%` }} />
+                ))}
+              </div>
+              <p className="quote">"Sure, you are eligible for a 50% refund within 30 days of purchase, and you will also receive a free replacement."</p>
+            </div>
+          </div>
+        </aside>
       </section>
 
       <section className="sec" id="product">

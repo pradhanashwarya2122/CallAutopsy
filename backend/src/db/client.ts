@@ -15,6 +15,9 @@ export const pool = new Pool({
   connectionTimeoutMillis: 8_000,
 });
 
-export async function query<T = any>(text: string, params?: any[]): Promise<{ rows: T[] }> {
-  return pool.query(text, params);
+export async function query<T extends pg.QueryResultRow = any>(
+  text: string,
+  params?: any[],
+): Promise<{ rows: T[] }> {
+  return pool.query<T>(text, params);
 }

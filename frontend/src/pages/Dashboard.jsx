@@ -94,7 +94,7 @@ const CSS = `
   background:linear-gradient(135deg,rgba(255,255,255,.78),rgba(255,250,236,.52));
   -webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);
   box-shadow:0 1px 0 rgba(255,255,255,.95) inset,0 22px 44px -26px rgba(60,45,20,.4),0 2px 6px rgba(60,45,20,.06)}
-.ap-head::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#e2372b,#f0a23a 50%,#1e88ff)}
+/* removed: left rainbow gradient stripe */
 .ap-head::after{content:'';position:absolute;right:-70px;top:-90px;width:300px;height:300px;background:radial-gradient(circle,rgba(226,55,43,.11),transparent 65%);pointer-events:none}
 .ap-head > *{position:relative;z-index:1}
 .ap-eyebrow{display:flex;align-items:center;gap:12px;font-size:11.5px;letter-spacing:.32em;text-transform:uppercase;color:#4a4536}
@@ -254,96 +254,103 @@ const CSS = `
 .ap-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 8px;text-align:center;font-size:12px;color:var(--mute)}
 .ap-err{color:var(--red);font-size:12px;margin-top:6px;padding:0 16px 12px}
 
-.ap-hiw{display:grid;grid-template-columns:1fr;gap:26px;margin-top:32px;position:relative;z-index:1}
-@media (min-width:1024px){.ap-hiw{grid-template-columns:1.15fr 1fr}}
+.ap-features{display:grid;grid-template-columns:1fr;gap:0;margin:72px calc(-1 * var(--pr)) 0 calc(-1 * var(--pl));padding:44px clamp(40px,6vw,100px) 44px clamp(40px,6vw,100px);border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(255,253,247,.4),rgba(244,239,227,.2));position:relative;z-index:1}
+@media (min-width:768px){.ap-features{grid-template-columns:repeat(2,1fr);gap:0}}
+@media (min-width:1200px){.ap-features{grid-template-columns:repeat(4,1fr)}}
+.ap-feat{display:flex;gap:18px;align-items:flex-start;padding:8px 28px;min-width:0;position:relative}
+@media (min-width:1200px){.ap-feat + .ap-feat::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:1px;background:var(--line)}}
+.ap-feat-icon{flex:none;width:44px;height:44px;border:1.4px solid var(--red);border-radius:6px;display:grid;place-items:center;color:var(--red);background:rgba(255,255,255,.5)}
+.ap-feat-body{min-width:0}
+.ap-feat-t{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.2;margin:0 0 8px;letter-spacing:-.005em;color:var(--ink)}
+.ap-feat-body p{margin:0;font-size:13.5px;color:var(--mute);line-height:1.55}
+
+.ap-hiw{display:grid;grid-template-columns:1fr;gap:44px;margin-top:48px;padding-top:8px;position:relative;z-index:1}
+@media (min-width:1024px){.ap-hiw{grid-template-columns:1.02fr 1fr;gap:52px}}
 .ap-hiw-left,.ap-hiw-right{min-width:0}
-.ap-hiw-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:#4a4536}
+.ap-hiw-eyebrow{display:inline-flex;align-items:center;gap:12px;font-size:11.5px;letter-spacing:.32em;text-transform:uppercase;color:#4a4536}
 .ap-hiw-eyebrow b{color:var(--ink);font-weight:600}
-.ap-hiw-eyebrow i{display:inline-block;width:44px;height:1px;background:var(--red)}
-.ap-hiw-title{font-family:var(--serif);font-weight:500;font-size:46px;line-height:1.02;letter-spacing:-.025em;margin:14px 0 10px;color:var(--ink)}
-.ap-hiw-tag{color:var(--mute);font-size:13.5px;margin:0 0 24px;max-width:520px;line-height:1.55}
-.ap-steps{display:grid;grid-template-columns:1fr;gap:18px}
+.ap-hiw-eyebrow i{display:inline-block;width:48px;height:1px;background:var(--red)}
+.ap-hiw-title{font-family:var(--serif);font-weight:600;font-size:56px;line-height:1;letter-spacing:-.028em;margin:22px 0 14px;color:var(--ink)}
+.ap-hiw-tag{color:#3b372e;font-size:15px;margin:0 0 38px;max-width:580px;line-height:1.55}
+.ap-steps{display:grid;grid-template-columns:1fr;gap:22px}
 @media (min-width:640px){.ap-steps{grid-template-columns:repeat(2,1fr)}}
-@media (min-width:1024px){.ap-steps{grid-template-columns:repeat(4,1fr)}}
+@media (min-width:1024px){.ap-steps{grid-template-columns:repeat(4,1fr);gap:14px}}
 .ap-step{display:flex;gap:12px;align-items:flex-start;position:relative;min-width:0}
-.ap-step-n{flex:none;width:34px;height:34px;border-radius:50%;background:#15130f;color:#f4efe3;display:grid;place-items:center;font-family:var(--serif);font-size:14px;font-weight:500}
+.ap-step-n{flex:none;width:38px;height:38px;border-radius:50%;background:#15130f;color:#f4efe3;display:grid;place-items:center;font-family:var(--serif);font-size:13.5px;font-weight:500;letter-spacing:.02em}
 .ap-step:first-child .ap-step-n{background:var(--red)}
 .ap-step-body{min-width:0}
-.ap-step-t{font-family:var(--serif);font-weight:500;font-size:17px;margin-bottom:6px;letter-spacing:-.005em}
-.ap-step-body p{margin:0;font-size:12.5px;color:var(--mute);line-height:1.55}
-.ap-step-arrow{position:absolute;right:-10px;top:9px;color:#b9b2a0;display:none}
+.ap-step-t{font-family:var(--serif);font-weight:600;font-size:17px;margin-bottom:6px;letter-spacing:-.005em;line-height:1.2;color:var(--ink)}
+.ap-step-body p{margin:0;font-size:13px;color:var(--mute);line-height:1.5}
+.ap-step-arrow{position:absolute;right:-10px;top:12px;color:#b9b2a0;display:none}
 @media (min-width:1024px){.ap-step-arrow{display:block}}
 
-.ap-mini-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:24px}
-@media (min-width:1024px){.ap-mini-row{grid-template-columns:repeat(4,1fr)}}
-.ap-mini{border:1px solid var(--line);background:rgba(255,255,255,.6);border-radius:8px;padding:13px;box-shadow:0 8px 18px -14px rgba(60,45,20,.35);min-height:150px;display:flex;flex-direction:column}
-.ap-mini-h{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin-bottom:12px}
-.ap-mini-select{display:flex;align-items:center;justify-content:space-between;gap:6px;border:1px solid var(--line);border-radius:5px;padding:8px 10px;font-size:12px;background:#fff;color:var(--ink)}
-.ap-mini-slider-label{font-size:10.5px;color:var(--mute);margin:14px 0 8px;letter-spacing:.02em}
+.ap-mini-row{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:32px;align-items:stretch}
+@media (min-width:1024px){.ap-mini-row{grid-template-columns:1fr 20px 1fr 20px 1fr 20px 1fr;gap:0}}
+.ap-mini-sep{display:none;color:#b9b2a0;align-self:center;justify-self:center}
+@media (min-width:1024px){.ap-mini-sep{display:block}}
+.ap-mini{border:1px solid var(--line);background:rgba(255,255,255,.55);border-radius:6px;padding:14px 15px;min-height:160px;display:flex;flex-direction:column;min-width:0}
+.ap-mini-h{font-size:13px;color:var(--ink);margin-bottom:12px;font-weight:500;font-family:var(--mono)}
+.ap-mini-select{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:4px;padding:9px 11px;font-size:12.5px;background:#fff;color:var(--ink);font-family:var(--mono)}
+.ap-mini-slider-label{font-size:11px;color:var(--mute);margin:16px 0 8px;letter-spacing:.02em;font-family:var(--mono)}
 .ap-mini-range{position:relative;height:3px;background:#cdc7b7;border-radius:2px}
 .ap-mini-range i{position:absolute;left:0;top:0;bottom:0;background:#1e88ff;border-radius:2px}
-.ap-mini-range::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%;background:#1e88ff;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.25)}
-.ap-mini-rec{display:flex;align-items:center;gap:12px;padding:6px 4px;flex:1}
-.ap-mini-recdot{width:36px;height:36px;border-radius:50%;background:var(--red);flex:none;box-shadow:0 0 0 4px rgba(226,55,43,.18)}
-.ap-mini-recwave{flex:1;height:24px;display:flex;align-items:center;gap:2px;overflow:hidden}
-.ap-mini-recwave i{flex:1;background:#8b8577;border-radius:1px;min-width:1px;max-width:3px}
-.ap-mini-timeline{display:flex;gap:2px;height:10px;border-radius:3px;overflow:hidden;margin-bottom:12px}
+.ap-mini-range::after{content:'';position:absolute;left:calc(var(--pos,50%) - 7px);top:50%;transform:translateY(-50%);width:14px;height:14px;border-radius:50%;background:#1e88ff;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.25)}
+.ap-mini-slider-val{display:flex;justify-content:flex-end;margin-top:6px;font-size:10.5px;color:var(--mute);font-family:var(--mono)}
+.ap-mini-rec{display:flex;align-items:center;gap:12px;padding:4px 0;flex:1}
+.ap-mini-recdot{width:36px;height:36px;border-radius:50%;background:var(--red);flex:none;box-shadow:0 0 0 4px rgba(226,55,43,.15);position:relative}
+.ap-mini-recdot::after{content:'';position:absolute;inset:11px;background:#fff;border-radius:50%}
+.ap-mini-recwave{flex:1;height:26px;display:flex;align-items:center;gap:1.5px;overflow:hidden}
+.ap-mini-recwave i{flex:1;background:#3b372e;border-radius:1px;min-width:1px;max-width:2.5px}
+.ap-mini-timeline{display:flex;gap:2px;height:11px;border-radius:3px;overflow:hidden;margin-bottom:12px}
 .ap-mini-timeline span{display:block}
-.ap-mini-stages{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;font-size:9.5px}
-.ap-mini-stages > div{border:1px solid var(--line);border-radius:4px;padding:6px 5px;background:#fff;display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden}
-.ap-mini-stages b{font-family:var(--mono);font-weight:600;font-size:10.5px;color:var(--ink)}
-.ap-mini-stages span{color:#2b281f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px}
-.ap-mini-stages .stt{border-top:2px solid ${RING.stt}}
-.ap-mini-stages .llm{border-top:2px solid ${RING.llm}}
-.ap-mini-stages .tts{border-top:2px solid ${RING.tts}}
-.ap-mini-cod{display:flex;gap:10px;align-items:flex-start;flex:1}
-.ap-mini-cod b{font-family:var(--serif);font-weight:500;font-size:15.5px;color:var(--red);display:block;margin-bottom:4px}
-.ap-mini-cod p{margin:0;font-size:11.5px;color:#2b281f;line-height:1.45}
+.ap-mini-stages{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;font-size:10.5px}
+.ap-mini-stages > div{border:1px dashed var(--line);border-radius:3px;padding:7px 6px;background:transparent;display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden;font-family:var(--mono)}
+.ap-mini-stages b{font-weight:600;font-size:11px;color:var(--ink)}
+.ap-mini-stages span{color:#3b372e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px}
+.ap-mini-cod{display:flex;gap:10px;align-items:flex-start;flex:1;padding-top:2px}
+.ap-mini-cod-icon{flex:none;width:36px;height:36px;border-radius:5px;background:var(--red-bg);border:1px solid var(--red-line);display:grid;place-items:center;color:var(--red)}
+.ap-mini-cod b{font-family:var(--serif);font-weight:600;font-size:16px;color:var(--red);display:block;margin-bottom:4px;line-height:1.15}
+.ap-mini-cod p{margin:0;font-size:12px;color:#2b281f;line-height:1.4}
 
 .ap-hiw-rhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap}
-.ap-hiw-rhead a{color:var(--red);font-size:12px;text-decoration:none;letter-spacing:.02em;white-space:nowrap}
+.ap-hiw-rhead a{color:var(--red);font-size:12.5px;text-decoration:none;letter-spacing:.02em;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-family:var(--mono)}
 .ap-hiw-rhead a:hover{text-decoration:underline}
-.ap-case{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:22px;box-shadow:0 22px 40px -28px rgba(60,45,20,.4);position:relative;overflow:hidden}
-.ap-case::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--red),#f0a23a)}
-.ap-case-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-.ap-case-h h3{font-family:var(--serif);font-weight:500;font-size:28px;margin:0;letter-spacing:-.015em}
-.ap-case-h span{font-size:12px;color:var(--mute);font-family:var(--mono)}
+.ap-case{border:1px solid var(--line);background:rgba(255,253,247,.85);border-radius:8px;padding:22px 24px;box-shadow:0 22px 40px -28px rgba(60,45,20,.4);position:relative;overflow:hidden}
+.ap-case-h{margin-bottom:16px}
+.ap-case-h h3{font-family:var(--serif);font-weight:600;font-size:30px;margin:0 0 6px;letter-spacing:-.015em;line-height:1.1}
+.ap-case-h span{font-size:12.5px;color:var(--mute);font-family:var(--mono);letter-spacing:.02em}
 .ap-case-top{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px}
-@media (min-width:640px){.ap-case-top{grid-template-columns:1fr auto}}
-.ap-case-cod{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--red-line);background:var(--red-bg);border-radius:7px;padding:12px 14px}
-.ap-case-cod small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin-bottom:4px}
-.ap-case-cod b{font-family:var(--serif);font-weight:500;font-size:20px;color:var(--red);display:block;margin-bottom:6px}
-.ap-case-cod p{margin:0;font-size:12px;color:#2b281f;line-height:1.5}
-.ap-case-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.ap-case-metrics > div{border:1px solid var(--line);border-radius:7px;padding:10px 14px;background:#fff;min-width:110px}
-.ap-case-metrics small{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-bottom:4px}
-.ap-case-metrics b{font-family:var(--mono);font-weight:600;font-size:15px;color:var(--ink)}
-.ap-case-providers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-.ap-case-providers > div{border:1px solid var(--line);border-radius:7px;padding:9px 11px;background:#fff;min-width:0;position:relative;overflow:hidden}
-.ap-case-providers > div::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--pc,#8b8577)}
-.ap-case-providers .stt{--pc:${RING.stt}}
-.ap-case-providers .llm{--pc:${RING.llm}}
-.ap-case-providers .tts{--pc:${RING.tts}}
-.ap-case-providers small{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin-bottom:3px}
-.ap-case-providers b{display:block;font-size:12.5px;font-weight:600;margin-bottom:2px;color:var(--ink)}
-.ap-case-providers span{font-size:10.5px;color:var(--mute);font-family:var(--mono)}
+@media (min-width:640px){.ap-case-top{grid-template-columns:1fr auto auto}}
+.ap-case-cod{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--red-line);background:linear-gradient(135deg,var(--red-bg),#fde6e1);border-radius:6px;padding:14px 16px}
+.ap-case-cod-icon{flex:none;width:38px;height:38px;border-radius:6px;background:rgba(255,255,255,.6);border:1px solid var(--red-line);display:grid;place-items:center;color:var(--red)}
+.ap-case-cod small{display:block;font-size:11.5px;color:var(--red);margin-bottom:3px;font-family:var(--mono);letter-spacing:.01em}
+.ap-case-cod b{font-family:var(--serif);font-weight:600;font-size:22px;color:var(--red);display:block;margin-bottom:6px;line-height:1.1}
+.ap-case-cod p{margin:0;font-size:12.5px;color:#2b281f;line-height:1.5;font-family:var(--mono)}
+.ap-case-metric{border:1px solid var(--line);border-radius:6px;padding:10px 14px;background:rgba(255,255,255,.6);min-width:110px;font-family:var(--mono)}
+.ap-case-metric small{display:block;font-size:11px;color:var(--mute);margin-bottom:4px;letter-spacing:.01em}
+.ap-case-metric b{font-size:15px;color:var(--ink);font-weight:600}
+.ap-case-providers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.ap-case-providers > div{border:1px solid var(--line);border-radius:6px;padding:9px 12px;background:rgba(255,255,255,.6);min-width:0;font-family:var(--mono)}
+.ap-case-providers small{display:block;font-size:10.5px;color:var(--mute);margin-bottom:3px;letter-spacing:.02em}
+.ap-case-providers b{display:block;font-size:13px;font-weight:600;margin-bottom:3px;color:var(--ink)}
+.ap-case-providers span{font-size:11px;color:var(--mute)}
 .ap-case-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap}
 .ap-case-tabs button{background:none;border:0;padding:9px 12px;font-size:12.5px;color:var(--mute);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--mono)}
 .ap-case-tabs button.on{color:var(--ink);border-bottom-color:var(--ink);font-weight:500}
 .ap-case-body{min-height:120px}
 .ap-case-transcript{display:grid;grid-template-columns:1fr;gap:10px;align-items:stretch}
 @media (min-width:640px){.ap-case-transcript{grid-template-columns:1fr 24px 1fr}}
-.ap-case-bubble{border:1px solid var(--line);background:#fff;border-radius:7px;padding:11px 13px;min-width:0;display:flex;flex-direction:column;gap:8px}
-.ap-case-bubble.bad{border-color:var(--red-line);background:var(--red-bg)}
-.ap-case-bubble small{display:block;font-size:10.5px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+.ap-case-bubble{border:1px solid var(--line);background:rgba(255,255,255,.7);border-radius:6px;padding:12px 14px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.ap-case-bubble.bad{border-color:var(--red-line);background:linear-gradient(135deg,var(--red-bg),#fde6e1)}
+.ap-case-bubble small{display:block;font-size:11px;color:var(--mute);letter-spacing:.02em;font-family:var(--mono)}
 .ap-case-bubble.bad small{color:var(--red)}
-.ap-case-wavemini{height:22px;display:flex;align-items:center;gap:2px;overflow:hidden}
-.ap-case-wavemini i{flex:1;background:#8b8577;border-radius:1px;min-width:1px;max-width:3px}
+.ap-case-wavemini{height:24px;display:flex;align-items:center;gap:1.5px;overflow:hidden}
+.ap-case-wavemini i{flex:1;background:#3b372e;border-radius:1px;min-width:1px;max-width:2.5px}
 .ap-case-bubble.bad .ap-case-wavemini i{background:var(--red)}
-.ap-case-bubble p{margin:0;font-size:12px;line-height:1.55;color:#2b281f}
+.ap-case-bubble p{margin:0;font-size:12.5px;line-height:1.5;color:#2b281f;font-family:var(--mono)}
 .ap-case-bubble.bad p{color:#7a2418}
 .ap-case-arrow{color:#b9b2a0;justify-self:center;align-self:center}
-.ap-case-simple{padding:18px;font-size:13px;color:#2b281f;border:1px dashed var(--line);border-radius:7px;line-height:1.55;background:rgba(255,255,255,.35)}
+.ap-case-simple{padding:18px;font-size:13px;color:#2b281f;border:1px dashed var(--line);border-radius:6px;line-height:1.55;background:rgba(255,255,255,.35);font-family:var(--mono)}
 `;
 
 const Svg = ({ children, size = 16, ...p }) => (
@@ -828,170 +835,7 @@ function SampleLibrary({ samples }) {
   );
 }
 
-function HowItWorks() {
-  const [tab, setTab] = useState('transcript');
-  const steps = [
-    { n: '01', title: 'Inject a failure', text: 'Configure fault type and parameters.' },
-    { n: '02', title: 'Run a voice call', text: 'Use a sample or record live audio.' },
-    { n: '03', title: 'Analyze pipeline', text: 'STT → LLM → TTS with detailed metrics.' },
-    { n: '04', title: 'Get autopsy report', text: 'Root cause, evidence, cost, and recommendations.' },
-  ];
-  const miniBars = useMemo(() => seededBars('mini-recorder', 32), []);
-  const userBars = useMemo(() => seededBars('user-audio-example', 40), []);
-  const modelBars = useMemo(() => seededBars('model-response-example', 40), []);
 
-  return (
-    <section className="ap-hiw">
-      <div className="ap-hiw-left">
-        <div className="ap-hiw-eyebrow"><b>01</b> How it works <i /></div>
-        <h2 className="ap-hiw-title">Inject. Run. Diagnose. Fix.</h2>
-        <p className="ap-hiw-tag">Simulate real-world failures and get a complete autopsy for every failed call.</p>
-
-        <div className="ap-steps">
-          {steps.map((s, i) => (
-            <div key={s.n} className="ap-step">
-              <div className="ap-step-n">{s.n}</div>
-              <div className="ap-step-body">
-                <div className="ap-step-t">{s.title}</div>
-                <p>{s.text}</p>
-              </div>
-              {i < steps.length - 1 && <ChevR size={16} className="ap-step-arrow" />}
-            </div>
-          ))}
-        </div>
-
-        <div className="ap-mini-row">
-          <div className="ap-mini">
-            <div className="ap-mini-h">Fault Injection</div>
-            <div className="ap-mini-select">network_drop <ChevDown size={12} /></div>
-            <div className="ap-mini-slider-label">Packet Loss (%)</div>
-            <div className="ap-mini-range"><i style={{ width: '50%' }} /></div>
-          </div>
-
-          <div className="ap-mini">
-            <div className="ap-mini-h">Live Recorder</div>
-            <div className="ap-mini-rec">
-              <span className="ap-mini-recdot" />
-              <div className="ap-mini-recwave">
-                {miniBars.map((b, i) => <i key={i} style={{ height: `${Math.round(b * 100)}%` }} />)}
-              </div>
-            </div>
-          </div>
-
-          <div className="ap-mini">
-            <div className="ap-mini-h">Stage Timeline</div>
-            <div className="ap-mini-timeline">
-              <span style={{ background: RING.stt, flex: 0.7 }} />
-              <span style={{ background: RING.llm, flex: 1.4 }} />
-              <span style={{ background: RING.tts, flex: 0.5 }} />
-            </div>
-            <div className="ap-mini-stages">
-              <div className="stt"><b>STT</b><span>0.821s</span><span>$0.001231</span></div>
-              <div className="llm"><b>LLM</b><span>1.103s</span><span>$0.006441</span></div>
-              <div className="tts"><b>TTS</b><span>0.460s</span><span>$0.000640</span></div>
-            </div>
-          </div>
-
-          <div className="ap-mini">
-            <div className="ap-mini-h">Cause of Death</div>
-            <div className="ap-mini-cod">
-              <WarnTri size={22} style={{ color: 'var(--red)', flex: 'none', marginTop: 2 }} />
-              <div>
-                <b>Hallucination</b>
-                <p>Incorrect information not grounded in audio.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="ap-hiw-right">
-        <div className="ap-hiw-rhead">
-          <span className="ap-hiw-eyebrow"><b>Example Autopsy Report</b> <i /></span>
-          <Link to="/analyze">View full report</Link>
-        </div>
-
-        <div className="ap-case">
-          <div className="ap-case-h">
-            <h3>Case #3E2F9C2A</h3>
-            <span>2026-09-27 14:32:11Z</span>
-          </div>
-
-          <div className="ap-case-top">
-            <div className="ap-case-cod">
-              <WarnTri size={26} style={{ color: 'var(--red)', flex: 'none', marginTop: 4 }} />
-              <div>
-                <small>Cause of Death</small>
-                <b>Hallucination</b>
-                <p>Model generated incorrect information not grounded in audio.</p>
-              </div>
-            </div>
-            <div className="ap-case-metrics">
-              <div><small>Total Cost</small><b>$0.004312</b></div>
-              <div><small>Total Latency</small><b>2.384s</b></div>
-            </div>
-          </div>
-
-          <div className="ap-case-providers">
-            <div className="stt"><small>STT</small><b>Deepgram</b><span>0.821s $0.001231</span></div>
-            <div className="llm"><small>LLM</small><b>OpenAI</b><span>1.185s $0.006441</span></div>
-            <div className="tts"><small>TTS</small><b>ElevenLabs</b><span>0.460s $0.000640</span></div>
-          </div>
-
-          <div className="ap-case-tabs" role="tablist">
-            {[
-              { k: 'transcript', l: 'Transcript' },
-              { k: 'timeline', l: 'Timeline' },
-              { k: 'technical', l: 'Technical Details' },
-              { k: 'recommendation', l: 'Recommendation' },
-            ].map((t) => (
-              <button key={t.k} type="button" role="tab" aria-selected={tab === t.k} className={tab === t.k ? 'on' : ''} onClick={() => setTab(t.k)}>
-                {t.l}
-              </button>
-            ))}
-          </div>
-
-          <div className="ap-case-body">
-            {tab === 'transcript' && (
-              <div className="ap-case-transcript">
-                <div className="ap-case-bubble">
-                  <small>User (audio)</small>
-                  <div className="ap-case-wavemini" aria-hidden="true">
-                    {userBars.map((b, i) => <i key={i} style={{ height: `${Math.round(b * 100)}%` }} />)}
-                  </div>
-                  <p>Can you tell me the refund policy?</p>
-                </div>
-                <ArrowRight size={20} className="ap-case-arrow" />
-                <div className="ap-case-bubble bad">
-                  <small>Model Response (hallucination)</small>
-                  <div className="ap-case-wavemini" aria-hidden="true">
-                    {modelBars.map((b, i) => <i key={i} style={{ height: `${Math.round(b * 100)}%` }} />)}
-                  </div>
-                  <p>Sure, you are eligible for a 50% refund within 30 days of purchase, and you will also receive a free replacement.</p>
-                </div>
-              </div>
-            )}
-            {tab === 'timeline' && (
-              <div className="ap-case-simple">
-                STT completed in 0.821s, LLM in 1.185s (the failing stage), and TTS in 0.460s — total 2.384s across the pipeline.
-              </div>
-            )}
-            {tab === 'technical' && (
-              <div className="ap-case-simple">
-                Deepgram nova-2 · OpenAI gpt-4o at temperature 1.2 · ElevenLabs eleven_multilingual_v2. LLM returned tokens not grounded in the transcribed audio context.
-              </div>
-            )}
-            {tab === 'recommendation' && (
-              <div className="ap-case-simple">
-                Lower LLM temperature to 0.7, add retrieval grounding over the refund policy document, and enforce a citation check before responding.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 const DEMO_STATS = { total_calls: 128, failures: 4, failure_rate: 3.1, sla_target_rate: 5, avg_latency_s: 2.31, total_cost_usd: 0.552 };
 const DEMO_CASES = [
@@ -1084,7 +928,7 @@ export default function Dashboard() {
       <div className="ap-rail" style={{ top: 680, fontSize: 10.5 }} aria-hidden="true">STT<br />LLM<br />TTS<br />Analyze<br />Fix</div>
 
       <div className="ap-topbar">
-        <div className="ap-brand"><i />Voice Bot Autopsy</div>
+        <div className="ap-brand"><i />CallAutopsy</div>
         <nav className="ap-nav" aria-label="Primary">
           <span className="on" aria-current="page">Dashboard</span>
           {NAV.map((n) => <Link key={n.to} to={n.to}>{n.label}</Link>)}
@@ -1095,7 +939,7 @@ export default function Dashboard() {
       <header className="ap-head">
         <div>
           <div className="ap-eyebrow">Case File</div>
-          <h1 className="ap-title">Voice Bot <em>Autopsy</em></h1>
+          <h1 className="ap-title">Call<em>Autopsy</em></h1>
           <p className="ap-tagline">Trace every failed call to the stage that broke it.</p>
         </div>
       </header>
@@ -1124,7 +968,6 @@ export default function Dashboard() {
         <SampleLibrary samples={samples} />
       </div>
 
-      <HowItWorks />
     </div>
   );
 }
