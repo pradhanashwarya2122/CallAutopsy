@@ -6,6 +6,7 @@ import Ops from './pages/Ops.jsx';
 import LandingHome from './pages/LandingHome.jsx';
 import { CallDetail } from './pages/CallDetail';
 import { Replay } from './pages/Replay';
+import ConnectionStatus from './components/ConnectionStatus.jsx';
 
 const NAV: [string, string][] = [
   ['/app', 'Dashboard'],
@@ -63,6 +64,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <ConnectionStatus />
       <Routes>
         <Route path="/" element={<LandingHome />} />
         {/* These pages carry their own case-file chrome (own topbar + header) */}

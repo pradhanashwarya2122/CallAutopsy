@@ -1,13 +1,78 @@
-const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-export const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws';
+// ---------------------------------------------------------------
+// API base resolution
+//
+// Priority:
+//   1. VITE_API_BASE_URL (baked at build time by Vite)
+//   2. Fallback: try the same origin the page was loaded from — this lets a
+//      deploy work even if the Cloudflare build was missing the env var.
+//   3. Last resort: http://localhost:3000 for dev
+// ---------------------------------------------------------------
+function resolveBase(): string {
+  const fromEnv = import.meta.env.VITE_API_BASE_URL;
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      console.warn(
+        '[api] VITE_API_BASE_URL not set at build time — falling back to same-origin ' +
+          window.location.origin +
+          '. This only works if the backend is served from the same domain.',
+      );
+      return window.location.origin;
+    }
+  }
+  return 'http://localhost:3000';
+}
+
+function resolveWs(): string {
+  const fromEnv = import.meta.env.VITE_WS_URL;
+  if (fromEnv) return fromEnv;
+  const base = resolveBase();
+  return base.replace(/^http/, 'ws') + '/ws';
+}
+
+export const BASE = resolveBase();
+export const WS_URL = resolveWs();
+
+// Session-scoped connectivity state so any component can render a banner.
+export const connectivity = {
+  online: true as boolean,
+  lastError: null as string | null,
+  listeners: new Set<() => void>(),
+  emit() { this.listeners.forEach((fn) => fn()); },
+};
 
 async function j(path: string, init?: RequestInit) {
-  const res = await fetch(BASE + path, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const url = BASE + path;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 20_000);
+    const res = await fetch(url, {
+      ...init,
+      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+    });
+    clearTimeout(t);
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${res.statusText} ${text}`.trim());
+    }
+    if (!connectivity.online) {
+      connectivity.online = true;
+      connectivity.lastError = null;
+      connectivity.emit();
+    }
+    return res.json();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (connectivity.online) {
+      connectivity.online = false;
+      connectivity.lastError = `${url} → ${msg}`;
+      connectivity.emit();
+    }
+    console.error('[api]', url, msg);
+    throw err;
+  }
 }
 
 export const api = {
