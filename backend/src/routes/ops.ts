@@ -16,8 +16,38 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   ]);
 }
 
+// /health = LIVENESS. Always returns 200 as long as the Node process is up
+// and responding to HTTP. This is what Railway's platform healthcheck hits —
+// if it returns non-200, Railway shuts the container down. We still report
+// the deep checks in the JSON body for humans / debugging.
+//
+// /health/ready = READINESS. Returns 503 if DB or Redis are down. Use this
+// for load-balancer readiness or CI smoke tests, NOT for the platform
+// healthcheck.
 opsRouter.get('/health', async (_req, res) => {
-  const checks: Record<string, any> = {};
+  const checks: Record<string, any> = { storage: currentDriver() };
+  try {
+    await withTimeout(pool.query('SELECT 1'), 3000, 'db');
+    checks.db = 'ok';
+  } catch (e) {
+    checks.db = (e as Error).message;
+  }
+  try {
+    const pong = await withTimeout(Promise.resolve(redisConnection.ping()), 2000, 'redis');
+    checks.redis = pong === 'PONG' ? 'ok' : `unexpected: ${pong}`;
+  } catch (e) {
+    checks.redis = (e as Error).message;
+  }
+  res.status(200).json({
+    ok: true,
+    ts: new Date().toISOString(),
+    checks,
+    ready: checks.db === 'ok' && checks.redis === 'ok',
+  });
+});
+
+opsRouter.get('/health/ready', async (_req, res) => {
+  const checks: Record<string, any> = { storage: currentDriver() };
   let ok = true;
   try {
     await withTimeout(pool.query('SELECT 1'), 3000, 'db');
@@ -33,7 +63,6 @@ opsRouter.get('/health', async (_req, res) => {
     ok = false;
     checks.redis = (e as Error).message;
   }
-  checks.storage = currentDriver();
   res.status(ok ? 200 : 503).json({ ok, ts: new Date().toISOString(), checks });
 });
 

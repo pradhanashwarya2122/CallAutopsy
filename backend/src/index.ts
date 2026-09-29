@@ -14,20 +14,27 @@ const server = http.createServer(app);
 attachWebSocket(server);
 
 const port = Number(process.env.PORT) || 3000;
+const HOST = '0.0.0.0';
 let worker: any = null;
 let shuttingDown = false;
 
-server.listen(port, async () => {
-  console.log(`[call-autopsy] listening on :${port}`);
-  // Auto-apply schema on boot — safe because every CREATE / ALTER is IF NOT EXISTS.
-  try { await migrate(); } catch (e) { console.error('[migrate]', (e as Error).message); }
-  try {
-    worker = startCallWorker();
-    startSlaMonitor();
-    startHealingMonitor();
-  } catch (e) {
-    console.error('[boot] worker/sla start failed:', (e as Error).message);
-  }
+// Bind explicitly to 0.0.0.0 so Railway's edge proxy can reach the container.
+// The startup callback runs migrations and starts background workers AFTER
+// the socket is bound — so the platform sees the port up immediately and
+// the healthcheck doesn't fail while migrations run.
+server.listen(port, HOST, () => {
+  console.log(`[call-autopsy] listening on ${HOST}:${port}`);
+  // Kick off async boot work but don't block the listen callback.
+  (async () => {
+    try { await migrate(); } catch (e) { console.error('[migrate]', (e as Error).message); }
+    try {
+      worker = startCallWorker();
+      startSlaMonitor();
+      startHealingMonitor();
+    } catch (e) {
+      console.error('[boot] worker/sla start failed:', (e as Error).message);
+    }
+  })();
 });
 
 async function shutdown(signal: string) {
@@ -35,20 +42,15 @@ async function shutdown(signal: string) {
   shuttingDown = true;
   console.log(`[shutdown] signal=${signal}, draining…`);
 
-  // 1. stop taking new HTTP
   await new Promise<void>((r) => server.close(() => r()));
 
-  // 2. drain worker
   try {
-    if (worker) {
-      await worker.close();
-    }
+    if (worker) await worker.close();
     await callQueue.close();
   } catch (e) {
     console.error('[shutdown] worker close', (e as Error).message);
   }
 
-  // 3. mark in-flight calls as aborted
   try {
     await query(
       `UPDATE calls SET status='aborted', ended_at=now(), updated_at=now()
@@ -58,7 +60,6 @@ async function shutdown(signal: string) {
     console.error('[shutdown] mark aborted', (e as Error).message);
   }
 
-  // 4. close DB + Redis
   try { await pool.end(); } catch {}
   try { redisConnection.disconnect(); } catch {}
 

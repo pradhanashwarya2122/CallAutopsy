@@ -20,7 +20,23 @@ export function createServer() {
   app.use(cors());
   app.use(express.json({ limit: '25mb' }));
 
-  // /health is now provided by opsRouter with real DB + Redis probes.
+  // Friendly root — API-only server, so we tell visitors where the docs / app live.
+  app.get('/', (_req, res) => {
+    res.json({
+      service: 'CallAutopsy backend',
+      status: 'running',
+      docs: 'https://github.com/pradhanashwarya2122/CallAutopsy',
+      endpoints: {
+        health: '/health',
+        readiness: '/health/ready',
+        status: '/status',
+        calls: '/calls',
+        ws: '/ws',
+      },
+    });
+  });
+
+  // /health (liveness) + /health/ready (deep readiness) provided by opsRouter.
   app.use(opsRouter);
   app.use(callsRouter);
   app.use(demoRouter);
