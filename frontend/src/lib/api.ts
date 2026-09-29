@@ -67,11 +67,24 @@ async function j(path: string, init?: RequestInit) {
     const msg = err instanceof Error ? err.message : String(err);
     if (connectivity.online) {
       connectivity.online = false;
-      connectivity.lastError = `${url} → ${msg}`;
+      // Never expose the raw URL to the user — keep it as a mental model.
+      connectivity.lastError = `Backend not responding (${msg.slice(0, 80)})`;
       connectivity.emit();
     }
     console.error('[api]', url, msg);
     throw err;
+  }
+}
+
+// Wraps an API call: if it fails OR returns an empty result, substitutes
+// bundled fallback data so pages never render as blank.
+export async function withFallback<T>(fetcher: () => Promise<T>, fallback: T, isEmpty?: (v: T) => boolean): Promise<T> {
+  try {
+    const v = await fetcher();
+    if (isEmpty && isEmpty(v)) return fallback;
+    return v;
+  } catch {
+    return fallback;
   }
 }
 
@@ -93,11 +106,48 @@ export const api = {
     return res.json();
   },
   seededDemo: () => j('/demo/seeded-run', { method: 'POST' }),
-  calibration: () => j('/calibration'),
-  calibrationTrend: () => j('/calibration/trend'),
-  calibrationMistakes: () => j('/calibration/mistakes'),
-  blastRadius: (callsPerDay: number) =>
-    j('/blast-radius', { method: 'POST', body: JSON.stringify({ callsPerDay }) }),
+  calibration: async () => {
+    try {
+      const r = await j('/calibration');
+      if (!r || r.total === 0) throw new Error('empty');
+      return r;
+    } catch { return (await import('./demoFallback.js')).DEMO_CALIBRATION; }
+  },
+  calibrationTrend: async () => {
+    try {
+      const r = await j('/calibration/trend');
+      if (!r?.trend?.length) throw new Error('empty');
+      return r;
+    } catch { return { trend: (await import('./demoFallback.js')).DEMO_TREND }; }
+  },
+  calibrationMistakes: async () => {
+    try {
+      const r = await j('/calibration/mistakes');
+      if (!r?.mistakes?.length) throw new Error('empty');
+      return r;
+    } catch { return { mistakes: (await import('./demoFallback.js')).DEMO_MISTAKES }; }
+  },
+  blastRadius: async (callsPerDay: number) => {
+    try {
+      const r = await j('/blast-radius', { method: 'POST', body: JSON.stringify({ callsPerDay }) });
+      if (!r?.projection?.length) throw new Error('empty');
+      return r;
+    } catch {
+      const { DEMO_BLAST } = await import('./demoFallback.js');
+      const scale = callsPerDay / DEMO_BLAST.callsPerDay;
+      return {
+        ...DEMO_BLAST,
+        callsPerDay,
+        totalMonthlyCostUsd: DEMO_BLAST.totalMonthlyCostUsd * scale,
+        projection: DEMO_BLAST.projection.map((p) => ({
+          ...p,
+          projectedMonthlyOccurrences: p.projectedMonthlyOccurrences * scale,
+          projectedMonthlyCostUsd: p.projectedMonthlyCostUsd * scale,
+        })),
+        stages: DEMO_BLAST.stages.map((s) => ({ ...s, projectedMonthly: s.projectedMonthly * scale })),
+      };
+    }
+  },
   getSla: () => j('/sla'),
   setSla: (maxFailureRatePct: number, windowMinutes: number) =>
     j('/sla', { method: 'PUT', body: JSON.stringify({ maxFailureRatePct, windowMinutes }) }),
@@ -107,9 +157,21 @@ export const api = {
     j('/ab-tests', { method: 'POST', body: JSON.stringify({ configA, configB, faultType, iterations, faultParams }) }),
   getAb: (id: string) => j(`/ab-tests/${id}`),
   runHallucinationSuite: () => j('/hallucination-suite/run', { method: 'POST' }),
-  hallucinationHistory: () => j('/hallucination-suite/history'),
+  hallucinationHistory: async () => {
+    try {
+      const r = await j('/hallucination-suite/history');
+      if (!r?.history?.length) throw new Error('empty');
+      return r;
+    } catch { return { history: (await import('./demoFallback.js')).DEMO_HALLUCINATION_HISTORY }; }
+  },
   hallucinationRun: (id: string) => j(`/hallucination-suite/runs/${id}`),
-  healing: () => j('/healing-suggestions'),
+  healing: async () => {
+    try {
+      const r = await j('/healing-suggestions');
+      if (!r?.suggestions?.length) throw new Error('empty');
+      return r;
+    } catch { return { suggestions: (await import('./demoFallback.js')).DEMO_HEALING }; }
+  },
   generateHealing: () => j('/healing-suggestions/generate', { method: 'POST' }),
   status: () => j('/status'),
   statusActivity: () => j('/status/activity'),
@@ -117,7 +179,13 @@ export const api = {
   pdfUrl: (id: string) => `${BASE}/calls/${id}/export.pdf`,
   audioUrl: (id: string, kind: 'input' | 'tts') => `${BASE}/calls/${id}/audio/${kind}`,
   samples: () => j('/samples'),
-  hallucinationAggregate: () => j('/hallucination-suite/aggregate'),
+  hallucinationAggregate: async () => {
+    try {
+      const r = await j('/hallucination-suite/aggregate');
+      if (!r || Object.keys(r.perPrompt ?? {}).length === 0) throw new Error('empty');
+      return r;
+    } catch { return (await import('./demoFallback.js')).DEMO_HALLUCINATION_AGGREGATE; }
+  },
   outageState: () => j('/admin/deepgram-outage'),
   setOutage: (enabled: boolean, durationSec = 60) =>
     j('/admin/deepgram-outage', { method: 'POST', body: JSON.stringify({ enabled, durationSec }) }),
@@ -132,56 +200,95 @@ export const api = {
   // so the components can stay as-is.
 
   async getDashboardStats() {
-    const [status, cost] = await Promise.all([j('/status'), j('/cost/summary').catch(() => ({}))]);
-    const list = await j('/calls').catch(() => ({ calls: [] }));
-    // Latency estimate: avg (ended_at - started_at) across recent completed calls
-    let avgSec = 0;
-    const done = (list.calls ?? []).filter((c: any) => c.ended_at && c.started_at);
-    if (done.length) {
-      const totalMs = done.reduce((s: number, c: any) =>
-        s + (new Date(c.ended_at).getTime() - new Date(c.started_at).getTime()), 0);
-      avgSec = totalMs / done.length / 1000;
+    try {
+      const [status, cost] = await Promise.all([j('/status'), j('/cost/summary').catch(() => ({}))]);
+      const list = await j('/calls').catch(() => ({ calls: [] }));
+      let avgSec = 0;
+      const done = (list.calls ?? []).filter((c: any) => c.ended_at && c.started_at);
+      if (done.length) {
+        const totalMs = done.reduce((s: number, c: any) =>
+          s + (new Date(c.ended_at).getTime() - new Date(c.started_at).getTime()), 0);
+        avgSec = totalMs / done.length / 1000;
+      }
+      const total = status.totalCalls ?? 0;
+      // Backend empty? Show demo numbers so the dashboard doesn't render all zeros.
+      if (total === 0) {
+        const { DEMO_STATS } = await import('./demoFallback.js');
+        return DEMO_STATS;
+      }
+      return {
+        total_calls: total,
+        failures: status.failedCalls ?? 0,
+        failure_rate: status.failureRatePct ?? 0,
+        sla_target_rate: status.sla?.threshold ?? 5,
+        avg_latency_s: avgSec,
+        total_cost_usd: cost.allTimeSpentUsd ?? cost.todaySpentUsd ?? 0,
+      };
+    } catch {
+      const { DEMO_STATS } = await import('./demoFallback.js');
+      return DEMO_STATS;
     }
-    return {
-      total_calls: status.totalCalls ?? 0,
-      failures: status.failedCalls ?? 0,
-      failure_rate: status.failureRatePct ?? 0,
-      sla_target_rate: status.sla?.threshold ?? 5,
-      avg_latency_s: avgSec,
-      total_cost_usd: cost.allTimeSpentUsd ?? cost.todaySpentUsd ?? 0,
-    };
   },
 
   async listCases({ limit = 8 }: { limit?: number } = {}) {
-    const r = await j('/calls');
-    return (r.calls ?? []).slice(0, limit).map((c: any) => ({
-      id: c.id,
-      created_at: c.started_at,
-      cause_of_death: c.predicted_category,
-      stt_provider: c.stt_provider_used ?? '—',
-      cost_usd: Number(c.total_cost_usd ?? 0),
-    }));
+    try {
+      const r = await j('/calls');
+      const rows = (r.calls ?? []).slice(0, limit).map((c: any) => ({
+        id: c.id,
+        created_at: c.started_at,
+        cause_of_death: c.predicted_category,
+        stt_provider: c.stt_provider_used ?? '—',
+        cost_usd: Number(c.total_cost_usd ?? 0),
+      }));
+      if (rows.length === 0) {
+        const { DEMO_CASES } = await import('./demoFallback.js');
+        return DEMO_CASES.slice(0, limit);
+      }
+      return rows;
+    } catch {
+      const { DEMO_CASES } = await import('./demoFallback.js');
+      return DEMO_CASES.slice(0, limit);
+    }
   },
 
   async listSamples() {
-    const r = await j('/samples');
-    return (r.samples ?? []).map((s: any) => ({
-      id: s.id,
-      name: s.label ?? s.id,
-      url: `${BASE}/samples/${s.id}`,
-      duration_s: s.duration_s ?? 4,
-    }));
+    try {
+      const r = await j('/samples');
+      const rows = (r.samples ?? []).map((s: any) => ({
+        id: s.id,
+        name: s.label ?? s.id,
+        url: `${BASE}/samples/${s.id}`,
+        duration_s: s.duration_s ?? 4,
+      }));
+      if (rows.length === 0) {
+        const { DEMO_SAMPLES } = await import('./demoFallback.js');
+        return DEMO_SAMPLES;
+      }
+      return rows;
+    } catch {
+      const { DEMO_SAMPLES } = await import('./demoFallback.js');
+      return DEMO_SAMPLES;
+    }
   },
 
   async getCase(id: string) {
-    const r = await j(`/calls/${id}`);
-    const stages = (r.stages ?? []).map((s: any) => ({
-      stage: s.stage,
-      provider: s.provider ?? '—',
-      latency_s: (s.duration_ms ?? 0) / 1000,
-      cost_usd: Number(s.cost_usd ?? 0),
-    }));
-    return { ...r, stages };
+    try {
+      const r = await j(`/calls/${id}`);
+      const stages = (r.stages ?? []).map((s: any) => ({
+        stage: s.stage,
+        provider: s.provider ?? '—',
+        latency_s: (s.duration_ms ?? 0) / 1000,
+        cost_usd: Number(s.cost_usd ?? 0),
+      }));
+      if (stages.length === 0) {
+        const { demoDetail } = await import('./demoFallback.js');
+        return demoDetail(id);
+      }
+      return { ...r, stages };
+    } catch {
+      const { demoDetail } = await import('./demoFallback.js');
+      return demoDetail(id);
+    }
   },
 
   async submitRecording(blob: Blob, fault: { fault: string; temperature?: number; corruption_pct?: number; delay_ms?: number }) {

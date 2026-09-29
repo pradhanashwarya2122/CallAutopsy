@@ -95,6 +95,21 @@ const CSS = `
 .ap-live.on .dot{animation:ap-pulse 1.4s ease-in-out infinite}
 @keyframes ap-pulse{0%,100%{opacity:.35}50%{opacity:1}}
 
+/* live-event flash toast (bottom-right, human-readable event lines) */
+.ap-flash{position:fixed;bottom:22px;right:22px;z-index:120;max-width:360px;
+  padding:11px 14px;border-radius:8px;border:1px solid var(--line);background:#fdfbf5;
+  box-shadow:0 18px 34px -22px rgba(60,45,20,.55);font-family:var(--mono);font-size:12px;
+  color:var(--ink);animation:ap-slide .32s cubic-bezier(.2,.8,.2,1) both;display:flex;align-items:flex-start;gap:10px}
+.ap-flash .glyph{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:600;color:#fff}
+.ap-flash.info .glyph{background:#1e88ff}
+.ap-flash.ok   .glyph{background:var(--green)}
+.ap-flash.warn .glyph{background:#e0a030}
+.ap-flash.err  .glyph{background:var(--red)}
+.ap-flash.warn{border-color:#eab884;background:var(--amber-bg)}
+.ap-flash.err{border-color:var(--red-line);background:var(--red-bg)}
+.ap-flash.ok{border-color:#8ccaa9;background:var(--green-bg)}
+@keyframes ap-slide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
 .ap-head{display:block;margin-top:22px;position:relative;z-index:1;overflow:hidden;
   padding:22px 28px 22px 32px;border:1px solid rgba(206,198,178,.95);border-radius:14px;
   background:linear-gradient(135deg,rgba(255,255,255,.78),rgba(255,250,236,.52));
@@ -640,6 +655,31 @@ function StageTimeline({ detail, loading }) {
   );
 }
 
+// Turn raw WebSocket events into short, human-readable status lines.
+// Mental model: "what a phone-support supervisor would say", not "what an
+// engineer would log".
+function humanizeEvent(ev) {
+  if (!ev) return null;
+  const shortId = (id) => (id ? String(id).slice(0, 8) : '');
+  if (ev.type === 'call.started') {
+    return { tone: 'info', msg: `New call ${shortId(ev.callId)} started · fault: ${ev.faultType ?? 'none'}` };
+  }
+  if (ev.type === 'call.stage') {
+    if (ev.status === 'ok') return { tone: 'info', msg: `Call ${shortId(ev.callId)} · ${ev.stage.toUpperCase()} finished on ${ev.provider ?? '—'}` };
+    if (ev.status === 'timeout') return { tone: 'warn', msg: `Call ${shortId(ev.callId)} · ${ev.stage.toUpperCase()} timed out` };
+    return { tone: 'err', msg: `Call ${shortId(ev.callId)} · ${ev.stage.toUpperCase()} failed on ${ev.provider ?? '—'}` };
+  }
+  if (ev.type === 'call.completed') {
+    const cost = Number(ev.totalCost ?? 0).toFixed(4);
+    if (ev.category === 'ok') return { tone: 'ok', msg: `Call ${shortId(ev.callId)} completed · $${cost}` };
+    return { tone: 'err', msg: `Call ${shortId(ev.callId)} failed — cause: ${ev.category ?? 'unknown'} · $${cost}` };
+  }
+  if (ev.type === 'sla.breach') {
+    return { tone: 'err', msg: `SLA BREACH — failure rate ${Number(ev.observed).toFixed(1)}% over ${ev.threshold}% threshold` };
+  }
+  return null;
+}
+
 function seededBars(seed, n = 44) {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
@@ -916,11 +956,18 @@ export default function Dashboard() {
     return () => clearInterval(t);
   }, [refresh]);
 
-  // Live WebSocket feed → refresh instantly on any call lifecycle event.
+  // Live WebSocket feed → refresh instantly + human-readable event toast.
   const { lastEvent, connected: wsConnected } = useLiveCallFeed({ max: 32 });
+  const [flash, setFlash] = useState(null);
   useEffect(() => {
     if (!lastEvent) return;
     if (lastEvent.type === 'call.completed' || lastEvent.type === 'call.started') refresh();
+    const human = humanizeEvent(lastEvent);
+    if (human) {
+      setFlash(human);
+      const t = setTimeout(() => setFlash(null), 3200);
+      return () => clearTimeout(t);
+    }
   }, [lastEvent, refresh]);
 
   useEffect(() => {
@@ -987,6 +1034,12 @@ export default function Dashboard() {
         <SampleLibrary samples={samples} />
       </div>
 
+      {flash && (
+        <div className={`ap-flash ${flash.tone}`} role="status">
+          <span className="glyph">{flash.tone === 'ok' ? '✓' : flash.tone === 'err' ? '!' : flash.tone === 'warn' ? '⚠' : 'i'}</span>
+          <span>{flash.msg}</span>
+        </div>
+      )}
     </div>
   );
 }
