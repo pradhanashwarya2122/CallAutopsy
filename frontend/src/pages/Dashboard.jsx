@@ -493,6 +493,27 @@ function FaultFold({ value, onChange }) {
   );
 }
 
+
+// A four-step path through the product, ticked off as the user does each step, so the order is never a guess.
+function StartGuide({ hasCalls, faultOn }) {
+  const steps = [
+    ['Pick a call', 'Choose a demo recording on the left (or record or upload your own).', true],
+    ['Break it on purpose (optional)', 'Turn on “Simulate a failure” and choose one, to see how that failure looks.', !!faultOn],
+    ['Press Analyze, then read the verdict', 'You get the step that failed, the evidence, the time and the cost of each step.', hasCalls],
+  ];
+  return (
+    <ol className="ap-guide">
+      {steps.map(([t, d, done], i) => (
+        <li key={t} className={done && i > 0 ? 'done' : ''}><span>{i + 1}</span><div><b>{t}</b><em>{d}</em></div></li>
+      ))}
+      <li className={hasCalls ? 'next' : 'locked'}>
+        <span>4</span>
+        <div><b>Compare two setups</b><em>{hasCalls ? <>Now run the same call on two configurations: <Link to="/ab">open the A/B page →</Link></> : 'After your first analysis, the A/B page runs the same call on two setups and tells you which is better.'}</em></div>
+      </li>
+    </ol>
+  );
+}
+
 function AnalyzePanel({ samples, samplesError, onRetrySamples, summary, busy, notice, fault, onFault, onFile, onSample, onNotice }) {
   const maxBytes = summary?.max_upload_bytes || 5 * 1024 * 1024;
   const reject = (msg) => onNotice({ tone: 'err', msg });
@@ -1047,12 +1068,8 @@ export default function Dashboard() {
           <h1 className="ap-title">Call<em>Autopsy</em></h1>
           <p className="ap-tagline">Trace every failed call to the stage that broke it.</p>
           <div className="ap-about">
-            <p><b>What is this?</b> Phone bots and voice assistants work in three steps: they <em>listen</em> (speech to text), <em>think</em> (an AI model writes a reply) and <em>speak</em> (text to speech). When a call goes wrong, it is hard to tell which step failed. CallAutopsy runs a call through all three, shows how long and how much each step took, and names the step that broke.</p>
-            <ul>
-              <li><b>Try it:</b> pick a demo call on the left, or record or upload your own, and press Analyze.</li>
-              <li><b>Break it on purpose:</b> turn on “Simulate a failure” to see how each kind of failure looks.</li>
-              <li><b>Compare:</b> the A/B page runs the same call on two setups; Analyze shows how accurate the diagnosis is.</li>
-            </ul>
+            <p><b>What is this?</b> A voice bot does three things on every call: it <em>listens</em> (speech to text), <em>thinks</em> (an AI model writes a reply) and <em>speaks</em> (text to speech). When a call goes wrong, it is hard to tell which of the three failed. CallAutopsy runs a call through all three, names the step that broke, and shows the evidence. It is for teams that build or test voice agents.</p>
+            <StartGuide hasCalls={(summary?.total_calls ?? 0) > 0} faultOn={fault?.type && fault.type !== 'none'} />
           </div>
         </div>
       </header>
