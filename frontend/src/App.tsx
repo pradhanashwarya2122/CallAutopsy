@@ -1,4 +1,3 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Link, NavLink, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
 import Analyze from './pages/Analyze.jsx';
@@ -61,46 +60,6 @@ function Shell({ children }: { children: React.ReactNode }) {
       </footer>
     </div>
   );
-}
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null };
-
-  static getDerivedStateFromError(error: Error) {
-    return { error };
-  }
-
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('[ui] render crash', error, info.componentStack);
-  }
-
-  render() {
-    if (!this.state.error) return this.props.children;
-    return (
-      <div className="min-h-screen flex items-center justify-center p-8" style={{ background: 'var(--paper)' }}>
-        <div className="max-w-md text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: 'var(--mut)' }}>Case File</p>
-          <h1 className="text-2xl mt-1" style={{ fontFamily: '"Newsreader", Georgia, serif', fontWeight: 600, color: 'var(--ink)' }}>
-            This page hit an error
-          </h1>
-          <p className="text-sm mt-3 font-mono" style={{ color: 'var(--mut)' }}>{this.state.error.message}</p>
-          <div className="mt-6 flex gap-3 justify-center">
-            <button
-              type="button"
-              className="px-4 py-1.5 rounded-sm text-sm"
-              style={{ color: '#fff', background: 'var(--ink)' }}
-              onClick={() => window.location.reload()}
-            >
-              Reload
-            </button>
-            <a href="/" className="px-4 py-1.5 rounded-sm text-sm" style={{ border: '1px solid var(--line)', color: 'var(--ink)' }}>
-              Back to landing
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
 }
 
 export default function App() {
