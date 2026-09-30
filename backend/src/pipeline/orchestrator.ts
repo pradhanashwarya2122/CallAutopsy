@@ -24,6 +24,10 @@ import { addSessionSpend } from '../cost/budget.js';
 import { redactPII } from '../redaction/piiRedactor.js';
 import { broadcast } from '../websocket/broadcaster.js';
 import { generateAutopsyReport } from '../autopsy/generateReport.js';
+import { analyzeCall, type CallAnalysis } from '../analysis/index.js';
+import { loadManifest, scriptPlain } from '../sampleLibrary.js';
+import { wordErrorRate } from '../analysis/wer.js';
+import { checkSla } from '../sla/monitor.js';
 import { saveInputAudio, saveTtsAudio } from '../storage/audioStore.js';
 
 export interface RunCallOpts {
@@ -37,6 +41,7 @@ export interface RunCallOpts {
   config?: { llmModel?: string; preferredSttProvider?: 'deepgram' | 'whisper' };
   abRunId?: string;
   ownerId?: string;
+  abSide?: 'A' | 'B';
 }
 
 const SLA = {
@@ -47,7 +52,7 @@ const SLA = {
 
 async function insertStage(
   callId: string,
-  stage: 'stt' | 'llm' | 'tts',
+  stage: 'stt' | 'llm' | 'tts' | 'analysis',
   provider: string | null,
   startedAt: Date,
   endedAt: Date,
@@ -92,9 +97,9 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
     await query(`UPDATE calls SET status='in_progress', started_at=$2 WHERE id=$1`, [callId, startedAt]);
   } else {
     await query(
-      `INSERT INTO calls (id, started_at, status, input_source, sample_id, injected_fault, ab_run_id, owner_id)
-       VALUES ($1,$2,'in_progress',$3,$4,$5,$6,$7)`,
-      [callId, startedAt, opts.inputSource, opts.sampleId ?? null, opts.faultType ?? null, opts.abRunId ?? null, opts.ownerId ?? null],
+      `INSERT INTO calls (id, started_at, status, input_source, sample_id, injected_fault, ab_run_id, owner_id, ab_side)
+       VALUES ($1,$2,'in_progress',$3,$4,$5,$6,$7,$8)`,
+      [callId, startedAt, opts.inputSource, opts.sampleId ?? null, opts.faultType ?? null, opts.abRunId ?? null, opts.ownerId ?? null, opts.abSide ?? null],
     );
   }
   saveInputAudio(callId, opts.audio, opts.audioExt ?? 'bin').catch(() => {});
@@ -110,6 +115,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
   let networkDropSignaled = false;
   let hallucinated = false;
   let totalCost = 0;
+  let analysisPromise: Promise<CallAnalysis> | null = null;
 
   const faultType = opts.faultType ?? null;
   const faultParams = opts.faultParams;
@@ -138,6 +144,8 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
 
         sttResult = await transcribe(audio, {
           preferredProvider: opts.config?.preferredSttProvider ?? 'deepgram',
+          audioExt: opts.audioExt,
+          ownerId: opts.ownerId,
         });
       } catch (e) {
         status = status === 'timeout' ? 'timeout' : 'error';
@@ -158,6 +166,8 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
         cost);
       stages.push({ stage: 'stt', durationMs: endedAtStage.getTime() - startedAtStage.getTime(), status });
       emit({ type: 'call.stage', callId, stage: 'stt', status, provider: sttResult.provider });
+      // Understanding runs alongside the reply/TTS stages; it never fails the call.
+      if (sttResult.transcript.trim()) analysisPromise = analyzeCall(sttResult, audio);
     }
 
     // LLM
@@ -177,16 +187,19 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
         if (faultType === 'user_hangup' && resolveParams('user_hangup', faultParams?.user_hangup).stage === 'llm') hangupSignaled = true;
 
         let systemPrompt: string | undefined;
+        let temperature: number | undefined;
         if (faultType === 'hallucination') {
           const p = resolveParams('hallucination', faultParams?.hallucination);
           systemPrompt = p.intensity === 'mild' ? MILD_ADVERSARIAL : AGGRESSIVE_ADVERSARIAL;
+          temperature = Math.max(0, Math.min(2, Number(p.temperature ?? 0.9)));
         }
         const res = await llmTurn(sttResult!.transcript || 'hello', {
           model: opts.config?.llmModel,
           systemPrompt,
+          temperature,
         });
         llmText = res.text;
-        llmMeta = { model: res.model, prompt_tokens: res.promptTokens, completion_tokens: res.completionTokens };
+        llmMeta = { model: res.model, temperature: res.temperature, prompt_tokens: res.promptTokens, completion_tokens: res.completionTokens };
       } catch (e) {
         status = status === 'timeout' ? 'timeout' : 'error';
         exceptionType = (e as Error).name;
@@ -258,6 +271,23 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
     }
   }
 
+  let analysis: CallAnalysis | null = null;
+  if (analysisPromise) {
+    const analysisStart = new Date();
+    analysis = await analysisPromise;
+    totalCost += analysis.cost_usd;
+    const script = opts.sampleId && sttResult ? scriptPlain((await loadManifest()).get(opts.sampleId)) : null;
+    if (script && sttResult) {
+      const { wer, refWords } = wordErrorRate(script, sttResult.transcript);
+      analysis.script_match = { wer, ref_words: refWords };
+    }
+    if (analysis.cost_usd > 0 || analysis.understanding) {
+      await insertStage(callId, 'analysis', 'openai', new Date(analysisStart.getTime() - analysis.duration_ms), analysisStart, analysis.understanding ? 'ok' : 'error',
+        { model: analysis.model, prompt_tokens: analysis.prompt_tokens, completion_tokens: analysis.completion_tokens, error: analysis.understanding_error }, analysis.cost_usd)
+        .catch(() => {});
+    }
+  }
+
   const sttSignal = sttResult ? sttConfidenceSignal(sttResult) : { avgConfidence: 0, belowThreshold: false };
   const ttsMismatch = ttsDurationMismatch(ttsResult, llmText);
 
@@ -280,13 +310,16 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
   await query(
     `UPDATE calls SET
        ended_at=$2, status=$3, stt_provider_used=$4, stt_failover_occurred=$5,
-       predicted_category=$6, classifier_confidence=$7, redacted_transcript=$8, total_cost_usd=$9
+       predicted_category=$6, classifier_confidence=$7, redacted_transcript=$8, total_cost_usd=$9,
+       analysis=$10, ab_side=COALESCE($11, ab_side)
      WHERE id=$1`,
     [callId, new Date(), overallStatus, sttResult?.provider ?? null, sttResult?.failoverOccurred ?? false,
-     classification.category, classification.confidence, redacted, totalCost],
+     classification.category, classification.confidence, redacted, totalCost,
+     analysis ? JSON.stringify(analysis) : null, opts.abSide ?? null],
   );
 
   addSessionSpend(totalCost);
+  if (opts.ownerId) checkSla(opts.ownerId).catch(() => {});
   emit({
     type: 'call.completed', callId, status: overallStatus, category: classification.category,
     faultType, totalCost, ttsAvailable: !!ttsResult,

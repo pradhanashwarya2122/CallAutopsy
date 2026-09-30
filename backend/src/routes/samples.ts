@@ -4,23 +4,9 @@ import path from 'node:path';
 
 export const samplesRouter = Router();
 
-// Metadata for the bundled demo calls lives in samples/manifest.json (also read by scripts/generate-demo-calls.mjs).
-// `challenge` says what a call is designed to stress; the actual diagnosis always comes from the pipeline.
-interface ManifestEntry {
-  id: string; label?: string; category?: string; level?: number; featured?: boolean;
-  summary?: string; challenge?: string; says?: string; segments?: { text: string }[];
-}
+import { loadManifest, scriptDisplay, AUDIO_RE as LIB_AUDIO_RE } from '../sampleLibrary.js';
 
-async function loadManifest(dir: string): Promise<Map<string, ManifestEntry>> {
-  try {
-    const parsed = JSON.parse(await fs.readFile(path.join(dir, 'manifest.json'), 'utf8'));
-    return new Map((parsed.samples as ManifestEntry[]).map((e, i) => [e.id, { ...e, level: e.level, order: i } as ManifestEntry & { order: number }]));
-  } catch {
-    return new Map();
-  }
-}
-
-const AUDIO_RE = /\.(wav|mp3|ogg|webm|m4a)$/i;
+const AUDIO_RE = LIB_AUDIO_RE;
 
 function contentTypeFor(id: string): string {
   const ext = id.split('.').pop()?.toLowerCase();
@@ -65,20 +51,24 @@ samplesRouter.get('/samples', async (_req, res) => {
   } catch {
     return res.json({ samples: [] });
   }
-  const meta = await loadManifest(dir);
-  const order = (id: string) => ((meta.get(id) as any)?.order ?? 1000);
+  const meta = await loadManifest();
+  const order = (id: string) => meta.get(id)?.order ?? 1000;
   const samples = await Promise.all(
     files.sort((x, y) => order(x) - order(y) || x.localeCompare(y)).map(async (id) => {
       const m = meta.get(id);
       return {
         id,
         label: m?.label ?? prettify(id),
+        group: m?.group ?? 'quick',
         category: m?.category ?? null,
         level: m?.level ?? null,
         featured: m?.featured ?? false,
+        speaker: m?.speaker ?? null,
+        environment: m?.environment ?? null,
+        tags: m?.tags ?? [],
         summary: m?.summary ?? null,
         challenge: m?.challenge ?? null,
-        says: m?.says ?? (m?.segments ? m.segments.map((x) => x.text).join(' ') : null),
+        says: scriptDisplay(m),
         duration_s: id.toLowerCase().endsWith('.wav') ? await wavDurationSeconds(path.join(dir, id)) : null,
       };
     }),

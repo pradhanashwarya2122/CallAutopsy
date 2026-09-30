@@ -37,7 +37,9 @@
         {
           "text": "Could you please check the transaction and refund the duplicate charge?"
         }
-      ]
+      ],
+      "group": "core",
+      "frozen": true
     },
     {
       "id": "call-2-noisy-cafe.wav",
@@ -74,7 +76,9 @@
         {
           "text": "It's order 7 3 9 0 5. Can you help me with this?"
         }
-      ]
+      ],
+      "group": "core",
+      "frozen": true
     },
     {
       "id": "call-3-mumbled-unsure.wav",
@@ -119,7 +123,9 @@
         {
           "text": "I just don't want to pay twice."
         }
-      ]
+      ],
+      "group": "core",
+      "frozen": true
     },
     {
       "id": "call-4-long-multi-detail.wav",
@@ -164,7 +170,9 @@
         {
           "text": "Did you get all that? Please look into the duplicate charge, and refund it if it's real."
         }
-      ]
+      ],
+      "group": "core",
+      "frozen": true
     },
     {
       "id": "call-5-failure-heavy-multi-intent.wav",
@@ -209,6 +217,836 @@
         {
           "text": "I just want to know what actually happened, and get the extra money back."
         }
+      ],
+      "group": "core",
+      "frozen": true
+    },
+    {
+      "id": "stress-01-young-male-clear-baseline.wav",
+      "label": "S1 · Young male, clear baseline",
+      "group": "stress",
+      "category": "clear",
+      "level": 1,
+      "featured": true,
+      "speaker": "Young adult male · fast · calm",
+      "environment": "Clean studio-like recording, close microphone",
+      "tags": [
+        "Fast speech",
+        "Single intent",
+        "No noise"
+      ],
+      "summary": "Cancelled subscription still billed. One simple request, fast but very clear.",
+      "challenge": "A second clean baseline with a different voice: should transcribe almost perfectly and read as a single, simple intent.",
+      "voice": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "verse",
+          "instructions": "A young adult man in his mid-20s. Speaks quickly but articulates every word crisply and clearly. Calm, confident, friendly and efficient. No hesitation at all.",
+          "tempo": 1.35
+        },
+        "espeak": {
+          "voice": "en-us+m1",
+          "speed": 180,
+          "pitch": 46,
+          "amp": 110
+        }
+      },
+      "agent": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "ballad",
+          "instructions": "A calm, warm, professional customer support agent in her mid-30s. Clear, concise, friendly, not robotic."
+        },
+        "espeak": {
+          "voice": "en-us+f2",
+          "speed": 150,
+          "pitch": 50,
+          "amp": 100
+        }
+      },
+      "post": {
+        "preset": "studio",
+        "mic": "studio"
+      },
+      "timeline": [
+        {
+          "who": "customer",
+          "text": "Hi there. I'm calling because I was billed for a premium subscription that I cancelled last month.",
+          "gap": 0.3
+        },
+        {
+          "who": "customer",
+          "text": "The reference on the invoice is 3 1 0 7 4, and the charge was nineteen dollars ninety-nine.",
+          "gap": 0.35
+        },
+        {
+          "who": "customer",
+          "text": "Could you please refund it?",
+          "gap": 0.3
+        }
+      ]
+    },
+    {
+      "id": "stress-02-middle-aged-female-hesitant-forgets-order.wav",
+      "label": "S2 · Middle-aged female, hesitant",
+      "group": "stress",
+      "category": "hesitant",
+      "level": 3,
+      "featured": true,
+      "speaker": "Middle-aged female · slow · hesitant, embarrassed",
+      "environment": "Quiet indoor room, audible breathing",
+      "tags": [
+        "Fillers (um/uh)",
+        "Long pause",
+        "Sentence restart",
+        "Self-correction",
+        "Forgets then recalls order number"
+      ],
+      "summary": "Missing order. She forgets the order number, pauses to find it, and corrects the delivery day.",
+      "challenge": "Hesitation, a 3-second pause before a number, a restarted sentence and a corrected date (Tuesday to Wednesday). Tests entity extraction after a pause.",
+      "voice": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "shimmer",
+          "instructions": "A woman in her late 40s, polite and slightly embarrassed. Moderate to slow pace with natural hesitations: soft 'um' and 'uh', trailing off, then restarting. Pauses to think. Warm, uncertain tone."
+        },
+        "espeak": {
+          "voice": "en-us+f3",
+          "speed": 135,
+          "pitch": 55,
+          "amp": 100
+        }
+      },
+      "agent": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "ballad",
+          "instructions": "A calm, warm, professional customer support agent in her mid-30s. Clear, concise, friendly, not robotic."
+        },
+        "espeak": {
+          "voice": "en-us+f2",
+          "speed": 150,
+          "pitch": 50,
+          "amp": 100
+        }
+      },
+      "post": {
+        "preset": "quiet_room",
+        "mic": "close"
+      },
+      "timeline": [
+        {
+          "who": "customer",
+          "text": "Um, hi. I'm calling about, uh, an order that hasn't arrived.",
+          "gap": 0.4,
+          "breath": true
+        },
+        {
+          "who": "customer",
+          "text": "It was supposed to be here on Tuesday... no, wait, sorry, it was Wednesday.",
+          "gap": 0.7
+        },
+        {
+          "who": "customer",
+          "text": "And I was, I was hoping you could... I mean, could you check where it is?",
+          "gap": 0.8
+        },
+        {
+          "who": "customer",
+          "text": "The order number is... um... hold on, I had it written down somewhere.",
+          "gap": 0.9
+        },
+        {
+          "who": "customer",
+          "text": "Okay, sorry. It's 5 2 9 1 8. Yes, 5 2 9 1 8.",
+          "gap": 3.2,
+          "breath": true
+        },
+        {
+          "who": "customer",
+          "text": "Thank you. I'm sorry, I'm terrible with these things.",
+          "gap": 0.6
+        }
+      ]
+    },
+    {
+      "id": "stress-03-older-male-slow-noisy-repeats-amount.wav",
+      "label": "S3 · Older male, slow, home noise",
+      "group": "stress",
+      "category": "noisy_slow",
+      "level": 3,
+      "featured": true,
+      "speaker": "Older adult male · slow, slightly loud · patient",
+      "environment": "Living room: distant TV chatter, occasional thumps and clinks",
+      "tags": [
+        "Slow speech",
+        "Distant chatter",
+        "Repeats key detail",
+        "Agent asks to repeat",
+        "Unsure about charge"
+      ],
+      "summary": "A charge he does not recognise. He repeats the amount because he thinks the agent did not catch it.",
+      "challenge": "Slow elderly speech over TV chatter with occasional thumps, deliberate repetition of the amount, and honest uncertainty about who made the purchase.",
+      "voice": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "fable",
+          "instructions": "An elderly man in his 70s. Slow, deliberate speech, a little gravelly, and slightly louder than normal as if unsure the other person can hear him. Patient but a touch anxious. Slows down further on numbers."
+        },
+        "espeak": {
+          "voice": "en-us+m4",
+          "speed": 115,
+          "pitch": 32,
+          "amp": 115
+        }
+      },
+      "agent": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "sage",
+          "instructions": "A calm, warm, professional customer support agent, a woman in her mid-30s. Clear, concise, friendly, not robotic."
+        },
+        "espeak": {
+          "voice": "en-us+f2",
+          "speed": 150,
+          "pitch": 50,
+          "amp": 100
+        }
+      },
+      "post": {
+        "preset": "home_tv",
+        "mic": "distant"
+      },
+      "timeline": [
+        {
+          "who": "customer",
+          "text": "Hello? Yes, hello. There is a charge on my card that I do not recognise.",
+          "gap": 0.5
+        },
+        {
+          "who": "customer",
+          "text": "It is for twenty-nine dollars and ninety-five cents. From some company I cannot read.",
+          "gap": 0.9
+        },
+        {
+          "who": "agent",
+          "text": "I'm sorry, could you repeat the amount for me?",
+          "gap": 0.5
+        },
+        {
+          "who": "customer",
+          "text": "Twenty-nine... ninety-five. Twenty-nine dollars, ninety-five cents. Did you get that?",
+          "gap": 0.7,
+          "style": "Speak slower and louder, spelling it out for the listener."
+        },
+        {
+          "who": "agent",
+          "text": "Got it, thank you. And when did it appear?",
+          "gap": 0.3
+        },
+        {
+          "who": "customer",
+          "text": "Oh, it was on, let me think, last Friday I believe. I did not buy anything. Maybe it is my grandson, I am not sure.",
+          "gap": 0.9
+        }
+      ]
+    },
+    {
+      "id": "stress-04-young-female-fast-interruptions.wav",
+      "label": "S4 · Young female, fast, interruptions",
+      "group": "stress",
+      "category": "interruptions",
+      "level": 4,
+      "featured": true,
+      "speaker": "Young adult female · fast · impatient",
+      "environment": "Open-plan office: subtle background conversation, keyboards, air conditioning",
+      "tags": [
+        "Fast speech",
+        "Talks over the agent",
+        "Agent interrupts",
+        "'Sorry, go ahead'",
+        "Self-correction (49 to 59)"
+      ],
+      "summary": "Payment stuck pending. She talks over the agent, apologises, then cuts in again.",
+      "challenge": "Real speech overlap between two speakers, quick turn-taking, an impatient tone and a corrected amount ($49 to $59) in the middle of an interruption.",
+      "voice": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "nova",
+          "instructions": "A young woman in her mid-20s. Fast, clipped and impatient. Talks over people, exhales in frustration but stays polite and professional. Short rushed sentences.",
+          "tempo": 1.3
+        },
+        "espeak": {
+          "voice": "en-us+f1",
+          "speed": 185,
+          "pitch": 60,
+          "amp": 115
+        }
+      },
+      "agent": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "onyx",
+          "instructions": "A calm, warm, professional customer support agent, a man in his mid-30s with a deep voice. Clear, concise, friendly, not robotic."
+        },
+        "espeak": {
+          "voice": "en-us+m3",
+          "speed": 150,
+          "pitch": 50,
+          "amp": 100
+        }
+      },
+      "post": {
+        "preset": "office",
+        "mic": "close"
+      },
+      "timeline": [
+        {
+          "who": "agent",
+          "text": "Thank you for calling support. Before we begin I'll need to verify a few details, starting with—",
+          "gap": 0.4
+        },
+        {
+          "who": "customer",
+          "text": "Yeah, yeah, my order's 8 4 1 6 0, I paid forty-nine dollars... sorry, fifty-nine dollars, and it still says pending.",
+          "gap": -1.3,
+          "style": "Speak fast and talk over the other person."
+        },
+        {
+          "who": "agent",
+          "text": "Okay, and can you confirm the name on the—",
+          "gap": -0.9
+        },
+        {
+          "who": "customer",
+          "text": "Sorry, go ahead.",
+          "gap": 0.15
+        },
+        {
+          "who": "agent",
+          "text": "I just need the name on the account, please.",
+          "gap": 0.25
+        },
+        {
+          "who": "customer",
+          "text": "It's Jordan Lee. Can we please just fix the payment?",
+          "gap": -0.45,
+          "style": "Impatient, cutting in."
+        },
+        {
+          "who": "agent",
+          "text": "Absolutely. Let me look into it now.",
+          "gap": 0.3
+        }
+      ]
+    },
+    {
+      "id": "stress-05-middle-aged-male-phone-static.wav",
+      "label": "S5 · Middle-aged male, telephone + static",
+      "group": "stress",
+      "category": "telephone",
+      "level": 3,
+      "featured": true,
+      "speaker": "Middle-aged male · calm, clear · tired",
+      "environment": "Narrow-band telephone line with static crackle and compression",
+      "tags": [
+        "Telephone quality",
+        "Static/compression",
+        "Transaction number",
+        "Monetary amount"
+      ],
+      "summary": "Incorrect charge: authorised $82 but billed $128.50. Clear speech over a poor phone line.",
+      "challenge": "Telephone band-limiting and crackle can hide digits in the transaction number and the two amounts.",
+      "voice": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "ash",
+          "instructions": "A man in his early 50s, calm, steady and businesslike, a little tired. Speaks clearly and evenly. Reads numbers carefully, digit by digit."
+        },
+        "espeak": {
+          "voice": "en-us+m2",
+          "speed": 150,
+          "pitch": 38,
+          "amp": 110
+        }
+      },
+      "agent": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "ballad",
+          "instructions": "A calm, warm, professional customer support agent in her mid-30s. Clear, concise, friendly, not robotic."
+        },
+        "espeak": {
+          "voice": "en-us+f2",
+          "speed": 150,
+          "pitch": 50,
+          "amp": 100
+        }
+      },
+      "post": {
+        "preset": "phone_static",
+        "mic": "close",
+        "channel": "telephone"
+      },
+      "timeline": [
+        {
+          "who": "customer",
+          "text": "Good afternoon. I'm calling about an incorrect charge on my account.",
+          "gap": 0.4
+        },
+        {
+          "who": "customer",
+          "text": "The transaction number is 7 7 4 0 2 1, and the amount was one hundred twenty-eight dollars fifty.",
+          "gap": 0.6
+        },
+        {
+          "who": "customer",
+          "text": "I only authorised eighty-two dollars, so I'd like the difference refunded.",
+          "gap": 0.5
+        }
+      ]
+    },
+    {
+      "id": "stress-06-young-female-busy-cafe-repeats.wav",
+      "label": "S6 · Young female, busy café",
+      "group": "stress",
+      "category": "cafe",
+      "level": 4,
+      "featured": true,
+      "speaker": "Young adult female · higher-pitched · rushed, distracted",
+      "environment": "Busy café: chatter, cups, espresso hiss, a plate crash mid-sentence",
+      "tags": [
+        "Café noise",
+        "Sudden loud noise",
+        "Repeats a sentence",
+        "Higher voice",
+        "Pending payment"
+      ],
+      "summary": "Payment pending for two days. A loud crash cuts her off and she has to repeat herself.",
+      "challenge": "Continuous café ambience plus one sudden crash that masks part of a sentence, followed by a repeated sentence.",
+      "voice": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "sage",
+          "instructions": "A young woman in her 20s, distracted and rushed, speaking loudly over a noisy cafe. Friendly but hurried. When she is interrupted by noise she repeats herself more slowly and clearly.",
+          "tempo": 1.15
+        },
+        "espeak": {
+          "voice": "en-us+f4",
+          "speed": 170,
+          "pitch": 68,
+          "amp": 120
+        }
+      },
+      "agent": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "ballad",
+          "instructions": "A calm, warm, professional customer support agent in her mid-30s. Clear, concise, friendly, not robotic."
+        },
+        "espeak": {
+          "voice": "en-us+f2",
+          "speed": 150,
+          "pitch": 50,
+          "amp": 100
+        }
+      },
+      "post": {
+        "preset": "cafe",
+        "mic": "distant"
+      },
+      "timeline": [
+        {
+          "who": "customer",
+          "text": "Hi, sorry, it's really loud in here. I'm calling about a payment that's been pending for two days.",
+          "gap": 0.4
+        },
+        {
+          "who": "customer",
+          "text": "It says pending in my banking app but the order still hasn't— sorry, hold on.",
+          "gap": 0.6,
+          "noise": [
+            {
+              "type": "crash",
+              "offset": 3.4,
+              "gainDb": -4
+            }
+          ]
+        },
+        {
+          "who": "customer",
+          "text": "Sorry. The order still hasn't shipped. I said, the order still hasn't shipped.",
+          "gap": 1.5
+        },
+        {
+          "who": "customer",
+          "text": "It's order 6 6 0 3 7, and the amount was thirty-six seventy.",
+          "gap": 0.5
+        }
+      ]
+    },
+    {
+      "id": "stress-07-older-female-confused-corrections.wav",
+      "label": "S7 · Older female, confused, corrections",
+      "group": "stress",
+      "category": "corrections",
+      "level": 4,
+      "featured": true,
+      "speaker": "Older adult female · soft, slow · calm but confused",
+      "environment": "Quiet room with mild echo",
+      "tags": [
+        "Wrong date then corrected",
+        "Wrong amount then corrected",
+        "Forgets order number",
+        "Reverb/echo"
+      ],
+      "summary": "Billing problem. She corrects the date and the amount, forgets the order number, then states everything clearly.",
+      "challenge": "The system must keep the corrected values (14 March, $46.80, order 20759) and drop the first, wrong ones (12th, $48).",
+      "voice": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "alloy",
+          "instructions": "An elderly woman in her late 70s, calm and gentle but a little confused. Soft, slightly quavering voice, unhurried. Thinks aloud and corrects herself politely. Speaks the corrected details slowly and clearly."
+        },
+        "espeak": {
+          "voice": "en-us+f5",
+          "speed": 125,
+          "pitch": 58,
+          "amp": 100
+        }
+      },
+      "agent": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "ballad",
+          "instructions": "A calm, warm, professional customer support agent in her mid-30s. Clear, concise, friendly, not robotic."
+        },
+        "espeak": {
+          "voice": "en-us+f2",
+          "speed": 150,
+          "pitch": 50,
+          "amp": 100
+        }
+      },
+      "post": {
+        "preset": "quiet_reverb",
+        "mic": "reverb"
+      },
+      "timeline": [
+        {
+          "who": "customer",
+          "text": "Hello, dear. I think there's a problem with my bill.",
+          "gap": 0.5
+        },
+        {
+          "who": "customer",
+          "text": "I was charged on the twelfth of March... oh, no, the fourteenth. Yes, the fourteenth.",
+          "gap": 0.9
+        },
+        {
+          "who": "customer",
+          "text": "It was forty-eight dollars... no, sorry, forty-six eighty. That's right, forty-six eighty.",
+          "gap": 0.9
+        },
+        {
+          "who": "customer",
+          "text": "And my order number, oh, I've forgotten it. Give me a moment.",
+          "gap": 0.8
+        },
+        {
+          "who": "customer",
+          "text": "Yes. It's 2 0 7 5 9. Two, oh, seven, five, nine.",
+          "gap": 3.0,
+          "breath": true
+        },
+        {
+          "who": "customer",
+          "text": "That's the one. So the fourteenth, forty-six eighty, order 2 0 7 5 9.",
+          "gap": 0.8
+        }
+      ]
+    },
+    {
+      "id": "stress-08-nervous-male-long-pauses-ambiguous.wav",
+      "label": "S8 · Nervous male, long pauses, ambiguity",
+      "group": "stress",
+      "category": "ambiguity",
+      "level": 4,
+      "featured": true,
+      "speaker": "Adult male · quiet, nervous, uncertain",
+      "environment": "Intermittent bumps and horns over faint electronic hiss; uneven microphone distance",
+      "tags": [
+        "Long pauses (2-3 s)",
+        "Nervous",
+        "Failed vs pending unclear",
+        "Intermittent noise",
+        "Broadband hiss"
+      ],
+      "summary": "He is not sure whether his payment failed or is pending, and says so.",
+      "challenge": "A careful system must NOT claim the payment failed or succeeded: the customer never established it. Long pauses and quiet speech add transcription risk.",
+      "voice": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "echo",
+          "instructions": "A nervous man in his 30s, hesitant and unsure. Quiet, slightly tense voice, long thoughtful pauses, sentences that trail off. Says um, well and actually. Not confident at all."
+        },
+        "espeak": {
+          "voice": "en-us+m6",
+          "speed": 130,
+          "pitch": 36,
+          "amp": 90
+        }
+      },
+      "agent": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "ballad",
+          "instructions": "A calm, warm, professional customer support agent in her mid-30s. Clear, concise, friendly, not robotic."
+        },
+        "espeak": {
+          "voice": "en-us+f2",
+          "speed": 150,
+          "pitch": 50,
+          "amp": 100
+        }
+      },
+      "post": {
+        "preset": "hiss_intermittent",
+        "mic": "inconsistent"
+      },
+      "timeline": [
+        {
+          "who": "customer",
+          "text": "Um, hi. So, I made a payment yesterday...",
+          "gap": 0.5
+        },
+        {
+          "who": "customer",
+          "text": "And I thought it failed, because it showed an error at first.",
+          "gap": 1.8
+        },
+        {
+          "who": "customer",
+          "text": "Actually, I'm not completely sure. Let me check.",
+          "gap": 2.5
+        },
+        {
+          "who": "customer",
+          "text": "Okay. On my banking app it just says pending. So, maybe it didn't fail?",
+          "gap": 3.4
+        },
+        {
+          "who": "customer",
+          "text": "I don't know. I don't want to pay twice, though. Could you tell me which it is?",
+          "gap": 1.6
+        }
+      ]
+    },
+    {
+      "id": "stress-09-frustrated-female-multi-intent-street.wav",
+      "label": "S9 · Frustrated female, four problems, street",
+      "group": "stress",
+      "category": "multi_intent",
+      "level": 5,
+      "featured": true,
+      "speaker": "Adult female · higher-pitched · frustrated but composed",
+      "environment": "Street: traffic swells, distant voices, a horn",
+      "tags": [
+        "Frustrated",
+        "Agent interrupted",
+        "Repeats an issue",
+        "Corrects order number",
+        "Four related problems"
+      ],
+      "summary": "Wrong charge, missing order, a possible duplicate payment and an extra fee, revealed one by one.",
+      "challenge": "Multi-intent handling over traffic noise: issues arrive gradually, one is repeated, the order number is corrected (4821 to 4917), and she interrupts the agent once.",
+      "voice": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "coral",
+          "instructions": "A woman in her 40s, clearly frustrated but composed and professional. Firm, slightly sharp tone with controlled irritation that rises when she repeats herself. Faster when annoyed, never shouting.",
+          "tempo": 1.08
+        },
+        "espeak": {
+          "voice": "en-us+f2",
+          "speed": 165,
+          "pitch": 62,
+          "amp": 115
+        }
+      },
+      "agent": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "onyx",
+          "instructions": "A calm, warm, professional customer support agent, a man in his mid-30s with a deep voice. Clear, concise, friendly, not robotic."
+        },
+        "espeak": {
+          "voice": "en-us+m3",
+          "speed": 150,
+          "pitch": 50,
+          "amp": 100
+        }
+      },
+      "post": {
+        "preset": "street",
+        "mic": "muffled"
+      },
+      "timeline": [
+        {
+          "who": "customer",
+          "text": "Hi. I've been charged for something I didn't order, and honestly I'm pretty fed up.",
+          "gap": 0.4
+        },
+        {
+          "who": "agent",
+          "text": "I'm sorry to hear that. Let me pull up your account and—",
+          "gap": 0.4
+        },
+        {
+          "who": "customer",
+          "text": "It's twenty-two ninety-nine, it came out on Monday.",
+          "gap": -0.5,
+          "style": "Cutting in, irritated."
+        },
+        {
+          "who": "customer",
+          "text": "And that's not all. My order number is 4821... wait, that's the old one. The current order is 4917, and it never showed up.",
+          "gap": 0.9
+        },
+        {
+          "who": "customer",
+          "text": "I think I was also charged twice for it, because my bank shows two payments.",
+          "gap": 0.8
+        },
+        {
+          "who": "customer",
+          "text": "And there's an extra fee of six dollars that I don't recognise.",
+          "gap": 0.7
+        },
+        {
+          "who": "customer",
+          "text": "Like I said, I was charged for something I didn't order.",
+          "gap": 0.9,
+          "style": "Repeating herself with rising frustration."
+        },
+        {
+          "who": "customer",
+          "text": "I just want the wrong charge reversed and someone to tell me where my order is.",
+          "gap": 0.6
+        }
+      ]
+    },
+    {
+      "id": "stress-10-max-stress-train-phone-multi-issue.wav",
+      "label": "S10 · Maximum stress: train, phone line",
+      "group": "stress",
+      "category": "maximum",
+      "level": 5,
+      "featured": true,
+      "speaker": "Middle-aged male · deep, tired · stressed and rushed",
+      "environment": "Moving train with announcement, engine rumble and a brake squeal, over a compressed phone line",
+      "tags": [
+        "Moderate noise",
+        "Phone compression",
+        "Interruption + overlap",
+        "Correction",
+        "Contradiction",
+        "Late detail",
+        "Multiple issues"
+      ],
+      "summary": "Missing order, a possible double payment and a refund, from a moving train.",
+      "challenge": "Everything at once: transit noise and a brake squeal, a compressed line, hesitation, an overlap, an interruption, a corrected order number, a contradictory payment status, and a key detail (the card belongs to his wife) revealed last.",
+      "voice": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "onyx",
+          "instructions": "A tired middle-aged man in his 40s on a train, stressed and rushed. Low, slightly hoarse voice, mumbling a little at times, speaking quickly then slowing to think. Frustrated but trying to stay calm.",
+          "tempo": 1.12
+        },
+        "espeak": {
+          "voice": "en-us+m7",
+          "speed": 160,
+          "pitch": 30,
+          "amp": 110
+        }
+      },
+      "agent": {
+        "openai": {
+          "model": "gpt-4o-mini-tts",
+          "voice": "sage",
+          "instructions": "A calm, warm, professional customer support agent, a woman in her mid-30s. Clear, concise, friendly, not robotic."
+        },
+        "espeak": {
+          "voice": "en-us+f2",
+          "speed": 150,
+          "pitch": 50,
+          "amp": 100
+        }
+      },
+      "post": {
+        "preset": "transit_phone",
+        "mic": "close",
+        "channel": "compressed"
+      },
+      "timeline": [
+        {
+          "who": "customer",
+          "text": "Yeah, hi... uh, I'm on the train so, sorry if it cuts out.",
+          "gap": 0.5
+        },
+        {
+          "who": "customer",
+          "text": "I ordered a phone case... two phone cases, sorry, three, last week, and it never arrived.",
+          "gap": 0.8
+        },
+        {
+          "who": "agent",
+          "text": "I can help with that. Can I get the order number, please?",
+          "gap": 0.3
+        },
+        {
+          "who": "customer",
+          "text": "Yeah, it's, um, 3 8 5 2 0... well, hang on.",
+          "gap": -0.5
+        },
+        {
+          "who": "customer",
+          "text": "Sorry. 3 8 5 2 0. No wait, that's the old one. 3 8 5 0 2.",
+          "gap": 1.1
+        },
+        {
+          "who": "agent",
+          "text": "Thanks. I can see a payment of forty-one dollars, and—",
+          "gap": 0.4
+        },
+        {
+          "who": "customer",
+          "text": "And I got charged twice for it, I think.",
+          "gap": -0.3,
+          "style": "Interrupting."
+        },
+        {
+          "who": "customer",
+          "text": "The, uh, the first payment failed, but then the bank shows both as pending, so... I don't know.",
+          "gap": 1.0,
+          "noise": [
+            {
+              "type": "brake",
+              "offset": 2.2,
+              "gainDb": -3
+            }
+          ]
+        },
+        {
+          "who": "customer",
+          "text": "Oh, and I forgot, the card is my wife's card, not mine. Does that matter?",
+          "gap": 1.6
+        },
+        {
+          "who": "customer",
+          "text": "So, yeah, I need to know where the order is and I want the extra payment back.",
+          "gap": 0.7
+        }
       ]
     },
     {
@@ -219,7 +1057,8 @@
       "featured": false,
       "summary": "Short clean clip.",
       "challenge": "Short clean clip for quick tests.",
-      "says": "Hi, I was charged twice on my last invoice and I would like a refund please."
+      "says": "Hi, I was charged twice on my last invoice and I would like a refund please.",
+      "group": "quick"
     },
     {
       "id": "book-table.wav",
@@ -229,7 +1068,8 @@
       "featured": false,
       "summary": "Short clean clip.",
       "challenge": "Short clean clip for quick tests.",
-      "says": "Book me a table for two at seven pm tonight."
+      "says": "Book me a table for two at seven pm tonight.",
+      "group": "quick"
     },
     {
       "id": "weather-today.wav",
@@ -239,7 +1079,8 @@
       "featured": false,
       "summary": "Short clean clip.",
       "challenge": "Short clean clip for quick tests.",
-      "says": "What's the weather going to be like today?"
+      "says": "What's the weather going to be like today?",
+      "group": "quick"
     },
     {
       "id": "noisy-line.wav",
@@ -249,7 +1090,8 @@
       "featured": false,
       "summary": "Short clip, fast voice over static.",
       "challenge": "Short noisy clip for quick tests.",
-      "says": "Uh, hi, I need to check my, uh, account balance. (with static)"
+      "says": "Uh, hi, I need to check my, uh, account balance. (with static)",
+      "group": "quick"
     }
   ]
 }

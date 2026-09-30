@@ -88,18 +88,6 @@ async function j(path: string, init?: RequestInit) {
   }
 }
 
-// Wraps an API call: if it fails OR returns an empty result, substitutes
-// bundled fallback data so pages never render as blank.
-export async function withFallback<T>(fetcher: () => Promise<T>, fallback: T, isEmpty?: (v: T) => boolean): Promise<T> {
-  try {
-    const v = await fetcher();
-    if (isEmpty && isEmpty(v)) return fallback;
-    return v;
-  } catch {
-    return fallback;
-  }
-}
-
 // The classifier labels healthy calls 'ok'; the dashboard models that as "no cause of death".
 const causeOf = (category: string | null | undefined) => (category && category !== 'ok' ? category : null);
 
@@ -120,93 +108,34 @@ export const api = {
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },
-  seededDemo: () => j('/demo/seeded-run', { method: 'POST' }),
-  calibration: async () => {
-    try {
-      const r = await j('/calibration');
-      if (!r || r.total === 0) throw new Error('empty');
-      return r;
-    } catch { return (await import('./demoFallback.js')).DEMO_CALIBRATION; }
-  },
-  calibrationTrend: async () => {
-    try {
-      const r = await j('/calibration/trend');
-      if (!r?.trend?.length) throw new Error('empty');
-      return r;
-    } catch { return { trend: (await import('./demoFallback.js')).DEMO_TREND }; }
-  },
-  calibrationMistakes: async () => {
-    try {
-      const r = await j('/calibration/mistakes');
-      if (!r?.mistakes?.length) throw new Error('empty');
-      return r;
-    } catch { return { mistakes: (await import('./demoFallback.js')).DEMO_MISTAKES }; }
-  },
-  blastRadius: async (callsPerDay: number) => {
-    try {
-      const r = await j('/blast-radius', { method: 'POST', body: JSON.stringify({ callsPerDay }) });
-      if (!r?.projection?.length) throw new Error('empty');
-      return r;
-    } catch {
-      const { DEMO_BLAST } = await import('./demoFallback.js');
-      const scale = callsPerDay / DEMO_BLAST.callsPerDay;
-      return {
-        ...DEMO_BLAST,
-        callsPerDay,
-        totalMonthlyCostUsd: DEMO_BLAST.totalMonthlyCostUsd * scale,
-        projection: DEMO_BLAST.projection.map((p) => ({
-          ...p,
-          projectedMonthlyOccurrences: p.projectedMonthlyOccurrences * scale,
-          projectedMonthlyCostUsd: p.projectedMonthlyCostUsd * scale,
-        })),
-        stages: DEMO_BLAST.stages.map((s) => ({ ...s, projectedMonthly: s.projectedMonthly * scale })),
-      };
-    }
-  },
+  // ---- Analyze / A-B / Ops: all data is the caller's own workspace; there are no demo fallbacks. ----
+  calibration: () => j('/calibration'),
+  calibrationTrend: () => j('/calibration/trend'),
+  calibrationMistakes: () => j('/calibration/mistakes'),
+  calibrationRun: (sampleId: string) => j('/calibration/run', { method: 'POST', body: JSON.stringify({ sampleId }) }),
+  blastRadius: (callsPerDay: number) => j('/blast-radius', { method: 'POST', body: JSON.stringify({ callsPerDay }) }),
   getSla: () => j('/sla'),
   setSla: (maxFailureRatePct: number, windowMinutes: number) =>
     j('/sla', { method: 'PUT', body: JSON.stringify({ maxFailureRatePct, windowMinutes }) }),
   slaBreaches: () => j('/sla/breaches'),
   slaTestWebhook: () => j('/sla/test-webhook', { method: 'POST' }),
-  runAb: (configA: any, configB: any, faultType: string | null, iterations = 3, faultParams?: any) =>
-    j('/ab-tests', { method: 'POST', body: JSON.stringify({ configA, configB, faultType, iterations, faultParams }) }),
+  runAb: (input: { sampleId: string; configA: any; configB: any; faultType: string | null; iterations: number }) =>
+    j('/ab-tests', { method: 'POST', body: JSON.stringify(input) }),
   getAb: (id: string) => j(`/ab-tests/${id}`),
   runHallucinationSuite: () => j('/hallucination-suite/run', { method: 'POST' }),
-  hallucinationHistory: async () => {
-    try {
-      const r = await j('/hallucination-suite/history');
-      if (!r?.history?.length) throw new Error('empty');
-      return r;
-    } catch { return { history: (await import('./demoFallback.js')).DEMO_HALLUCINATION_HISTORY }; }
-  },
+  hallucinationHistory: () => j('/hallucination-suite/history'),
   hallucinationRun: (id: string) => j(`/hallucination-suite/runs/${id}`),
-  healing: async () => {
-    try {
-      const r = await j('/healing-suggestions');
-      if (!r?.suggestions?.length) throw new Error('empty');
-      return r;
-    } catch { return { suggestions: (await import('./demoFallback.js')).DEMO_HEALING }; }
-  },
+  hallucinationAggregate: () => j('/hallucination-suite/aggregate'),
+  healing: () => j('/healing-suggestions'),
   generateHealing: () => j('/healing-suggestions/generate', { method: 'POST' }),
-  status: () => j('/status'),
-  statusActivity: () => j('/status/activity'),
-  statusProviders: () => j('/status/providers'),
   pdfUrl: (id: string) => `${BASE}/calls/${id}/export.pdf?ws=${WORKSPACE}`,
   audioUrl: (id: string, kind: 'input' | 'tts') => `${BASE}/calls/${id}/audio/${kind}?ws=${WORKSPACE}`,
   samples: () => j('/samples'),
-  hallucinationAggregate: async () => {
-    try {
-      const r = await j('/hallucination-suite/aggregate');
-      if (!r || Object.keys(r.perPrompt ?? {}).length === 0) throw new Error('empty');
-      return r;
-    } catch { return (await import('./demoFallback.js')).DEMO_HALLUCINATION_AGGREGATE; }
-  },
   outageState: () => j('/admin/deepgram-outage'),
   setOutage: (enabled: boolean, durationSec = 60) =>
     j('/admin/deepgram-outage', { method: 'POST', body: JSON.stringify({ enabled, durationSec }) }),
   chaosState: () => j('/chaos'),
   setChaos: (patch: any) => j('/chaos', { method: 'POST', body: JSON.stringify(patch) }),
-  costSummary: () => j('/cost/summary'),
   queueStats: () => j('/queue/stats'),
   queueDLQ: () => j('/queue/dlq'),
 
@@ -227,6 +156,8 @@ export const api = {
       injected_fault: c.injected_fault ?? null,
       source: c.input_source,
       sample_id: c.sample_id ?? null,
+      intent: c.intent ?? null,
+      difficulty: c.difficulty ?? null,
     }));
   },
 
@@ -262,6 +193,9 @@ export const api = {
       sample_id: call.sample_id ?? null,
       has_reply_audio: stages.some((s) => s.stage === 'tts' && s.status === 'ok'),
       autopsy: parseAutopsy(r.autopsy?.report_text),
+      analysis: call.analysis ?? null,
+      intent: call.analysis?.understanding?.primary_intent?.label ?? null,
+      difficulty: call.analysis?.difficulty?.label ?? null,
     };
   },
 
@@ -270,7 +204,11 @@ export const api = {
     return (r.samples ?? []).map((s: any): SampleRow => ({
       id: s.id,
       label: s.label ?? s.id,
+      group: s.group ?? 'quick',
       category: s.category ?? null,
+      speaker: s.speaker ?? null,
+      environment: s.environment ?? null,
+      tags: Array.isArray(s.tags) ? s.tags : [],
       level: typeof s.level === 'number' ? s.level : null,
       featured: !!s.featured,
       summary: s.summary ?? null,
@@ -309,26 +247,29 @@ export interface CaseRow {
   id: string; created_at: string; status: string; cause_of_death: string | null;
   stt_provider: string | null; failover: boolean; cost_usd: number;
   injected_fault: string | null; source: string; sample_id: string | null;
+  intent: string | null; difficulty: string | null;
 }
-export interface StageRow { stage: 'stt' | 'llm' | 'tts'; provider: string | null; latency_s: number; cost_usd: number; status: string; confidence: number | null }
+export interface StageRow { stage: 'stt' | 'llm' | 'tts' | 'analysis'; provider: string | null; latency_s: number; cost_usd: number; status: string; confidence: number | null }
 export interface Autopsy { cause?: string; chain?: string; factors?: string; recommendation?: string }
 export interface CaseDetail extends Omit<CaseRow, 'cost_usd'> {
   finished: boolean; confidence: number | null; duration_s: number | null; cost_usd: number;
   transcript: string | null; stages: StageRow[]; has_reply_audio: boolean; autopsy: Autopsy | null;
+  analysis: any | null;
 }
 export interface SampleRow {
-  id: string; label: string; category: string | null; level: number | null; featured: boolean;
+  id: string; label: string; group: string; category: string | null; level: number | null; featured: boolean;
+  speaker: string | null; environment: string | null; tags: string[];
   summary: string | null; challenge: string | null; says: string | null; duration_s: number | null; url: string;
 }
 export interface FaultChoice {
   type: 'none' | 'bad_stt' | 'hallucination' | 'tts_glitch' | 'timeout' | 'user_hangup' | 'network_drop' | 'exception';
-  stage?: 'stt' | 'llm' | 'tts'; corruptionPct?: number; intensity?: 'mild' | 'aggressive'; truncatePct?: number; extraDelayMs?: number;
+  stage?: 'stt' | 'llm' | 'tts'; corruptionPct?: number; intensity?: 'mild' | 'aggressive'; temperature?: number; truncatePct?: number; extraDelayMs?: number;
 }
 
 function faultParamsFor(f: FaultChoice): Record<string, unknown> {
   switch (f.type) {
     case 'bad_stt': return { bad_stt: { corruptionPct: f.corruptionPct ?? 60, stride: 4 } };
-    case 'hallucination': return { hallucination: { intensity: f.intensity ?? 'aggressive' } };
+    case 'hallucination': return { hallucination: { intensity: f.intensity ?? 'aggressive', temperature: f.temperature ?? 0.9 } };
     case 'tts_glitch': return { tts_glitch: { truncatePct: f.truncatePct ?? 30, injectNulls: true } };
     case 'timeout': return { timeout: { stage: f.stage ?? 'llm', extraDelayMs: f.extraDelayMs ?? 3000 } };
     case 'user_hangup': return { user_hangup: { stage: f.stage ?? 'stt' } };

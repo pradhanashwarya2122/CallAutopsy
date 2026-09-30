@@ -1,28 +1,29 @@
 import { Router } from 'express';
 import { runHallucinationSuite, getHistory, getRun, getAggregate } from '../hallucinationSuite/runner.js';
+import { requireWorkspace } from '../auth/workspace.js';
+import { budgetGuard } from '../cost/budget.js';
+import { rateLimited } from './calls.js';
 
 export const hallucinationRouter = Router();
+hallucinationRouter.use('/hallucination-suite', requireWorkspace);
 
 hallucinationRouter.post('/hallucination-suite/run', async (_req, res) => {
-  try {
-    const result = await runHallucinationSuite();
-    res.json(result);
-  } catch (e) {
-    res.status(500).json({ error: (e as Error).message });
-  }
+  const ws: string = res.locals.workspaceId;
+  if (rateLimited('hsuite:' + ws, 20000)) return res.status(429).json({ error: 'rate_limited', message: 'Wait a few seconds between suite runs.' });
+  if (!(await budgetGuard()).ok) return res.status(402).json({ error: 'budget_cap', message: 'The demo has hit its spend cap for now.' });
+  res.json(await runHallucinationSuite(ws));
 });
 
 hallucinationRouter.get('/hallucination-suite/history', async (_req, res) => {
-  const history = await getHistory();
-  res.json({ history });
+  res.json({ history: await getHistory(res.locals.workspaceId) });
 });
 
 hallucinationRouter.get('/hallucination-suite/runs/:id', async (req, res) => {
-  const run = await getRun(req.params.id);
+  const run = await getRun(req.params.id, res.locals.workspaceId);
   if (!run) return res.status(404).json({ error: 'not_found' });
   res.json({ run });
 });
 
 hallucinationRouter.get('/hallucination-suite/aggregate', async (_req, res) => {
-  res.json(await getAggregate(10));
+  res.json(await getAggregate(res.locals.workspaceId, 10));
 });

@@ -109,21 +109,3 @@ opsRouter.get('/budget', async (_req, res) => {
     reason: guard.ok ? null : (guard as any).reason,
   });
 });
-
-// Small aggregate used by the header cost meter.
-opsRouter.get('/cost/summary', async (_req, res) => {
-  const { rows } = await query(`
-    SELECT
-      COALESCE(SUM(CASE WHEN started_at >= date_trunc('day', now()) THEN total_cost_usd ELSE 0 END),0)::float AS today,
-      COALESCE(SUM(CASE WHEN started_at >= date_trunc('month', now()) THEN total_cost_usd ELSE 0 END),0)::float AS month,
-      COALESCE(SUM(total_cost_usd),0)::float AS all_time
-    FROM calls
-  `);
-  res.json({
-    sessionSpentUsd: getSessionSpend(),
-    todaySpentUsd: Number(rows[0]?.today ?? 0),
-    monthSpentUsd: Number(rows[0]?.month ?? 0),
-    allTimeSpentUsd: Number(rows[0]?.all_time ?? 0),
-    caps: getCaps(),
-  });
-});

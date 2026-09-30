@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, ApiError } from '../lib/api';
 import { useLiveCallFeed } from '../hooks/useLiveCallFeed';
 import PageChrome from '../components/PageChrome';
 
@@ -35,6 +35,8 @@ function Tabs({ tabs, defaultTab }) {
 /* ============================================================
    1. SLASettings
    ============================================================ */
+const errText = (e, dflt) => (e instanceof ApiError ? e.message : dflt);
+
 function SLASettings() {
   const [pct, setPct] = useState(5);
   const [mins, setMins] = useState(60);
@@ -43,25 +45,27 @@ function SLASettings() {
   const [savedFlash, setSavedFlash] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [error, setError] = useState('');
 
   const refresh = () => {
     api.getSla().then((r) => {
       setState(r.status);
       setPct(Number(r.config?.max_failure_rate_pct ?? 5));
       setMins(Number(r.config?.window_minutes ?? 60));
-    }).catch(() => setState({ observed: 0, threshold: 5, breached: false }));
+      setError('');
+    }).catch((e) => { setState(null); setError(errText(e, 'The server is not reachable, so the current failure rate is unknown.')); });
     api.slaBreaches().then((r) => setBreaches(r.breaches)).catch(() => setBreaches([]));
   };
   useEffect(() => { refresh(); const id = setInterval(refresh, 15000); return () => clearInterval(id); }, []);
 
   const save = async () => {
     try { await api.setSla(pct, mins); setSavedFlash(true); setTimeout(() => setSavedFlash(false), 2000); refresh(); }
-    catch (e) { alert(`Save failed: ${e.message}`); }
+    catch (e) { setError(errText(e, 'Could not save. Check your connection and try again.')); }
   };
   const testWebhook = async () => {
     setTesting(true); setTestResult(null);
     try { const r = await api.slaTestWebhook(); setTestResult(r.ok ? 'Sent to Discord.' : (r.note || 'Failed.')); }
-    catch (e) { setTestResult(e.message); }
+    catch (e) { setTestResult(errText(e, 'Could not send.')); }
     finally { setTesting(false); }
   };
   const breached = state?.breached;
@@ -69,19 +73,19 @@ function SLASettings() {
   return (
     <div>
       <p className="pc-sub" style={{ marginBottom: 18 }}>
-        Configure the failure-rate threshold, watch the live health signal, review breach history, and dispatch a test alert.
+        Set the failure-rate threshold for your own calls and watch how they are doing. A breach needs at least 5 finished calls inside the window.
       </p>
 
       <div className="pc-panel pc-section" style={breached ? { borderColor: 'var(--red-line)', background: 'rgba(251,217,211,.4)' } : {}}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span className={`pc-dot ${!state ? '' : breached ? 'bad' : 'ok'}`} style={{ width: 14, height: 14 }} />
+          <span className={`pc-dot ${!state || state.total < 5 ? '' : breached ? 'bad' : 'ok'}`} style={{ width: 14, height: 14 }} />
           <div style={{ flex: 1 }}>
             <p className="pc-h" style={{ margin: 0 }}>Current status</p>
             <p style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 500, margin: '4px 0 0' }}>
-              {!state ? 'Loading…' : breached ? 'Breached' : 'Within SLA'}
+              {error && !state ? 'Unavailable' : !state ? 'Loading…' : state.total === 0 ? 'No calls yet' : breached ? 'Breached' : state.total < 5 ? 'Too few calls to judge' : 'Within SLA'}
               {state && (
                 <span className="mono" style={{ fontSize: 13, color: 'var(--mute)', marginLeft: 14 }}>
-                  observed {state.observed.toFixed(1)}% · threshold {state.threshold}%
+                  {state.total ? `${state.failed} of ${state.total} calls failed (${state.observed.toFixed(1)}%)` : 'no finished calls'} in the last {state.windowMinutes} min · threshold {state.threshold}%
                 </span>
               )}
             </p>
@@ -90,6 +94,7 @@ function SLASettings() {
       </div>
 
       <div className="pc-panel pc-section">
+        {error && <p className="pc-sub" role="alert" style={{ color: 'var(--red)', marginBottom: 10 }}>{error}</p>}
         <p className="pc-h">Threshold config</p>
         <div style={{ display: 'grid', gap: 18 }}>
           <label>
@@ -120,7 +125,7 @@ function SLASettings() {
       <div className="pc-panel pc-section">
         <p className="pc-h">Alerting</p>
         <p className="pc-sub" style={{ marginBottom: 12 }}>
-          On breach, the backend posts to <code className="mono">DISCORD_WEBHOOK_URL</code> once per 15-minute window.
+          A breach is recorded once per 15 minutes. Discord alerting is an operator feature and is off on the public demo.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <button onClick={testWebhook} disabled={testing} className="pc-btn ghost">
@@ -138,13 +143,12 @@ function SLASettings() {
           <p className="pc-sub">No breaches recorded.</p>
         ) : (
           <table className="pc-table">
-            <thead><tr><th>Breached at</th><th>Observed rate</th><th>Discord</th></tr></thead>
+            <thead><tr><th>Breached at</th><th>Observed rate</th></tr></thead>
             <tbody>
               {breaches.map((b) => (
                 <tr key={b.id}>
                   <td className="mono">{new Date(b.breached_at).toISOString()}</td>
                   <td className="mono">{Number(b.observed_failure_rate_pct).toFixed(1)}%</td>
-                  <td>{b.notified ? <span className="pc-tag green">sent</span> : <span className="pc-sub">—</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -163,16 +167,23 @@ function Healing() {
   const [generating, setGenerating] = useState(false);
   const [filter, setFilter] = useState(null);
   const [dismissed, setDismissed] = useState(new Set());
+  const [threshold, setThreshold] = useState(3);
+  const [note, setNote] = useState('');
 
   const refresh = async () => {
-    try { const r = await api.healing(); setSuggestions(r.suggestions); }
-    catch { setSuggestions([]); }
+    try { const r = await api.healing(); setSuggestions(r.suggestions); if (r.threshold) setThreshold(r.threshold); setNote((n) => (n.startsWith('Could not') ? '' : n)); }
+    catch (e) { setSuggestions([]); setNote(errText(e, 'Could not load suggestions.')); }
   };
   useEffect(() => { refresh(); }, []);
 
   const generate = async () => {
     setGenerating(true);
-    try { await api.generateHealing(); await refresh(); }
+    setNote('');
+    try {
+      const r = await api.generateHealing();
+      await refresh();
+      setNote(r.created?.length ? `Added ${r.created.length} suggestion${r.created.length === 1 ? '' : 's'}.` : `Nothing to suggest yet: no failure type has happened ${r.threshold ?? threshold} or more times in the last 24 hours in your calls.`);
+    } catch (e) { setNote(errText(e, 'Could not generate suggestions. Check your connection and try again.')); }
     finally { setGenerating(false); }
   };
 
@@ -182,7 +193,7 @@ function Healing() {
   return (
     <div>
       <p className="pc-sub" style={{ marginBottom: 18 }}>
-        When a fault type recurs (≥5 in 24h), an LLM reasons over the pattern and proposes a concrete config change.
+        When one failure type recurs in your calls (3 or more in 24 hours), an LLM looks at the pattern and proposes a concrete config change.
       </p>
 
       <div className="pc-panel pc-section">
@@ -190,8 +201,9 @@ function Healing() {
           <button onClick={generate} disabled={generating} className="pc-btn">
             {generating ? 'Reasoning…' : 'Generate suggestions now'}
           </button>
-          <span className="pc-sub">Analyzes last 24h of failed calls per fault type.</span>
+          <span className="pc-sub">Looks at your failed calls from the last 24 hours, per failure type.</span>
         </div>
+        {note && <p className="pc-sub" style={{ marginTop: 10 }}>{note}</p>}
       </div>
 
       {suggestions && suggestions.length > 0 && (
@@ -215,7 +227,7 @@ function Healing() {
           <div className="pc-panel">
             <p className="pc-sub">
               {suggestions.length === 0
-                ? 'No suggestions yet. Either no fault type has hit 5+ occurrences in 24h, or the monitor has not tickled since boot.'
+                ? `No suggestions yet. Run a few calls with "Simulate a failure" on the Dashboard (${threshold}+ of the same type), then generate.`
                 : 'All suggestions dismissed.'}
             </p>
           </div>
@@ -267,7 +279,7 @@ function QueueStatsPanel() {
   return (
     <div className="pc-panel">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <p className="pc-h" style={{ margin: 0 }}>Retry queue</p>
+        <p className="pc-h" style={{ margin: 0 }}>Retry queue (whole server)</p>
         <span className="mono" style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: connected ? 'var(--green)' : 'var(--mute)' }}>
           {connected ? '● live' : '○ poll'}
         </span>
@@ -289,8 +301,9 @@ function OutageToggle() {
   const [busy, setBusy] = useState(false);
   const refresh = () => api.outageState().then(setState).catch(() => setState({ enabled: false }));
   useEffect(() => { refresh(); const id = setInterval(refresh, 3000); return () => clearInterval(id); }, []);
-  const knock = async () => { setBusy(true); try { setState(await api.setOutage(true, 90)); } finally { setBusy(false); } };
-  const recover = async () => { setBusy(true); try { setState(await api.setOutage(false)); } finally { setBusy(false); } };
+  const [err, setErr] = useState('');
+  const knock = async () => { setBusy(true); setErr(''); try { setState(await api.setOutage(true, 90)); } catch (e) { setErr(errText(e, 'Could not change the outage state.')); } finally { setBusy(false); } };
+  const recover = async () => { setBusy(true); setErr(''); try { setState(await api.setOutage(false)); } catch (e) { setErr(errText(e, 'Could not change the outage state.')); } finally { setBusy(false); } };
   const down = !!state?.enabled;
   return (
     <div className="pc-panel" style={down ? { borderColor: 'var(--red-line)', background: 'rgba(251,217,211,.35)' } : {}}>
@@ -299,8 +312,9 @@ function OutageToggle() {
         <div style={{ flex: 1, minWidth: 200 }}>
           <p className="pc-h" style={{ margin: 0 }}>Deepgram (primary STT)</p>
           <p style={{ fontSize: 13.5, margin: '4px 0 0' }}>
-            {down ? `Simulated outage — ${state.secondsRemaining}s remaining, next call routes to Whisper.` : 'Operational.'}
+            {down ? `Simulated outage for your calls: ${state.secondsRemaining}s remaining, your next call routes to Whisper.` : 'Operational. Knocking it offline only affects your own calls.'}
           </p>
+          {err && <p className="pc-sub" role="alert" style={{ color: 'var(--red)', marginTop: 6 }}>{err}</p>}
         </div>
         {!down ? (
           <button onClick={knock} disabled={busy} className="pc-btn danger small">Knock offline (90s)</button>
@@ -318,14 +332,16 @@ function ChaosPanel() {
   const [state, setState] = useState(null);
   const refresh = () => api.chaosState().then(setState).catch(() => setState({ enabled: false, callsPerMinute: 6, faultMix: [], includeCleanRuns: true }));
   useEffect(() => { refresh(); const id = setInterval(refresh, 5000); return () => clearInterval(id); }, []);
-  const toggle = async () => setState(await api.setChaos({ enabled: !state?.enabled }));
-  const setRate = async (rate) => setState(await api.setChaos({ callsPerMinute: rate }));
+  const [err, setErr] = useState('');
+  const send = async (patch) => { setErr(''); try { setState(await api.setChaos(patch)); } catch (e) { setErr(errText(e, 'Could not update chaos mode.')); } };
+  const toggle = () => send({ enabled: !state?.enabled });
+  const setRate = (rate) => send({ callsPerMinute: rate });
   const toggleFault = async (f) => {
     const cur = new Set(state?.faultMix ?? []);
     if (cur.has(f)) cur.delete(f); else cur.add(f);
-    setState(await api.setChaos({ faultMix: Array.from(cur) }));
+    await send({ faultMix: Array.from(cur) });
   };
-  const toggleClean = async () => setState(await api.setChaos({ includeCleanRuns: !state?.includeCleanRuns }));
+  const toggleClean = () => send({ includeCleanRuns: !state?.includeCleanRuns });
   if (!state) return null;
 
   return (
@@ -336,16 +352,18 @@ function ChaosPanel() {
           {state.enabled ? 'ON — firing continuously' : 'OFF'}
         </button>
       </div>
-      <p className="pc-sub" style={{ marginBottom: 14 }}>Backend fires random calls from the sample library at the configured rate.</p>
+      <p className="pc-sub" style={{ marginBottom: 14 }}>Fires random demo calls, some with failures injected, into your own workspace. Each one counts against your daily limit, so it stops on its own when the limit is reached (and after 15 minutes).</p>
       <label style={{ display: 'block', marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12, color: 'var(--mute)' }}>
           <span style={{ letterSpacing: '.14em', textTransform: 'uppercase' }}>Calls per minute</span>
           <span className="mono">{state.callsPerMinute}</span>
         </div>
-        <input type="range" min={1} max={30} step={1} value={state.callsPerMinute}
+        <input type="range" min={1} max={12} step={1} value={state.callsPerMinute}
           onChange={(e) => setRate(Number(e.target.value))}
-          className="pc-range" style={{ '--pct': `${((state.callsPerMinute - 1) / 29) * 100}%` }} />
+          className="pc-range" style={{ '--pct': `${((state.callsPerMinute - 1) / 11) * 100}%` }} />
       </label>
+      {state.stoppedReason && <p className="pc-sub" role="status" style={{ marginBottom: 12 }}>Stopped: {state.stoppedReason}</p>}
+      {err && <p className="pc-sub" role="alert" style={{ color: 'var(--red)', marginBottom: 12 }}>{err}</p>}
       <div>
         <p className="mono" style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--mute)', margin: '0 0 8px' }}>Fault mix</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -364,7 +382,7 @@ function ControlRoom() {
   return (
     <div>
       <p className="pc-sub" style={{ marginBottom: 18 }}>
-        Live view of the retry queue, plus rehearsal controls to knock providers offline and generate synthetic traffic.
+        Live view of the shared server queue, plus rehearsal controls that only affect your own calls: knock the primary speech provider offline and generate traffic.
       </p>
       <div className="pc-section"><QueueStatsPanel /></div>
       <div className="pc-grid g2 pc-section">

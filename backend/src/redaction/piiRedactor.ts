@@ -9,5 +9,5 @@ export function redactPII(text: string): string {
     .replace(EMAIL, '[REDACTED_EMAIL]')
     .replace(CARD, '[REDACTED_CARD]')
     .replace(SSN, '[REDACTED_SSN]')
-    .replace(PHONE, '[REDACTED_PHONE]');
+    .replace(PHONE, (m) => (m.replace(/\D/g, '').length >= 10 ? '[REDACTED_PHONE]' : m));
 }

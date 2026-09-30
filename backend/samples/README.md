@@ -33,3 +33,17 @@ npm run generate-demo-calls -- --engine openai --only call-2-noisy-cafe.wav
 
 Edit `manifest.json` (script text, `voice`, `post` preset: `clean` | `phone` | `mumble` | `cafe`) and re-run to change a call.
 `npm run generate-samples` (espeak) and `npm run seed-samples` (OpenAI mp3) are the older generators for the quick clips.
+
+## Stress-test calls (S1–S10)
+
+Ten extra calls (`group: "stress"` in `manifest.json`) vary speaker, pace, emotion and recording conditions:
+clean baseline, hesitant, home TV noise, fast with interruptions, telephone static, busy café, confused with
+corrections, nervous with long pauses, frustrated multi-issue in the street, and a train + compressed phone line.
+Each has `speaker`, `environment`, `tags`, `challenge` and the exact `script`.
+
+Regenerate with `node scripts/generate-demo-calls.mjs` (needs `OPENAI_API_KEY`, uses `gpt-4o-mini-tts`, mixes noise with ffmpeg;
+`--force` also rebuilds the frozen core calls). Every finished call also gets an automatic analysis (intent, entities,
+corrections, tone, difficulty, measured audio quality) stored in `calls.analysis`.
+
+Old synthetic rows in an existing database: `npm run purge-synthetic` (dry run) then `-- --yes`.
+Operator-only: set `ADMIN_TOKEN` to enable the SLA webhook test.

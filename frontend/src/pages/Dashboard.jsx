@@ -5,6 +5,7 @@ import { getWorkspaceId, isValidWorkspaceId, switchWorkspace } from '../lib/work
 import { useLiveCallFeed } from '../hooks/useLiveCallFeed';
 import { ClipboardIcon, WaveformIcon } from '../components/Icons';
 import { Skeleton } from '../components/Skeleton';
+import CallAnalysisPanels from '../components/CallAnalysis.jsx';
 import '../styles/dashboard.css';
 
 const NAV = [
@@ -13,8 +14,9 @@ const NAV = [
   { label: 'Ops', to: '/ops' },
 ];
 
-const RING = { stt: '#1e88ff', llm: '#14a36f', tts: '#6a5cd6' };
+const RING = { stt: '#1e88ff', llm: '#14a36f', tts: '#6a5cd6', analysis: '#d24fa0' };
 const STAGE_ORDER = ['stt', 'llm', 'tts'];
+const COST_ORDER = ['stt', 'llm', 'tts', 'analysis'];
 const STAGE_NAME = { stt: 'Speech-to-text', llm: 'Reply generation', tts: 'Text-to-speech' };
 const CAUSE_STAGE = { bad_stt: 'stt', hallucination: 'llm', tts_glitch: 'tts' };
 
@@ -42,7 +44,7 @@ const FAULTS = [
   { value: 'exception', label: 'Crash a stage with an error' },
 ];
 const STAGE_FAULTS = ['timeout', 'user_hangup', 'network_drop', 'exception'];
-const DEFAULT_FAULT = { type: 'none', stage: 'llm', corruptionPct: 60, intensity: 'aggressive', truncatePct: 30, extraDelayMs: 3000 };
+const DEFAULT_FAULT = { type: 'none', stage: 'llm', corruptionPct: 60, intensity: 'aggressive', temperature: 0.9, truncatePct: 30, extraDelayMs: 3000 };
 
 const formatUsd = (n) => {
   const v = Number(n || 0);
@@ -73,7 +75,7 @@ const looksLikeAudio = (f) => f.type.startsWith('audio/') || /\.(wav|mp3|m4a|mp4
 // The stage that broke: the first stage that errored/timed out, else the stage the classifier blames.
 function stageOfFailure(detail) {
   if (!detail || !detail.cause_of_death) return null;
-  const bad = detail.stages.find((s) => s.status !== 'ok');
+  const bad = detail.stages.find((s) => STAGE_ORDER.includes(s.stage) && s.status !== 'ok');
   return bad ? bad.stage : CAUSE_STAGE[detail.cause_of_death] || null;
 }
 
@@ -232,6 +234,36 @@ function pickMime() {
   return ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].find((t) => MediaRecorder.isTypeSupported(t)) || '';
 }
 
+// Browser recordings arrive as webm/mp4. Convert to 16 kHz mono WAV so every recording gets the same signal-level
+// analysis (noise, bandwidth) as the demo calls; fall back to the original if the browser cannot decode it.
+async function recordingToWav16k(blob) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    const decoded = await ctx.decodeAudioData(await blob.arrayBuffer());
+    if (ctx.close) ctx.close();
+    const frames = Math.max(1, Math.round(decoded.duration * 16000));
+    const off = new OfflineAudioContext(1, frames, 16000);
+    const src = off.createBufferSource();
+    src.buffer = decoded;
+    src.connect(off.destination);
+    src.start();
+    const rendered = await off.startRendering();
+    const pcm = rendered.getChannelData(0);
+    const buf = new ArrayBuffer(44 + pcm.length * 2);
+    const v = new DataView(buf);
+    const w = (o, str) => { for (let i = 0; i < str.length; i += 1) v.setUint8(o + i, str.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + pcm.length * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 16000, true); v.setUint32(28, 32000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    w(36, 'data'); v.setUint32(40, pcm.length * 2, true);
+    for (let i = 0; i < pcm.length; i += 1) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, pcm[i])) * 0x7fff, true);
+    return new File([buf], 'recording.wav', { type: 'audio/wav' });
+  } catch {
+    return null;
+  }
+}
+
 function Recorder({ disabled, onRecorded, onError }) {
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -268,7 +300,7 @@ function Recorder({ disabled, onRecorded, onError }) {
         setRecording(false);
         setSeconds(0);
         if (blob.size === 0) { onError('No audio was captured. Try again.'); return; }
-        onRecorded(new File([blob], `recording.${ext}`, { type }));
+        recordingToWav16k(blob).then((wav) => onRecorded(wav || new File([blob], `recording.${ext}`, { type })));
       };
       rec.current = r;
       setSeconds(0);
@@ -299,12 +331,12 @@ function Recorder({ disabled, onRecorded, onError }) {
 }
 
 const CATEGORY_LABEL = {
-  healthy: 'Healthy baseline',
-  noisy: 'Noisy audio',
-  mumbled: 'Unclear speech',
-  long: 'Long conversation',
-  multi_intent: 'Multi-intent',
+  healthy: 'Healthy baseline', noisy: 'Noisy audio', mumbled: 'Unclear speech', long: 'Long conversation', multi_intent: 'Multi-intent',
+  clear: 'Clean baseline', hesitant: 'Hesitant speech', noisy_slow: 'Slow + noisy', interruptions: 'Interruptions',
+  telephone: 'Phone quality', cafe: 'Café noise', corrections: 'Self-corrections', ambiguity: 'Ambiguity', maximum: 'Maximum stress',
 };
+const GROUP_LABEL = [['core', 'Core scenarios'], ['stress', 'Stress tests'], ['quick', 'Quick clips']];
+const prettyIntent = (x) => String(x || '').replace(/_/g, ' ');
 
 // One dropdown for all demo calls. Choosing one shows what it is designed to stress; Analyze runs it through the real pipeline.
 function DemoPicker({ samples, busy, onRun }) {
@@ -312,12 +344,13 @@ function DemoPicker({ samples, busy, onRun }) {
   const [previewing, setPreviewing] = useState(false);
   const audio = useRef(null);
 
-  const featured = (samples || []).filter((s) => s.featured);
-  const others = (samples || []).filter((s) => !s.featured);
+  const groups = GROUP_LABEL
+    .map(([g, label]) => [label, (samples || []).filter((x) => (x.group || 'quick') === g)])
+    .filter(([, list]) => list.length);
   const selected = (samples || []).find((s) => s.id === selectedId) || null;
 
   useEffect(() => {
-    if (samples && samples.length && !selectedId) setSelectedId((samples.find((s) => s.featured) || samples[0]).id);
+    if (samples && samples.length && !selectedId) setSelectedId(samples[0].id);
   }, [samples, selectedId]);
 
   const stopPreview = useCallback(() => {
@@ -346,14 +379,11 @@ function DemoPicker({ samples, busy, onRun }) {
     <>
       <div className="ap-select" style={{ marginTop: 0 }}>
         <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} aria-label="Demo call">
-          <optgroup label="Interview demo calls">
-            {featured.map((s) => <option key={s.id} value={s.id}>{optionText(s)}</option>)}
-          </optgroup>
-          {others.length > 0 && (
-            <optgroup label="Quick clips">
-              {others.map((s) => <option key={s.id} value={s.id}>{optionText(s)}</option>)}
+          {groups.map(([label, list]) => (
+            <optgroup key={label} label={`${label} (${list.length})`}>
+              {list.map((x) => <option key={x.id} value={x.id}>{optionText(x)}</option>)}
             </optgroup>
-          )}
+          ))}
         </select>
         <ChevDown size={16} />
       </div>
@@ -363,12 +393,15 @@ function DemoPicker({ samples, busy, onRun }) {
             {selected.category && <span className={`ap-cat ${selected.category}`}>{CATEGORY_LABEL[selected.category] || selected.category}</span>}
             {selected.level && <span className="lvl" title={`Difficulty ${selected.level} of 5`}>{'●'.repeat(selected.level)}<i>{'●'.repeat(5 - selected.level)}</i></span>}
           </div>
+          {selected.speaker && <p className="ap-meta-line"><b>Speaker:</b> {selected.speaker}</p>}
+          {selected.environment && <p className="ap-meta-line"><b>Recording:</b> {selected.environment}</p>}
           {selected.summary && <p className="sum">{selected.summary}</p>}
+          {selected.tags && selected.tags.length > 0 && <div className="ap-tagrow">{selected.tags.map((t) => <span key={t}>{t}</span>)}</div>}
           {selected.challenge && <p className="chal"><b>Designed to stress:</b> {selected.challenge}</p>}
           {selected.says && (
             <details className="says">
               <summary>Script</summary>
-              <p>“{selected.says}”</p>
+              <p>{selected.says}</p>
             </details>
           )}
           <div className="row">
@@ -431,6 +464,7 @@ function FaultFold({ value, onChange }) {
       {t === 'bad_stt' && <Slider label="Corruption" min={10} max={100} step={5} value={value.corruptionPct} suffix="%" color="#e2372b" onChange={(v) => set({ corruptionPct: v })} />}
       {t === 'tts_glitch' && <Slider label="Reply kept" min={10} max={90} step={5} value={value.truncatePct} suffix="%" color="#6a5cd6" onChange={(v) => set({ truncatePct: v })} />}
       {t === 'timeout' && <Slider label="Extra delay" min={500} max={8000} step={500} value={value.extraDelayMs} suffix="ms" color="#1e88ff" onChange={(v) => set({ extraDelayMs: v })} />}
+      {t === 'hallucination' && <Slider label="Temperature" min={0} max={2} step={0.1} value={value.temperature} color="#f08a24" onChange={(v) => set({ temperature: Number(v.toFixed(1)) })} />}
       {t === 'hallucination' && (
         <div className="ap-select">
           <select value={value.intensity} onChange={(e) => set({ intensity: e.target.value })} aria-label="Hallucination intensity">
@@ -513,6 +547,7 @@ function RecentCalls({ cases, error, selectedId, onSelect, onRetry }) {
                     {c.failover && <span className="ap-badge" title="Deepgram failed, so this call used Whisper">via Whisper</span>}
                     {c.injected_fault && <span className="ap-badge" title="A failure was simulated on purpose">sim: {c.injected_fault}</span>}
                   </span>
+                  {c.intent && <span className="ap-intent">{prettyIntent(c.intent)}{c.difficulty ? ` · ${c.difficulty.toLowerCase()}` : ''}</span>}
                 </span>
               </button>
             );
@@ -597,13 +632,21 @@ function Verdict({ detail, state, onRetry }) {
     );
   }
   if (!detail.cause_of_death) {
+    const notable = (detail.analysis?.findings || []).filter((f) => f.severity !== 'info');
+    const difficulty = detail.analysis?.difficulty;
     return (
-      <section className="ap-verdict ok">
-        <Tick size={48} style={{ color: 'var(--green)' }} />
+      <section className={`ap-verdict ${notable.length ? 'busy' : 'ok'}`}>
+        {notable.length ? <WarnTri size={48} style={{ color: 'var(--amber)' }} /> : <Tick size={48} style={{ color: 'var(--green)' }} />}
         <div>
           <div className="k">Verdict</div>
-          <h3>Healthy</h3>
-          <p>No fault detected across speech-to-text, the reply and text-to-speech.</p>
+          <h3>{notable.length ? 'Completed, with notes' : 'Healthy'}</h3>
+          <p>
+            {notable.length
+              ? `The pipeline ran without a failure, but ${notable.length === 1 ? 'one thing stands out' : `${notable.length} things stand out`} in this call. See "What we noticed" below.`
+              : 'No fault detected across speech-to-text, the reply and text-to-speech, and nothing unusual in the audio or the way the customer spoke.'}
+          </p>
+          {notable.length > 0 && <div className="meta">{notable.slice(0, 3).map((f) => <span key={f.id}><b>{f.title}</b></span>)}</div>}
+          {difficulty && <div className="meta"><span>Call difficulty <b>{difficulty.label}</b></span></div>}
           {detail.injected_fault && <div className="meta"><span>Note: you simulated <b>{detail.injected_fault}</b>, but the classifier did not flag it.</span></div>}
           {links}
         </div>
@@ -765,6 +808,9 @@ function AudioPlayer({ url }) {
 }
 
 function AudioPanel({ detail, script }) {
+  const turns = detail?.analysis?.turns || [];
+  const multi = new Set(turns.map((t) => t.speaker)).size > 1;
+  const match = detail?.analysis?.script_match;
   const [tab, setTab] = useState('input');
   const id = detail?.id;
   useEffect(() => { setTab('input'); }, [id]);
@@ -781,11 +827,15 @@ function AudioPanel({ detail, script }) {
       {tab === 'transcript' ? (
         <div className="ap-transcript">
           <small>What speech-to-text heard (personal details redacted)</small>
-          {detail.transcript || 'No transcript. Speech-to-text did not produce one for this call.'}
+          {multi
+            ? turns.map((t, i) => <div key={i}><b>{`Voice ${t.speaker + 1}: `}</b>{t.text}</div>)
+            : (detail.transcript || 'No transcript. Speech-to-text did not produce one for this call.')}
           {script && (
             <>
-              <small style={{ marginTop: 14 }}>What was actually said (demo call script)</small>
-              {script}
+              <small style={{ marginTop: 14 }}>
+                What was actually said (demo call script){match ? ` · transcript matches about ${Math.round((1 - match.wer) * 100)}%` : ''}
+              </small>
+              <span style={{ whiteSpace: 'pre-wrap' }}>{script}</span>
             </>
           )}
         </div>
@@ -800,7 +850,7 @@ function CostBreakdown({ detail }) {
   if (!detail) return null;
   const total = detail.stages.reduce((n, s) => n + s.cost_usd, 0);
   if (total <= 0) return null;
-  const ordered = [...detail.stages].sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage));
+  const ordered = [...detail.stages].sort((a, b) => COST_ORDER.indexOf(a.stage) - COST_ORDER.indexOf(b.stage));
   let acc = 0;
   const ring = `conic-gradient(${ordered.map((s) => {
     const from = acc;
@@ -1012,6 +1062,7 @@ export default function Dashboard() {
             <>
               <CallDetails detail={detail} state={detailState} cases={cases} selectedId={selectedId} onSelect={setSelectedId} />
               <Verdict detail={detail} state={detailState} onRetry={() => setRetryTick((n) => n + 1)} />
+              {detail && detail.finished && detail.analysis && <CallAnalysisPanels analysis={detail.analysis} />}
               {detailState !== 'error' && (
                 <div className="ap-mid">
                   <StageTimeline detail={detail} state={detailState} />

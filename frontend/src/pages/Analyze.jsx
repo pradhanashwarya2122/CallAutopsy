@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, ApiError } from '../lib/api';
 import PageChrome from '../components/PageChrome';
 
 /* ============================================================
@@ -61,12 +61,40 @@ function Calibration() {
   const [data, setData] = useState(null);
   const [trend, setTrend] = useState(null);
   const [mistakes, setMistakes] = useState(null);
+  const [error, setError] = useState('');
+  const [samples, setSamples] = useState([]);
+  const [sampleId, setSampleId] = useState('');
+  const [starting, setStarting] = useState(false);
+  const [note, setNote] = useState('');
+  const timer = useRef(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [d, t, m] = await Promise.all([api.calibration(), api.calibrationTrend(), api.calibrationMistakes()]);
+      setData(d); setTrend(t.trend); setMistakes(m.mistakes); setError('');
+      if (d.running) timer.current = setTimeout(load, 3000);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Could not load calibration data. Check your connection and try again.');
+    }
+  }, []);
 
   useEffect(() => {
-    api.calibration().then(setData).catch(() => setData({ accuracy: 0, correct: 0, total: 0, perLabel: {}, confusionMatrix: [] }));
-    api.calibrationTrend().then((r) => setTrend(r.trend)).catch(() => setTrend([]));
-    api.calibrationMistakes().then((r) => setMistakes(r.mistakes)).catch(() => setMistakes([]));
-  }, []);
+    load();
+    api.samples().then((r) => { const l = r.samples ?? []; setSamples(l); if (l.length) setSampleId(l[0].id); }).catch(() => {});
+    return () => clearTimeout(timer.current);
+  }, [load]);
+
+  const startRun = async () => {
+    setStarting(true); setNote('');
+    try {
+      const r = await api.calibrationRun(sampleId);
+      setNote(`Running ${r.total} calls in the background (one clean, one per failure type). Results appear below as they finish.`);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(load, 2500);
+    } catch (e) {
+      setNote(e instanceof ApiError ? e.message : 'Could not start the run.');
+    } finally { setStarting(false); }
+  };
 
   const trendAcc = trend?.map((b) => (b.total ? (b.correct / b.total) * 100 : 0)) ?? [];
   const overall = data ? data.accuracy * 100 : 0;
@@ -80,14 +108,30 @@ function Calibration() {
   return (
     <div className="pc-body" style={{ marginTop: 0 }}>
       <p className="pc-sub" style={{ marginBottom: 18 }}>
-        Classifier accuracy measured against injected-fault ground truth. Every number here comes from real labeled calls.
+        How often the classifier names the right failure, measured against the failures you injected on purpose. Clean calls count as "ok", so false alarms show up too. These are your own calls only.
       </p>
+
+      {error && <p className="pc-sub" role="alert" style={{ color: 'var(--red)', marginBottom: 14 }}>{error}</p>}
+
+      <div className="pc-panel pc-section">
+        <p className="pc-h">Generate calibration data</p>
+        <p className="pc-sub" style={{ marginBottom: 10 }}>Runs one clean call and each of the 7 failure types on the demo call you choose (8 analyses, roughly 5 cents).</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <select value={sampleId} onChange={(e) => setSampleId(e.target.value)} aria-label="Demo call for calibration" className="pc-input" style={{ minWidth: 260 }}>
+            {samples.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+          </select>
+          <button onClick={startRun} disabled={starting || data?.running || !sampleId} className="pc-btn">
+            {data?.running ? 'Running…' : starting ? 'Starting…' : 'Run calibration'}
+          </button>
+        </div>
+        {note && <p className="pc-sub" style={{ marginTop: 10 }}>{note}</p>}
+      </div>
 
       <div className="pc-grid g3 pc-section">
         <div className="pc-meta-card">
           <p className="k">Overall accuracy</p>
           <p className="v">{data ? `${overall.toFixed(1)}%` : '—'}</p>
-          <p className="h">{data ? `${data.correct} correct of ${data.total} labeled` : 'loading…'}</p>
+          <p className="h">{data ? (data.total ? `${data.correct} correct of ${data.total} calls (${data.faultRuns} with an injected failure, ${data.cleanRuns} clean)` : 'no calls yet') : 'loading…'}</p>
         </div>
         <div className="pc-meta-card">
           <p className="k">Accuracy last 24h</p>
@@ -126,7 +170,7 @@ function Calibration() {
       <div className="pc-section pc-panel">
         <h3 className="pc-h">Per-label metrics</h3>
         {!data || !perLabelEntries.length ? (
-          <p className="pc-sub">No labeled calls yet — inject a few faults from the dashboard.</p>
+          <p className="pc-sub">No calls yet. Use "Generate calibration data" above, or run demo calls with "Simulate a failure" on the Dashboard.</p>
         ) : (
           <table className="pc-table">
             <thead>
@@ -170,9 +214,9 @@ function Calibration() {
                 </tr>
               </thead>
               <tbody>
-                {LABELS.filter((l) => l !== 'ok').map((r) => (
+                {LABELS.map((r) => (
                   <tr key={r}>
-                    <td className="mono" style={{ color: 'var(--mute)' }}>{r}</td>
+                    <td className="mono" style={{ color: 'var(--mute)' }}>{r === 'ok' ? 'ok (clean)' : r}</td>
                     {LABELS.map((c) => {
                       const n = cell(r, c);
                       const diag = r === c;
@@ -195,7 +239,7 @@ function Calibration() {
         {!mistakes ? (
           <p className="pc-sub">Loading…</p>
         ) : mistakes.length === 0 ? (
-          <p className="pc-sub">No mismatches on record. Nice.</p>
+          <p className="pc-sub">{data && data.total ? 'No mismatches on record.' : 'Nothing to show until you have some calls.'}</p>
         ) : (
           <table className="pc-table">
             <thead>
@@ -231,15 +275,16 @@ function BlastRadius() {
   const [result, setResult] = useState(null);
   const [ran, setRan] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const run = async () => {
-    setLoading(true);
+    setLoading(true); setError('');
     try { setResult(await api.blastRadius(volume)); setRan(true); }
-    catch { setResult({ projection: [], stages: [], totalMonthlyCostUsd: 0, sampleSize: 0 }); setRan(true); }
+    catch (e) { setResult(null); setRan(false); setError(e instanceof ApiError ? e.message : 'Could not project. Check your connection and try again.'); }
     finally { setLoading(false); }
   };
 
-  const totalMonthly = result?.totalMonthlyCostUsd ?? 0;
+  const totalMonthly = result?.failedMonthlyCostUsd ?? 0;
   const savings = totalMonthly * (reductionPct / 100);
   const maxFaultCost = result?.projection?.length ? Math.max(...result.projection.map((p) => p.projectedMonthlyCostUsd), 1) : 1;
 
@@ -272,9 +317,10 @@ function BlastRadius() {
         </div>
       </div>
 
+      {error && <p className="pc-sub" role="alert" style={{ color: 'var(--red)' }}>{error}</p>}
       {ran && result?.projection?.length === 0 && (
         <div className="pc-panel pc-section">
-          <p className="pc-sub">No historical failures with recorded cost yet. Run the seeded demo or inject a few faults, then come back.</p>
+          <p className="pc-sub">{result.sampleSize ? `None of your ${result.sampleSize} calls failed, so there is no failure cost to project.` : 'You have no finished calls yet.'} Run demo calls with "Simulate a failure" on the Dashboard, then come back.</p>
         </div>
       )}
 
@@ -289,7 +335,7 @@ function BlastRadius() {
             <div className="pc-meta-card">
               <p className="k">Sample size</p>
               <p className="v">{result.sampleSize}</p>
-              <p className="h">observed labeled calls</p>
+              <p className="h">your finished calls</p>
             </div>
             <div className="pc-meta-card">
               <p className="k">Worst offender</p>
@@ -377,6 +423,7 @@ function HallucinationSuite() {
   const [openId, setOpenId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [aggregate, setAggregate] = useState({});
+  const [error, setError] = useState('');
 
   const refresh = async () => {
     try {
@@ -395,7 +442,9 @@ function HallucinationSuite() {
 
   const run = async () => {
     setRunning(true);
+    setError('');
     try { await api.runHallucinationSuite(); await refresh(); }
+    catch (e) { setError(e instanceof ApiError ? e.message : 'The suite could not run. Check your connection and try again.'); }
     finally { setRunning(false); }
   };
 
@@ -426,6 +475,7 @@ function HallucinationSuite() {
           </button>
           <span className="pc-sub">7 adversarial prompts, each judged by a second LLM call.</span>
         </div>
+        {error && <p className="pc-sub" role="alert" style={{ color: 'var(--red)', marginTop: 10 }}>{error}</p>}
       </div>
 
       <div className="pc-grid g3 pc-section">

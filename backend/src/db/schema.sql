@@ -109,3 +109,22 @@ ON CONFLICT (id) DO NOTHING;
 -- NULL owner = system-generated (chaos / A-B / seeded demo).
 ALTER TABLE calls ADD COLUMN IF NOT EXISTS owner_id UUID;
 CREATE INDEX IF NOT EXISTS idx_calls_owner_started ON calls (owner_id, started_at DESC);
+
+-- Call understanding (intent, entities, corrections, sentiment, findings) stored with the call.
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS analysis JSONB;
+-- A/B runs: owned by a workspace, remember which demo call they used, and tag each call with its side.
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS ab_side TEXT;
+ALTER TABLE ab_runs ADD COLUMN IF NOT EXISTS owner_id UUID;
+ALTER TABLE ab_runs ADD COLUMN IF NOT EXISTS sample_id TEXT;
+ALTER TABLE ab_runs ADD COLUMN IF NOT EXISTS iterations INTEGER;
+ALTER TABLE ab_runs ADD COLUMN IF NOT EXISTS fault_params JSONB;
+CREATE INDEX IF NOT EXISTS idx_ab_runs_owner ON ab_runs (owner_id, created_at DESC);
+-- Ops data is per workspace too.
+ALTER TABLE hallucination_suite_runs ADD COLUMN IF NOT EXISTS owner_id UUID;
+ALTER TABLE healing_suggestions ADD COLUMN IF NOT EXISTS owner_id UUID;
+ALTER TABLE sla_breaches ADD COLUMN IF NOT EXISTS owner_id UUID;
+CREATE TABLE IF NOT EXISTS workspace_sla (
+  owner_id UUID PRIMARY KEY,
+  max_failure_rate_pct NUMERIC NOT NULL DEFAULT 5,
+  window_minutes INTEGER NOT NULL DEFAULT 60
+);

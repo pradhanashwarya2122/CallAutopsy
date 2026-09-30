@@ -1,25 +1,25 @@
 import { Router } from 'express';
 import { enableDeepgramOutage, disableDeepgramOutage, getOutageState } from '../admin/outageFlag.js';
 import { setChaos, getChaos } from '../chaos/scheduler.js';
+import { requireWorkspace } from '../auth/workspace.js';
 
+// Both controls only affect the calling workspace's own calls.
 export const adminRouter = Router();
+adminRouter.use(['/admin', '/chaos'], requireWorkspace);
 
 adminRouter.get('/admin/deepgram-outage', (_req, res) => {
-  res.json(getOutageState());
+  res.json(getOutageState(res.locals.workspaceId));
 });
 
 adminRouter.post('/admin/deepgram-outage', (req, res) => {
   const { enabled, durationSec } = req.body ?? {};
-  if (enabled) {
-    enableDeepgramOutage(Number(durationSec) || 60);
-  } else {
-    disableDeepgramOutage();
-  }
-  res.json(getOutageState());
+  if (enabled) enableDeepgramOutage(res.locals.workspaceId, Number(durationSec) || 60);
+  else disableDeepgramOutage(res.locals.workspaceId);
+  res.json(getOutageState(res.locals.workspaceId));
 });
 
 adminRouter.get('/chaos', (_req, res) => {
-  res.json(getChaos());
+  res.json(getChaos(res.locals.workspaceId));
 });
 
 adminRouter.post('/chaos', (req, res) => {
@@ -29,5 +29,5 @@ adminRouter.post('/chaos', (req, res) => {
   if (typeof callsPerMinute === 'number') patch.callsPerMinute = callsPerMinute;
   if (Array.isArray(faultMix)) patch.faultMix = faultMix;
   if (typeof includeCleanRuns === 'boolean') patch.includeCleanRuns = includeCleanRuns;
-  res.json(setChaos(patch));
+  res.json(setChaos(res.locals.workspaceId, patch));
 });

@@ -10,7 +10,7 @@ export interface SttOutcome extends SttResult {
 
 export async function transcribe(
   audio: Buffer,
-  opts: { preferredProvider?: 'deepgram' | 'whisper'; timeoutMs?: number } = {},
+  opts: { preferredProvider?: 'deepgram' | 'whisper'; timeoutMs?: number; audioExt?: string; ownerId?: string } = {},
 ): Promise<SttOutcome> {
   const preferred = opts.preferredProvider ?? 'deepgram';
   const timeoutMs = opts.timeoutMs ?? 10000;
@@ -21,8 +21,11 @@ export async function transcribe(
       new Promise<T>((_, rej) => setTimeout(() => rej(new Error('stt timeout')), timeoutMs)),
     ]);
 
-  const primary = preferred === 'deepgram' ? transcribeWithDeepgram : transcribeWithWhisper;
-  const fallback = preferred === 'deepgram' ? transcribeWithWhisper : transcribeWithDeepgram;
+  const filename = `audio.${opts.audioExt && /^[a-z0-9]{1,5}$/i.test(opts.audioExt) ? opts.audioExt.toLowerCase() : 'wav'}`;
+  const dg = (a: Buffer) => transcribeWithDeepgram(a, 'audio/wav', opts.ownerId);
+  const wh = (a: Buffer) => transcribeWithWhisper(a, filename);
+  const primary = preferred === 'deepgram' ? dg : wh;
+  const fallback = preferred === 'deepgram' ? wh : dg;
 
   try {
     const res = await withTimeout(primary(audio));

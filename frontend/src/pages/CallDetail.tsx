@@ -5,6 +5,7 @@ import { CauseOfDeathTag } from '../components/CauseOfDeathTag';
 import { StageTimeline } from '../components/StageTimeline';
 import { Skeleton, TableSkeleton } from '../components/Skeleton';
 import { PlayIcon, ClipboardIcon } from '../components/Icons';
+import CallAnalysisPanels from '../components/CallAnalysis.jsx';
 
 function StructuredReport({ text }: { text: string }) {
   const sections = text
@@ -118,6 +119,12 @@ export function CallDetail() {
           </a>
         </div>
       </div>
+
+      {call.analysis && (
+        <div className="ap-root ap-embed mb-6">
+          <CallAnalysisPanels analysis={call.analysis} />
+        </div>
+      )}
 
       {hasTts && (
         <section className="border border-neutral-200 bg-white rounded-sm p-4 mb-6">

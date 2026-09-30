@@ -10,8 +10,8 @@ import { budgetGuard } from '../cost/budget.js';
 import { requireWorkspace, workspaceId, ownsCall } from '../auth/workspace.js';
 import { ALL_FAULTS, type FaultType } from '../pipeline/faultInjection.js';
 
-export const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES) || 5 * 1024 * 1024;
-export const DAILY_CALL_LIMIT = Number(process.env.MAX_CALLS_PER_WORKSPACE_PER_DAY) || 25;
+export { MAX_UPLOAD_BYTES, DAILY_CALL_LIMIT } from '../limits.js';
+import { MAX_UPLOAD_BYTES, DAILY_CALL_LIMIT } from '../limits.js';
 
 const AUDIO_EXT = new Set(['wav', 'mp3', 'm4a', 'mp4', 'ogg', 'oga', 'webm', 'flac', 'aac', 'mpeg', 'mpga']);
 const EXT_FROM_MIME: Record<string, string> = {
@@ -170,7 +170,9 @@ callsRouter.get('/calls', requireWorkspace, async (req, res) => {
 
   const { rows } = await query(
     `SELECT id, started_at, ended_at, status, input_source, sample_id, injected_fault,
-            stt_provider_used, stt_failover_occurred, predicted_category, total_cost_usd
+            stt_provider_used, stt_failover_occurred, predicted_category, total_cost_usd,
+            analysis->'understanding'->'primary_intent'->>'label' AS intent,
+            analysis->'difficulty'->>'label' AS difficulty
      FROM calls WHERE ${filters.join(' AND ')} ORDER BY started_at DESC LIMIT ${limit}`,
     params,
   );

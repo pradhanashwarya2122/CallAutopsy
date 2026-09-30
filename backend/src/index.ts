@@ -1,9 +1,7 @@
 import http from 'http';
 import { createServer } from './server.js';
 import { attachWebSocket } from './websocket/broadcaster.js';
-import { startSlaMonitor } from './sla/monitor.js';
 import { startCallWorker, callQueue } from './queue/retryQueue.js';
-import { startHealingMonitor } from './healing/suggestEngine.js';
 import { pool, query } from './db/client.js';
 import { redisConnection } from './queue/connection.js';
 import { migrate } from './db/migrate.js';
@@ -29,8 +27,6 @@ server.listen(port, HOST, () => {
     try { await migrate(); } catch (e) { console.error('[migrate]', (e as Error).message); }
     try {
       worker = startCallWorker();
-      startSlaMonitor();
-      startHealingMonitor();
     } catch (e) {
       console.error('[boot] worker/sla start failed:', (e as Error).message);
     }
