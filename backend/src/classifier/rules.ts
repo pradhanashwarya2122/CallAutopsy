@@ -18,6 +18,7 @@ export interface ClassifyInput {
   sttThreshold: number;
   ttsDurationMismatch: boolean;
   hallucinationDetected: boolean;
+  sttTranscriptEmpty?: boolean;
   slaByStage: { stt: number; llm: number; tts: number };
 }
 
@@ -57,6 +58,10 @@ export function classify(input: ClassifyInput): Classification {
 
   if (input.hallucinationDetected) {
     return { category: 'hallucination', confidence: 0.85, reasons: ['grounding check flagged response'] };
+  }
+
+  if (input.sttTranscriptEmpty) {
+    return { category: 'bad_stt', confidence: 0.85, reasons: ['speech-to-text returned an empty transcript'] };
   }
 
   if (input.sttAvgConfidence > 0 && input.sttAvgConfidence < input.sttThreshold) {

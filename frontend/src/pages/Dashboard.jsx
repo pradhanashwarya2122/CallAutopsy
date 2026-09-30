@@ -292,45 +292,94 @@ function Recorder({ disabled, onRecorded, onError }) {
         <span style={recording ? { width: 12, height: 12, borderRadius: 2 } : { width: 13, height: 13, borderRadius: '50%' }} />
       </button>
       <span className="st" role="status">
-        {recording ? `Recording ${formatClock(seconds)} · click to stop and analyze` : 'Record your voice (up to 30 s)'}
+        {recording ? `Recording ${formatClock(seconds)} · click to stop and analyze` : 'Record your own call (up to 30 s)'}
       </span>
     </div>
   );
 }
 
-function SampleList({ samples, busy, onRun }) {
-  const [playingId, setPlayingId] = useState(null);
-  const audio = useRef(null);
-  useEffect(() => () => { if (audio.current) audio.current.pause(); }, []);
+const CATEGORY_LABEL = {
+  healthy: 'Healthy baseline',
+  noisy: 'Noisy audio',
+  mumbled: 'Unclear speech',
+  long: 'Long conversation',
+  multi_intent: 'Multi-intent',
+};
 
-  const toggle = (s) => {
-    if (audio.current) audio.current.pause();
-    if (playingId === s.id) { setPlayingId(null); return; }
-    const a = new Audio(s.url);
-    a.onended = () => setPlayingId(null);
-    a.onerror = () => setPlayingId(null);
+// One dropdown for all demo calls. Choosing one shows what it is designed to stress; Analyze runs it through the real pipeline.
+function DemoPicker({ samples, busy, onRun }) {
+  const [selectedId, setSelectedId] = useState('');
+  const [previewing, setPreviewing] = useState(false);
+  const audio = useRef(null);
+
+  const featured = (samples || []).filter((s) => s.featured);
+  const others = (samples || []).filter((s) => !s.featured);
+  const selected = (samples || []).find((s) => s.id === selectedId) || null;
+
+  useEffect(() => {
+    if (samples && samples.length && !selectedId) setSelectedId((samples.find((s) => s.featured) || samples[0]).id);
+  }, [samples, selectedId]);
+
+  const stopPreview = useCallback(() => {
+    if (audio.current) { audio.current.pause(); audio.current = null; }
+    setPreviewing(false);
+  }, []);
+  useEffect(() => stopPreview, [stopPreview]);
+  useEffect(() => { stopPreview(); }, [selectedId, stopPreview]);
+
+  const togglePreview = () => {
+    if (!selected) return;
+    if (previewing) { stopPreview(); return; }
+    const a = new Audio(selected.url);
+    a.onended = () => setPreviewing(false);
+    a.onerror = () => setPreviewing(false);
     audio.current = a;
-    setPlayingId(s.id);
-    a.play().catch(() => setPlayingId(null));
+    setPreviewing(true);
+    a.play().catch(() => setPreviewing(false));
   };
 
-  if (samples === null) return <div className="ap-samples">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-11 w-full" />)}</div>;
-  if (samples.length === 0) return <p className="ap-sub" style={{ fontSize: 12, margin: 0 }}>No demo calls on this server. Drop in your own recording above.</p>;
+  if (samples === null) return <Skeleton className="h-10 w-full" />;
+  if (samples.length === 0) return <p className="ap-sub" style={{ fontSize: 12, margin: 0 }}>No demo calls on this server. Record or upload one instead.</p>;
+
+  const optionText = (s) => `${s.label}${s.duration_s ? ` (${Math.round(s.duration_s)}s)` : ''}`;
   return (
-    <div className="ap-samples">
-      {samples.map((s) => (
-        <div key={s.id} className="ap-samp">
-          <button type="button" className="ap-icon" onClick={() => toggle(s)} aria-label={`${playingId === s.id ? 'Stop' : 'Preview'} ${s.label}`}>
-            {playingId === s.id ? <StopSolid size={11} /> : <PlaySolid size={12} />}
-          </button>
-          <span className="nm">
-            {s.label}
-            <small title={s.says || undefined}>{[s.duration_s ? `${s.duration_s.toFixed(1)}s` : null, s.says ? `“${s.says}”` : null].filter(Boolean).join(' · ')}</small>
-          </span>
-          <button type="button" className="ap-run" disabled={busy} onClick={() => onRun(s)}>Analyze</button>
+    <>
+      <div className="ap-select" style={{ marginTop: 0 }}>
+        <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} aria-label="Demo call">
+          <optgroup label="Interview demo calls">
+            {featured.map((s) => <option key={s.id} value={s.id}>{optionText(s)}</option>)}
+          </optgroup>
+          {others.length > 0 && (
+            <optgroup label="Quick clips">
+              {others.map((s) => <option key={s.id} value={s.id}>{optionText(s)}</option>)}
+            </optgroup>
+          )}
+        </select>
+        <ChevDown size={16} />
+      </div>
+      {selected && (
+        <div className="ap-demo">
+          <div className="hd">
+            {selected.category && <span className={`ap-cat ${selected.category}`}>{CATEGORY_LABEL[selected.category] || selected.category}</span>}
+            {selected.level && <span className="lvl" title={`Difficulty ${selected.level} of 5`}>{'●'.repeat(selected.level)}<i>{'●'.repeat(5 - selected.level)}</i></span>}
+          </div>
+          {selected.summary && <p className="sum">{selected.summary}</p>}
+          {selected.challenge && <p className="chal"><b>Designed to stress:</b> {selected.challenge}</p>}
+          {selected.says && (
+            <details className="says">
+              <summary>Script</summary>
+              <p>“{selected.says}”</p>
+            </details>
+          )}
+          <div className="row">
+            <button type="button" className="ap-btn ghost" onClick={togglePreview} aria-label={previewing ? 'Stop preview' : `Preview ${selected.label}`}>
+              {previewing ? 'Stop' : 'Play'}
+            </button>
+            <button type="button" className="ap-btn" disabled={busy} onClick={() => onRun(selected)}>Analyze this call</button>
+          </div>
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 
@@ -401,13 +450,12 @@ function AnalyzePanel({ samples, summary, busy, notice, fault, onFault, onFile, 
   return (
     <section className="ap-panel">
       <h2 className="ap-h">Analyze a call</h2>
-      <div style={{ marginTop: 14 }}>
-        <DropZone disabled={busy} maxBytes={maxBytes} onFile={onFile} onReject={reject} />
-      </div>
-      <div className="ap-or">or</div>
+      <p className="ap-step">Pick a demo call</p>
+      <DemoPicker samples={samples} busy={busy} onRun={onSample} />
+      <div className="ap-or">or record your own</div>
       <Recorder disabled={busy} onRecorded={onFile} onError={reject} />
-      <div className="ap-or">try a demo call</div>
-      <SampleList samples={samples} busy={busy} onRun={onSample} />
+      <div className="ap-or">or upload a file</div>
+      <DropZone disabled={busy} maxBytes={maxBytes} onFile={onFile} onReject={reject} />
       <FaultFold value={fault} onChange={onFault} />
       {notice && <p className={`ap-msg ${notice.tone}`} role={notice.tone === 'err' ? 'alert' : 'status'}>{notice.msg}</p>}
     </section>
@@ -616,6 +664,9 @@ function StageTimeline({ detail, state }) {
                 <div className="p">{s?.provider || STAGE_NAME[k]}</div>
                 <div className="l">{s ? `${s.latency_s.toFixed(2)}s` : '—'}</div>
                 <div className="c">{s ? formatUsd(s.cost_usd) : ' '}</div>
+                {k === 'stt' && s && s.confidence != null && (
+                  <div className="c" title="Average word confidence reported by the speech-to-text provider">Confidence {Math.round(s.confidence * 100)}%</div>
+                )}
                 <div className="s">
                   {s && !bad && <Tick size={15} />}
                   {bad && <XCircle size={15} />}
@@ -713,7 +764,7 @@ function AudioPlayer({ url }) {
   );
 }
 
-function AudioPanel({ detail }) {
+function AudioPanel({ detail, script }) {
   const [tab, setTab] = useState('input');
   const id = detail?.id;
   useEffect(() => { setTab('input'); }, [id]);
@@ -731,6 +782,12 @@ function AudioPanel({ detail }) {
         <div className="ap-transcript">
           <small>What speech-to-text heard (personal details redacted)</small>
           {detail.transcript || 'No transcript. Speech-to-text did not produce one for this call.'}
+          {script && (
+            <>
+              <small style={{ marginTop: 14 }}>What was actually said (demo call script)</small>
+              {script}
+            </>
+          )}
         </div>
       ) : (
         <AudioPlayer key={url} url={url} />
@@ -958,7 +1015,7 @@ export default function Dashboard() {
               {detailState !== 'error' && (
                 <div className="ap-mid">
                   <StageTimeline detail={detail} state={detailState} />
-                  {detail && detail.finished && <AudioPanel detail={detail} />}
+                  {detail && detail.finished && <AudioPanel detail={detail} script={(samples || []).find((x) => x.id === detail.sample_id)?.says || null} />}
                   {detail && detail.finished && <CostBreakdown detail={detail} />}
                 </div>
               )}

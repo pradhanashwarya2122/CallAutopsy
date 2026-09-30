@@ -10,6 +10,7 @@
     "healthcheck": "tsx src/scripts/healthcheck.ts",
     "seed-samples": "tsx src/scripts/seedSamples.ts",
     "generate-samples": "bash scripts/generate-samples.sh",
+    "generate-demo-calls": "node scripts/generate-demo-calls.mjs",
     "seed-demo-data": "tsx src/scripts/seedDemoData.ts"
   },
   "dependencies": {

@@ -16,7 +16,7 @@ import {
   type FaultParams,
 } from './faultInjection.js';
 import { classify, type StageRecord } from '../classifier/rules.js';
-import { STT_CONFIDENCE_THRESHOLD, sttConfidenceSignal } from '../classifier/sttQuality.js';
+import { STT_CONFIDENCE_THRESHOLD, DEEPGRAM_CONFIDENCE_THRESHOLD, sttConfidenceSignal } from '../classifier/sttQuality.js';
 import { ttsDurationMismatch } from '../classifier/ttsQuality.js';
 import { detectHallucination } from '../classifier/grounding.js';
 import { costForStage } from '../cost/calculator.js';
@@ -154,7 +154,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
       const cost = costForStage({ stage: 'stt', provider: sttResult.provider, rawMeta: sttResult.rawMeta });
       totalCost += cost;
       await insertStage(callId, 'stt', sttResult.provider, startedAtStage, endedAtStage, status,
-        { ...sttResult.rawMeta, failoverOccurred: sttResult.failoverOccurred, transcript_len: sttResult.transcript.length },
+        { ...sttResult.rawMeta, failoverOccurred: sttResult.failoverOccurred, primaryError: sttResult.primaryError, transcript_len: sttResult.transcript.length },
         cost);
       stages.push({ stage: 'stt', durationMs: endedAtStage.getTime() - startedAtStage.getTime(), status });
       emit({ type: 'call.stage', callId, stage: 'stt', status, provider: sttResult.provider });
@@ -267,9 +267,10 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
     networkDropSignaled,
     exceptionType,
     sttAvgConfidence: sttSignal.avgConfidence,
-    sttThreshold: STT_CONFIDENCE_THRESHOLD,
+    sttThreshold: sttResult?.provider === 'deepgram' ? DEEPGRAM_CONFIDENCE_THRESHOLD : STT_CONFIDENCE_THRESHOLD,
     ttsDurationMismatch: ttsMismatch,
     hallucinationDetected: hallucinated,
+    sttTranscriptEmpty: !!sttResult && sttResult.transcript.trim().length === 0,
     slaByStage: SLA,
   });
 

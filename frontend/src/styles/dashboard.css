@@ -311,3 +311,25 @@
   .ap-nav a,.ap-nav .on{font-size:15px;padding:6px 12px}
   .ap-nav .ap-landing{margin-left:0;padding:7px 12px;font-size:15px}
 }
+
+/* ===== demo call picker ===== */
+.ap-step{margin:14px 0 8px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.ap-demo{margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.55)}
+.ap-demo .hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ap-demo .lvl{font-size:11px;letter-spacing:.1em;color:var(--ink)}
+.ap-demo .lvl i{font-style:normal;color:#cdc7b7}
+.ap-demo p{margin:8px 0 0;font-size:12.5px;line-height:1.5}
+.ap-demo .sum{color:var(--ink)}
+.ap-demo .chal{color:var(--mute)}
+.ap-demo .chal b{color:var(--ink);font-weight:600}
+.ap-demo .says{margin-top:8px;font-size:12px}
+.ap-demo .says summary{cursor:pointer;color:var(--mute);letter-spacing:.1em;text-transform:uppercase;font-size:11px}
+.ap-demo .says p{color:#2b281f;white-space:pre-wrap}
+.ap-demo .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.ap-demo .row .ap-btn{padding:8px 14px;font-size:13px}
+.ap-cat{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;background:#e6e1d4;color:#3b372e}
+.ap-cat.healthy{background:var(--green-bg);color:#16794f}
+.ap-cat.noisy{background:var(--amber-bg);color:var(--amber)}
+.ap-cat.mumbled{background:#e9e2f7;color:#5b4bc4}
+.ap-cat.long{background:#dbe9fb;color:#1e6fd9}
+.ap-cat.multi_intent{background:var(--red-bg);color:#c0301f}

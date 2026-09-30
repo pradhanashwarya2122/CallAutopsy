@@ -42,6 +42,6 @@ export async function transcribeWithDeepgram(audio: Buffer, mimeType = 'audio/wa
     avgConfidence: avg,
     audioDurationSec: duration,
     provider: 'deepgram',
-    rawMeta: { duration, wordCount: words.length, confidence: alt?.confidence },
+    rawMeta: { duration, wordCount: words.length, confidence: alt?.confidence, avgConfidence: avg },
   };
 }

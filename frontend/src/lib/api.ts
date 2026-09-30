@@ -239,6 +239,7 @@ export const api = {
       latency_s: (s.duration_ms ?? 0) / 1000,
       cost_usd: Number(s.cost_usd ?? 0),
       status: s.status,
+      confidence: typeof s.raw_meta?.avgConfidence === 'number' ? s.raw_meta.avgConfidence : null,
     }));
     const started = call.started_at ? new Date(call.started_at).getTime() : NaN;
     const ended = call.ended_at ? new Date(call.ended_at).getTime() : NaN;
@@ -266,9 +267,14 @@ export const api = {
 
   async sampleList(): Promise<SampleRow[]> {
     const r = await j('/samples');
-    return (r.samples ?? []).map((s: any) => ({
+    return (r.samples ?? []).map((s: any): SampleRow => ({
       id: s.id,
       label: s.label ?? s.id,
+      category: s.category ?? null,
+      level: typeof s.level === 'number' ? s.level : null,
+      featured: !!s.featured,
+      summary: s.summary ?? null,
+      challenge: s.challenge ?? null,
       says: s.says ?? null,
       duration_s: typeof s.duration_s === 'number' ? s.duration_s : null,
       url: `${BASE}/samples/${encodeURIComponent(s.id)}`,
@@ -304,13 +310,16 @@ export interface CaseRow {
   stt_provider: string | null; failover: boolean; cost_usd: number;
   injected_fault: string | null; source: string; sample_id: string | null;
 }
-export interface StageRow { stage: 'stt' | 'llm' | 'tts'; provider: string | null; latency_s: number; cost_usd: number; status: string }
+export interface StageRow { stage: 'stt' | 'llm' | 'tts'; provider: string | null; latency_s: number; cost_usd: number; status: string; confidence: number | null }
 export interface Autopsy { cause?: string; chain?: string; factors?: string; recommendation?: string }
 export interface CaseDetail extends Omit<CaseRow, 'cost_usd'> {
   finished: boolean; confidence: number | null; duration_s: number | null; cost_usd: number;
   transcript: string | null; stages: StageRow[]; has_reply_audio: boolean; autopsy: Autopsy | null;
 }
-export interface SampleRow { id: string; label: string; says: string | null; duration_s: number | null; url: string }
+export interface SampleRow {
+  id: string; label: string; category: string | null; level: number | null; featured: boolean;
+  summary: string | null; challenge: string | null; says: string | null; duration_s: number | null; url: string;
+}
 export interface FaultChoice {
   type: 'none' | 'bad_stt' | 'hallucination' | 'tts_glitch' | 'timeout' | 'user_hangup' | 'network_drop' | 'exception';
   stage?: 'stt' | 'llm' | 'tts'; corruptionPct?: number; intensity?: 'mild' | 'aggressive'; truncatePct?: number; extraDelayMs?: number;

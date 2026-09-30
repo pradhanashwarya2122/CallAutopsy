@@ -34,11 +34,40 @@ export class InjectedError extends Error {
   }
 }
 
+// Byte-flipping only nudges the low byte of 16-bit samples, which is inaudible in PCM WAV (~-42 dB), so for WAV
+// we replace random 20 ms frames with noise instead. Compressed formats (mp3/webm/ogg) keep the byte-flip, which
+// breaks their bitstream.
+function pcm16Region(buf: Buffer): { start: number; end: number; frameBytes: number } | null {
+  if (buf.length < 44 || buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') return null;
+  let pos = 12;
+  let fmt: { tag: number; ch: number; rate: number; bits: number } | null = null;
+  while (pos + 8 <= buf.length) {
+    const id = buf.toString('ascii', pos, pos + 4);
+    const size = buf.readUInt32LE(pos + 4);
+    const body = pos + 8;
+    if (id === 'fmt ') fmt = { tag: buf.readUInt16LE(body), ch: buf.readUInt16LE(body + 2), rate: buf.readUInt32LE(body + 4), bits: buf.readUInt16LE(body + 14) };
+    if (id === 'data') {
+      if (!fmt || fmt.tag !== 1 || fmt.bits !== 16) return null;
+      return { start: body, end: Math.min(buf.length, body + size), frameBytes: Math.max(1, Math.round(fmt.rate * 0.02)) * fmt.ch * 2 };
+    }
+    pos = body + size + (size % 2);
+  }
+  return null;
+}
+
 export function corruptAudio(buf: Buffer, corruptionPct = 100, stride = 4): Buffer {
   const out = Buffer.from(buf);
+  const density = Math.max(0, Math.min(100, corruptionPct)) / 100;
+  const pcm = pcm16Region(out);
+  if (pcm) {
+    for (let o = pcm.start; o + pcm.frameBytes <= pcm.end; o += pcm.frameBytes) {
+      if (Math.random() > density) continue;
+      for (let i = o; i < o + pcm.frameBytes; i += 2) out.writeInt16LE(Math.round((Math.random() * 2 - 1) * 12000), i);
+    }
+    return out;
+  }
   const start = Math.min(200, out.length);
   const step = Math.max(1, stride);
-  const density = Math.max(0, Math.min(100, corruptionPct)) / 100;
   for (let i = start; i < out.length; i += step) {
     if (Math.random() <= density) out[i] = out[i] ^ 0xff;
   }

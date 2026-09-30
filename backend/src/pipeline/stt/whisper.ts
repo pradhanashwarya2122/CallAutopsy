@@ -30,6 +30,7 @@ export async function transcribeWithWhisper(audio: Buffer, filename = 'audio.wav
     provider: 'whisper',
     rawMeta: {
       duration: res.duration,
+      avgConfidence: approxConfidence,
       avgLogProb,
       noSpeechProb: segments.length
         ? segments.reduce((s: number, seg: any) => s + (seg.no_speech_prob ?? 0), 0) / segments.length

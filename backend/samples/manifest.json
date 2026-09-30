@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "note": "Single source of truth for demo calls. `segments` are what the customer says (also shown in the UI as the script); `voice`/`post` tell scripts/generate-demo-calls.mjs how to render them. `challenge` describes what a call is DESIGNED to stress; it is not a prediction. The analysis pipeline produces the actual diagnosis.",
+  "samples": [
+    {
+      "id": "call-1-clean-baseline.wav",
+      "label": "1 · Clean baseline",
+      "category": "healthy",
+      "level": 1,
+      "featured": true,
+      "summary": "Clear duplicate-charge refund request. One intent, no noise.",
+      "challenge": "Healthy baseline: clear speech, complete sentences, one intent, no background noise.",
+      "voice": {
+        "espeak": {
+          "voice": "en-us+f3",
+          "speed": 172,
+          "pitch": 52,
+          "amp": 110
+        },
+        "openai": {
+          "voice": "nova",
+          "speed": 1.0
+        }
+      },
+      "post": {
+        "preset": "clean"
+      },
+      "segments": [
+        {
+          "text": "Hi, I'm calling because I was charged twice for the same order.",
+          "pause": 0.45
+        },
+        {
+          "text": "It's order 4 8 2 1 3, and I was charged forty-seven dollars and ninety-nine cents both times.",
+          "pause": 0.45
+        },
+        {
+          "text": "Could you please check the transaction and refund the duplicate charge?"
+        }
+      ]
+    },
+    {
+      "id": "call-2-noisy-cafe.wav",
+      "label": "2 · Noisy café",
+      "category": "noisy",
+      "level": 2,
+      "featured": true,
+      "summary": "Payment deducted but order still pending, from a busy café with traffic outside.",
+      "challenge": "Environmental degradation: speech is clear but sits over café chatter, traffic and clatter, with uneven volume.",
+      "voice": {
+        "espeak": {
+          "voice": "en-us+m1",
+          "speed": 165,
+          "pitch": 46,
+          "amp": 120
+        },
+        "openai": {
+          "voice": "onyx",
+          "speed": 1.05
+        }
+      },
+      "post": {
+        "preset": "cafe"
+      },
+      "segments": [
+        {
+          "text": "Hey, I'm calling about my payment.",
+          "pause": 0.6
+        },
+        {
+          "text": "The money was deducted, about sixty-two dollars, but my order still says pending.",
+          "pause": 0.7
+        },
+        {
+          "text": "It's order 7 3 9 0 5. Can you help me with this?"
+        }
+      ]
+    },
+    {
+      "id": "call-3-mumbled-unsure.wav",
+      "label": "3 · Mumbled & unsure",
+      "category": "mumbled",
+      "level": 3,
+      "featured": true,
+      "summary": "Confused customer who thinks they were charged twice but is not sure.",
+      "challenge": "Speaking style: fillers, restarts, pauses, uncertainty and a self-corrected amount, quietly spoken.",
+      "voice": {
+        "espeak": {
+          "voice": "en-us+m6",
+          "speed": 150,
+          "pitch": 34,
+          "amp": 85
+        },
+        "openai": {
+          "voice": "echo",
+          "speed": 0.9
+        }
+      },
+      "post": {
+        "preset": "mumble"
+      },
+      "segments": [
+        {
+          "text": "Uh, yeah, so... basically, I paid for the order yesterday, but...",
+          "pause": 0.8
+        },
+        {
+          "text": "um, I think the payment went through twice? Maybe.",
+          "pause": 0.7
+        },
+        {
+          "text": "I'm not... I'm not completely sure what happened.",
+          "pause": 1.1
+        },
+        {
+          "text": "Wait, let me check. It says forty... no, forty-eight something? I believe.",
+          "pause": 0.6
+        },
+        {
+          "text": "I just don't want to pay twice."
+        }
+      ]
+    },
+    {
+      "id": "call-4-long-multi-detail.wav",
+      "label": "4 · Long, multi-detail",
+      "category": "long",
+      "level": 4,
+      "featured": true,
+      "summary": "Failed payment, retry, a possible double charge, a wrong amount and a wrong order number, all corrected mid-call.",
+      "challenge": "Context over time: details spread across the call, corrected amount and order number, repetition, a prior support contact and a final request.",
+      "voice": {
+        "espeak": {
+          "voice": "en-us+f5",
+          "speed": 165,
+          "pitch": 46,
+          "amp": 110
+        },
+        "openai": {
+          "voice": "shimmer",
+          "speed": 1.0
+        }
+      },
+      "post": {
+        "preset": "phone"
+      },
+      "segments": [
+        {
+          "text": "Hi, I placed an order five days ago, and the payment failed the first time, so I tried again.",
+          "pause": 0.6
+        },
+        {
+          "text": "But my banking app shows I was charged twice, forty-three fifty each. Actually, wait... let me check that.",
+          "pause": 1.5
+        },
+        {
+          "text": "Sorry, I gave you the wrong amount. It's fifty-three forty each. The order number is 6 1 8 4 2. No, sorry, 6 1 8 2 4.",
+          "pause": 0.6
+        },
+        {
+          "text": "I contacted support last week and nothing happened, and the order still says processing.",
+          "pause": 0.6
+        },
+        {
+          "text": "Did you get all that? Please look into the duplicate charge, and refund it if it's real."
+        }
+      ]
+    },
+    {
+      "id": "call-5-failure-heavy-multi-intent.wav",
+      "label": "5 · Failure-heavy, multi-intent",
+      "category": "multi_intent",
+      "level": 5,
+      "featured": true,
+      "summary": "Duplicate charge, an ambiguous failed/pending first payment, a missing order and an unknown fee, from a frustrated customer.",
+      "challenge": "Reasoning load: six related intents, conflicting payment state (failed vs pending), unclear which charge matches which attempt, and an unrecognised fee.",
+      "voice": {
+        "espeak": {
+          "voice": "en-us+f1",
+          "speed": 176,
+          "pitch": 58,
+          "amp": 130
+        },
+        "openai": {
+          "voice": "alloy",
+          "speed": 1.12
+        }
+      },
+      "post": {
+        "preset": "phone"
+      },
+      "segments": [
+        {
+          "text": "Okay, I was charged twice. That's the part I don't understand.",
+          "pause": 0.5
+        },
+        {
+          "text": "I thought the first payment failed, so I tried again, and the second one went through.",
+          "pause": 0.5
+        },
+        {
+          "text": "But my banking app shows the first one as pending. So did it fail or not?",
+          "pause": 0.6
+        },
+        {
+          "text": "And the order, 9 2 6 7 1, still hasn't arrived, and there's another fee I don't recognize, eight fifty.",
+          "pause": 0.5
+        },
+        {
+          "text": "I just want to know what actually happened, and get the extra money back."
+        }
+      ]
+    },
+    {
+      "id": "refund-request.wav",
+      "label": "Refund request (quick test)",
+      "category": "healthy",
+      "level": 1,
+      "featured": false,
+      "summary": "Short clean clip.",
+      "challenge": "Short clean clip for quick tests.",
+      "says": "Hi, I was charged twice on my last invoice and I would like a refund please."
+    },
+    {
+      "id": "book-table.wav",
+      "label": "Book a table (quick test)",
+      "category": "healthy",
+      "level": 1,
+      "featured": false,
+      "summary": "Short clean clip.",
+      "challenge": "Short clean clip for quick tests.",
+      "says": "Book me a table for two at seven pm tonight."
+    },
+    {
+      "id": "weather-today.wav",
+      "label": "Weather question (quick test)",
+      "category": "healthy",
+      "level": 1,
+      "featured": false,
+      "summary": "Short clean clip.",
+      "challenge": "Short clean clip for quick tests.",
+      "says": "What's the weather going to be like today?"
+    },
+    {
+      "id": "noisy-line.wav",
+      "label": "Noisy line (quick test)",
+      "category": "noisy",
+      "level": 2,
+      "featured": false,
+      "summary": "Short clip, fast voice over static.",
+      "challenge": "Short noisy clip for quick tests.",
+      "says": "Uh, hi, I need to check my, uh, account balance. (with static)"
+    }
+  ]
+}

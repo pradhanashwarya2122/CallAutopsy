@@ -157,9 +157,9 @@ Then I open http://localhost:5173.
 
 The Dashboard needs real audio to analyze. Three ways to get it:
 
-1. **Bundled demo calls** (nothing to do). `backend/samples/` ships four short `.wav` recordings (a refund request, a table booking, a weather question, and a noisy line). They appear under "Try a demo call" on the Dashboard with a one-click **Analyze** button.
+1. **Bundled demo calls** (nothing to do). `backend/samples/` ships five interview demo calls, from a clean baseline up to a failure-heavy multi-intent call, generated with OpenAI `tts-1`, plus four short quick clips. Pick one from the **Demo call** dropdown on the Dashboard; each shows what it is designed to stress and its script, and has a Play preview and an **Analyze this call** button. See `backend/samples/README.md`.
 2. **Drop in your own.** Drag any `.wav` / `.mp3` / `.m4a` / `.ogg` / `.webm` / `.flac` file (up to 5 MB) onto the Dashboard, or click **Record** and speak. Good sources of realistic test audio: your own voice memos, a real call recording you have the right to use, or public speech datasets such as LibriSpeech and Mozilla Common Voice.
-3. **Generate more.** `npm run generate-samples` (in `backend/`) regenerates the bundled clips with offline TTS (needs `espeak-ng` and `ffmpeg`); add a line to `scripts/generate-samples.sh` for new ones. `npm run seed-samples` instead makes natural-sounding `.mp3` clips with OpenAI TTS (needs `OPENAI_API_KEY`; git-ignored).
+3. **Generate more.** Edit `backend/samples/manifest.json` and run `npm run generate-demo-calls -- --engine openai` (needs `OPENAI_API_KEY` and `ffmpeg`; uses `tts-1`, about 2 cents for all five calls). Without a key, omit `--engine` to render offline with `espeak-ng`.
 
 The Dashboard's **Simulate a failure** section deliberately breaks one analysis (garbled audio, invented facts, a cut-off reply, a slow stage, ...) so you can watch it get diagnosed. It is off by default and switches itself off after one use.
 
