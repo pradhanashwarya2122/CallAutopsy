@@ -393,3 +393,17 @@
 .ap-tone3{display:grid;gap:10px}
 .ap-tone3 .k{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-bottom:2px}
 .ap-tone3 p{margin:0}
+
+/* demo picker: category tabs + visible list, so every recording is one click away */
+.ap-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.ap-tabs button{font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.55);color:var(--ink);cursor:pointer}
+.ap-tabs button i{font-style:normal;color:var(--mute,#8a8373);margin-left:4px}
+.ap-tabs button.on{background:var(--ink);border-color:var(--ink);color:#fff}.ap-tabs button.on i{color:#d8d2c2}
+.ap-demolist{margin-top:10px;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.55)}
+.ap-demolist button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:9px 12px;border:0;border-bottom:1px solid var(--line);background:transparent;cursor:pointer;font-size:13px;color:var(--ink)}
+.ap-demolist button:last-child{border-bottom:0}
+.ap-demolist button:hover{background:rgba(255,255,255,.9)}
+.ap-demolist button.on{background:#f4ecdc;box-shadow:inset 3px 0 0 var(--ink)}
+.ap-demolist .m{font-family:var(--mono);font-size:11px;color:var(--mute,#8a8373);white-space:nowrap}
+.ap-about{max-width:760px;margin-top:14px;font-size:14px;line-height:1.55;color:var(--ink)}
+.ap-about p{margin:0 0 8px}.ap-about ul{margin:0;padding-left:18px}.ap-about li{margin-bottom:3px}

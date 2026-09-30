@@ -350,13 +350,18 @@ function DemoPicker({ samples, error, onRetry, busy, onRun }) {
   const audio = useRef(null);
 
   const groups = GROUP_LABEL
-    .map(([g, label]) => [label, (samples || []).filter((x) => (x.group || 'quick') === g)])
-    .filter(([, list]) => list.length);
+    .map(([g, label]) => [g, label, (samples || []).filter((x) => (x.group || 'quick') === g)])
+    .filter(([, , list]) => list.length);
+  const [tab, setTab] = useState('');
   const selected = (samples || []).find((s) => s.id === selectedId) || null;
 
   useEffect(() => {
     if (samples && samples.length && !selectedId) setSelectedId(samples[0].id);
   }, [samples, selectedId]);
+  useEffect(() => {
+    const s0 = (samples || []).find((x) => x.id === selectedId);
+    if (s0 && !tab) setTab(s0.group || 'quick');
+  }, [samples, selectedId, tab]);
 
   const stopPreview = useCallback(() => {
     if (audio.current) { audio.current.pause(); audio.current = null; }
@@ -380,18 +385,22 @@ function DemoPicker({ samples, error, onRetry, busy, onRun }) {
   if (error) return <p className="ap-sub" role="alert" style={{ fontSize: 12, margin: 0 }}>{error} <button type="button" className="ap-btn ghost" onClick={onRetry}>Try again</button></p>;
   if (samples.length === 0) return <p className="ap-sub" style={{ fontSize: 12, margin: 0 }}>No demo calls on this server. Record or upload one instead.</p>;
 
-  const optionText = (s) => `${s.label}${s.duration_s ? ` (${Math.round(s.duration_s)}s)` : ''}`;
   return (
     <>
-      <div className="ap-select" style={{ marginTop: 0 }}>
-        <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} aria-label="Demo call">
-          {groups.map(([label, list]) => (
-            <optgroup key={label} label={`${label} (${list.length})`}>
-              {list.map((x) => <option key={x.id} value={x.id}>{optionText(x)}</option>)}
-            </optgroup>
-          ))}
-        </select>
-        <ChevDown size={16} />
+      <div className="ap-tabs" role="tablist" aria-label="Demo call categories">
+        {groups.map(([g, label, list]) => (
+          <button key={g} type="button" role="tab" aria-selected={tab === g} className={tab === g ? 'on' : ''} onClick={() => { setTab(g); if (!list.some((x) => x.id === selectedId)) setSelectedId(list[0].id); }}>
+            {label} <i>{list.length}</i>
+          </button>
+        ))}
+      </div>
+      <div className="ap-demolist" role="listbox" aria-label="Demo calls">
+        {(groups.find(([g]) => g === tab)?.[2] ?? []).map((x) => (
+          <button key={x.id} type="button" role="option" aria-selected={x.id === selectedId} className={x.id === selectedId ? 'on' : ''} onClick={() => setSelectedId(x.id)}>
+            <span className="t">{x.label}</span>
+            <span className="m">{x.category ? (CATEGORY_LABEL[x.category] || x.category) : ''}{x.duration_s ? ` · ${Math.round(x.duration_s)}s` : ''}</span>
+          </button>
+        ))}
       </div>
       {selected && (
         <div className="ap-demo">
@@ -1037,6 +1046,14 @@ export default function Dashboard() {
           <div className="ap-eyebrow">Case File</div>
           <h1 className="ap-title">Call<em>Autopsy</em></h1>
           <p className="ap-tagline">Trace every failed call to the stage that broke it.</p>
+          <div className="ap-about">
+            <p><b>What is this?</b> Phone bots and voice assistants work in three steps: they <em>listen</em> (speech to text), <em>think</em> (an AI model writes a reply) and <em>speak</em> (text to speech). When a call goes wrong, it is hard to tell which step failed. CallAutopsy runs a call through all three, shows how long and how much each step took, and names the step that broke.</p>
+            <ul>
+              <li><b>Try it:</b> pick a demo call on the left, or record or upload your own, and press Analyze.</li>
+              <li><b>Break it on purpose:</b> turn on “Simulate a failure” to see how each kind of failure looks.</li>
+              <li><b>Compare:</b> the A/B page runs the same call on two setups; Analyze shows how accurate the diagnosis is.</li>
+            </ul>
+          </div>
         </div>
       </header>
 

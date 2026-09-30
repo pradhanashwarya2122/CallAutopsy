@@ -533,7 +533,7 @@ function Hero({ enter }) {
 
       <div className="copy">
         <h1><span className="ln"><span>Your voice agent failed.</span></span><span className="ln"><em>Find out exactly why.</em></span></h1>
-        <p className="sub">CallAutopsy runs a call through STT, LLM and TTS with a fault injected, or reads a call you upload. It names the stage that broke, shows the evidence, and reports what the call cost.</p>
+        <p className="sub">Voice bots and AI phone agents fail in ways that are hard to see: they mishear, answer wrongly, or go quiet. CallAutopsy runs a call through listening (STT), thinking (LLM) and speaking (TTS), finds the step that broke, and shows the evidence and what the call cost. Built for teams who build or test voice agents.</p>
         <div className="btns">
           <button className="cta" onClick={enter}>Run an autopsy <i className="ar" aria-hidden="true">→</i></button>
           <a className="cta ghost" href="#product">See a sample autopsy</a>
