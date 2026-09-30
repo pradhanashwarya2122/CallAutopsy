@@ -8,6 +8,7 @@ import LandingHome from './pages/LandingHome.jsx';
 import { CallDetail } from './pages/CallDetail';
 import { Replay } from './pages/Replay';
 import ConnectionStatus from './components/ConnectionStatus.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 const NAV: [string, string][] = [
   ['/app', 'Dashboard'],
