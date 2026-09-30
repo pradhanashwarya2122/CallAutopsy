@@ -88,6 +88,9 @@ export async function withFallback<T>(fetcher: () => Promise<T>, fallback: T, is
   }
 }
 
+// The classifier labels healthy calls 'ok'; the dashboard models that as "no cause of death".
+const causeOf = (category: string | null | undefined) => (category && category !== 'ok' ? category : null);
+
 export const api = {
   listCalls: (q: Record<string, string> = {}) => {
     const qs = new URLSearchParams(q).toString();
@@ -236,7 +239,7 @@ export const api = {
       const rows = (r.calls ?? []).slice(0, limit).map((c: any) => ({
         id: c.id,
         created_at: c.started_at,
-        cause_of_death: c.predicted_category,
+        cause_of_death: causeOf(c.predicted_category),
         stt_provider: c.stt_provider_used ?? '—',
         cost_usd: Number(c.total_cost_usd ?? 0),
       }));
@@ -274,17 +277,32 @@ export const api = {
   async getCase(id: string) {
     try {
       const r = await j(`/calls/${id}`);
+      const call = r.call ?? {};
       const stages = (r.stages ?? []).map((s: any) => ({
         stage: s.stage,
         provider: s.provider ?? '—',
         latency_s: (s.duration_ms ?? 0) / 1000,
         cost_usd: Number(s.cost_usd ?? 0),
+        error: s.status && s.status !== 'ok' ? s.status : undefined,
       }));
       if (stages.length === 0) {
         const { demoDetail } = await import('./demoFallback.js');
         return demoDetail(id);
       }
-      return { ...r, stages };
+      const started = call.started_at ? new Date(call.started_at).getTime() : NaN;
+      const ended = call.ended_at ? new Date(call.ended_at).getTime() : NaN;
+      const ttsOk = stages.some((s: any) => s.stage === 'tts' && !s.error);
+      return {
+        id: call.id ?? id,
+        created_at: call.started_at,
+        cause_of_death: causeOf(call.predicted_category),
+        confidence: call.classifier_confidence == null ? undefined : Number(call.classifier_confidence),
+        duration_s: Number.isFinite(ended - started) ? (ended - started) / 1000 : undefined,
+        cost_usd: call.total_cost_usd == null ? undefined : Number(call.total_cost_usd),
+        transcript: call.redacted_transcript ?? undefined,
+        audio_url: ttsOk ? `${BASE}/calls/${id}/audio/tts` : undefined,
+        stages,
+      };
     } catch {
       const { demoDetail } = await import('./demoFallback.js');
       return demoDetail(id);

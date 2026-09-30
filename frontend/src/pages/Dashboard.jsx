@@ -21,8 +21,15 @@ const CAUSES = ['bad_stt', 'hallucination', 'tts_glitch', 'timeout', 'user_hangu
 const formatUsd = (n) => `$${Number(n || 0).toFixed(6)}`;
 const formatClock = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const formatClockTenth = (s) => `${formatClock(s)}.${Math.floor((s % 1) * 10)}`;
-const clock = (iso) => new Date(iso).toISOString().slice(11, 19);
-const stamp = (iso) => `${new Date(iso).toISOString().slice(0, 10)} ${new Date(iso).toISOString().slice(11, 19)}Z`;
+const validDate = (iso) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+const clock = (iso) => validDate(iso)?.toISOString().slice(11, 19) ?? '--:--:--';
+const stamp = (iso) => {
+  const d = validDate(iso);
+  return d ? `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 19)}Z` : '—';
+};
 
 const RING = { stt: '#1e88ff', llm: '#14a36f', tts: '#6a5cd6' };
 const STAGE_ORDER = ['stt', 'llm', 'tts'];
