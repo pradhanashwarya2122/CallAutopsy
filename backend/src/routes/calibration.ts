@@ -6,13 +6,15 @@ import { runCall } from '../pipeline/orchestrator.js';
 import { readSample } from '../sampleLibrary.js';
 import { remainingQuota } from '../limits.js';
 import { budgetGuard } from '../cost/budget.js';
+import { ipAllows } from '../abuse.js';
 
 export const calibrationRouter = Router();
 calibrationRouter.use('/calibration', requireWorkspace);
 
-// Ground truth is the injected fault; a call with no injected fault is truth "ok". Only finished calls count.
+// Ground truth is the injected fault, or "ok" for a control call made on purpose (a calibration run's clean call). A real upload,
+// recording or unlabelled clean run can legitimately fail, so it is not ground truth and is left out. Only finished calls count.
 const TRUTH = `COALESCE(injected_fault, 'ok')`;
-const FINISHED = `owner_id = $1 AND status IN ('completed','failed') AND predicted_category IS NOT NULL`;
+const FINISHED = `owner_id = $1 AND status IN ('completed','failed') AND predicted_category IS NOT NULL AND (injected_fault IS NOT NULL OR label_source = 'control')`;
 
 calibrationRouter.get('/calibration/trend', async (_req, res) => {
   const { rows } = await query(
@@ -73,20 +75,24 @@ calibrationRouter.post('/calibration/run', async (req, res) => {
   const sampleId = String(req.body?.sampleId ?? '');
   const sample = await readSample(sampleId);
   if (!sample) return res.status(404).json({ error: 'unknown_sample', message: 'That demo call does not exist.' });
+  // Claimed before any await, so two requests arriving together cannot both start a run.
   if (running.has(ws)) return res.status(409).json({ error: 'already_running', message: 'A calibration run is already in progress.' });
-  const jobs: (FaultType | null)[] = [null, ...ALL_FAULTS];
-  if ((await remainingQuota(ws)) < jobs.length) {
-    return res.status(429).json({ error: 'daily_limit', message: `A calibration run needs ${jobs.length} analyses and you have fewer left today.` });
-  }
-  if (!(await budgetGuard()).ok) return res.status(402).json({ error: 'budget_cap', message: 'The demo has hit its spend cap for now.' });
-
   running.add(ws);
+  const jobs: (FaultType | null)[] = [null, ...ALL_FAULTS];
+  try {
+    if ((await remainingQuota(ws)) < jobs.length) {
+      running.delete(ws);
+      return res.status(429).json({ error: 'daily_limit', message: `A calibration run needs ${jobs.length} analyses and you have fewer left today.` });
+    }
+    if (!(await budgetGuard()).ok) { running.delete(ws); return res.status(402).json({ error: 'budget_cap', message: 'The demo has hit its spend cap for now.' }); }
+  } catch (e) { running.delete(ws); throw e; }
+  if (!ipAllows(req, res, jobs.length)) { running.delete(ws); return; }
   res.json({ started: true, total: jobs.length });
   (async () => {
     try {
       for (let i = 0; i < jobs.length; i += 3) {
         await Promise.all(jobs.slice(i, i + 3).map((fault) =>
-          runCall({ audio: sample.buf, inputSource: 'sample', sampleId, faultType: fault, audioExt: sample.ext, ownerId: ws })
+          runCall({ audio: sample.buf, inputSource: 'sample', sampleId, faultType: fault, audioExt: sample.ext, ownerId: ws, labelSource: fault === null ? 'control' : undefined })
             .catch((e) => console.error('[calibration]', (e as Error).message))));
       }
     } finally {

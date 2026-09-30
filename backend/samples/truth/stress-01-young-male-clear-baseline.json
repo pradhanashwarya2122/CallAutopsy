@@ -1,0 +1,23 @@
+{
+ "id": "stress-01-young-male-clear-baseline.wav",
+ "segments": [
+  {
+   "who": "customer",
+   "text": "Hi there. I'm calling because I was billed for a premium subscription that I cancelled last month.",
+   "start": 0.3,
+   "end": 5.01
+  },
+  {
+   "who": "customer",
+   "text": "The reference on the invoice is 3 1 0 7 4, and the charge was nineteen dollars ninety-nine.",
+   "start": 5.36,
+   "end": 10.34
+  },
+  {
+   "who": "customer",
+   "text": "Could you please refund it?",
+   "start": 10.64,
+   "end": 12.32
+  }
+ ]
+}

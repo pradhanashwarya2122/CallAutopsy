@@ -90,11 +90,12 @@ h1 em{font-style:normal;color:#961D1D;display:block;letter-spacing:-.04em}
 <p class="a lead" style="left:69px;top:292px">Inject real-world failures, automatically classify what went wrong across STT → LLM → TTS, track the true cost, and get a detailed autopsy report for every failed call.</p>
 <div class="a cta" style="left:69px;top:365px;width:238px;background:linear-gradient(#A12424,#861616);color:#fff;box-shadow:0 4px 12px rgba(120,20,20,.28)">Try the Live Demo <i class="ic" data-i="ar" style="font-size:15px"></i></div>
 <div class="a cta" style="left:325px;top:365px;width:222px;border:1px solid #C7C0B1;background:#F7F4ED;justify-content:center;font-weight:600;white-space:nowrap">View Sample Autopsies</div>
-<div class="st" style="left:80px;width:98px"><b>482</b><span>Total Calls</span></div>
-<div class="st" style="left:178px;width:106px"><b>28.4%</b><span>Failure Rate</span></div>
-<div class="st" style="left:284px;width:122px"><b>2.34s</b><span>Avg Latency</span></div>
-<div class="st" style="left:406px;width:120px"><b>$0.0043</b><span>Avg Cost / Call</span></div>
+<div class="st" style="left:80px;width:98px"><b>7</b><span>Failure Types</span></div>
+<div class="st" style="left:178px;width:106px"><b>3</b><span>Stages Traced</span></div>
+<div class="st" style="left:284px;width:122px"><b>15</b><span>Demo Calls</span></div>
+<div class="st" style="left:406px;width:120px"><b>&lt;$0.01</b><span>Cost / Call</span></div>
 
+<div class="a s" style="left:69px;top:522px;font:italic 400 8.5px Newsreader,serif;color:#5B574E">The dashboard picture is an illustration with example numbers, not live data. Open the app to analyze real calls.</div>
 <div class="a fr">
   <div class="a sb"></div>
   <div class="a dp">
@@ -121,9 +122,9 @@ h1 em{font-style:normal;color:#961D1D;display:block;letter-spacing:-.04em}
       <div class="a wave" style="left:66px;top:21px;width:128px;height:46px" data-n="46"></div><div class="a m" style="left:198px;top:34px;font-size:11.5px">00:00</div>
       <div class="a m" style="left:12px;top:70px;font-size:7.3px;color:#66625A">Ready to record</div></div>
     <div class="bx" style="left:408px;top:226px;width:243px;height:96px"><h6>Sample Library</h6><span class="a" style="right:8px;top:10px;font:400 5.5px Inter;color:#888">View all →</span>
-      <div class="sm" style="top:30px"><span class="pb"><i class="ic" data-i="pl"></i></span>customer_support_01.wav<b>00:18</b></div>
-      <div class="sm" style="top:54px"><span class="pb"><i class="ic" data-i="pl"></i></span>billing_issue_02.wav<b>00:27</b></div>
-      <div class="sm" style="top:76px"><span class="pb"><i class="ic" data-i="pl"></i></span>angry_customer_03.wav<b>00:31</b></div></div>
+      <div class="sm" style="top:30px"><span class="pb"><i class="ic" data-i="pl"></i></span>1 · Clean baseline<b>00:15</b></div>
+      <div class="sm" style="top:54px"><span class="pb"><i class="ic" data-i="pl"></i></span>2 · Noisy caf&eacute;<b>00:11</b></div>
+      <div class="sm" style="top:76px"><span class="pb"><i class="ic" data-i="pl"></i></span>S9 · Frustrated, street<b>00:42</b></div></div>
 
     <div class="bx" style="left:15px;top:330px;width:190px;height:123px"><h6>Fault Injection</h6>
       <div class="a" style="left:8px;top:23px;width:172px;height:23px;border:1px solid #DFDACE;background:#EFEBE2;border-radius:5px;font:400 8.6px/21px Inter;padding-left:7px;color:#1b1a17">hallucination<i class="ic" data-i="cv" style="position:absolute;right:6px;top:6px;font-size:9px"></i></div>
@@ -164,7 +165,7 @@ const svg=(k,s)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 document.querySelectorAll('.ic[data-i]').forEach(e=>e.innerHTML=svg(e.dataset.i));
 document.querySelectorAll('.wave').forEach(e=>{const n=+e.dataset.n||36,h=40;let s='';for(let i=0;i<n;i++){const t=i/(n-1),env=Math.pow(Math.sin(Math.PI*t),1.2),r=Math.abs(Math.sin(i*12.9898+n*78.233)*43758.5453%1),v=Math.max(.1,env*(.28+.72*r)),x=(i+.5)*100/n;s+='<line x1="'+x+'" x2="'+x+'" y1="'+(h/2-v*h/2)+'" y2="'+(h/2+v*h/2)+'"/>'}e.innerHTML='<svg viewBox="0 0 100 '+h+'" preserveAspectRatio="none" stroke="currentColor" stroke-width="1.1" fill="none">'+s+'</svg>'});
 const B={hallucination:['#F9CFC9','#B5261C','#F6B9B1'],timeout:['#FBE3CC','#8A4A10','#F7D7B8'],bad_stt:['#F9D0C8','#B5261C','#F6B9B1'],tts_glitch:['#FBE3A6','#8A5A10','#F7D98C'],network_drop:['#FBE3A6','#8A5A10','#F7D98C'],user_hangup:['#FBE6BF','#8A5A10','#F7D98C'],exception:['#E4E1DA','#55514A','#D8D4CB']};
-const R=[['14:32:11','3e2f9c2a-7b4d…','hallucination','Deepgram','$0.004312'],['14:31:58','a1c8d4f7-9f2e…','timeout','Whisper','$0.008521'],['14:31:44','b7e9c6f1-2e8a…','bad_stt','AssemblyAI','$0.006347'],['14:31:25','d3f4a8c9-6d71…','tts_glitch','Deepgram','$0.003118'],['14:30:53','4e7f6a8f-9b2e…','network_drop','Whisper','$0.007221'],['14:30:21','6f9d2b1c-8f0e…','user_hangup','Whisper','$0.004431'],['14:29:11','e3c9d4f7-1a0b…','exception','AssemblyAI','$0.009318'],['14:28:37','f6a8b9c0-3d7e…','hallucination','AssemblyAI','$0.004993']];
+const R=[['14:32:11','3e2f9c2a-7b4d…','hallucination','Deepgram','$0.004312'],['14:31:58','a1c8d4f7-9f2e…','timeout','Whisper','$0.008521'],['14:31:44','b7e9c6f1-2e8a…','bad_stt','Whisper','$0.006347'],['14:31:25','d3f4a8c9-6d71…','tts_glitch','Deepgram','$0.003118'],['14:30:53','4e7f6a8f-9b2e…','network_drop','Whisper','$0.007221'],['14:30:21','6f9d2b1c-8f0e…','user_hangup','Whisper','$0.004431'],['14:29:11','e3c9d4f7-1a0b…','exception','Whisper','$0.009318'],['14:28:37','f6a8b9c0-3d7e…','hallucination','Whisper','$0.004993']];
 document.getElementById('feed').innerHTML='<div class="tr h" style="top:26px"><span>TIME (UTC)</span><span>CALL ID</span><span>CAUSE OF DEATH</span><span>STT</span><span>COST</span></div>'+R.map((r,i)=>{const c=B[r[2]];return '<div class="tr" style="top:'+(42+i*17.6)+'px"><span>'+r[0]+'</span><span>'+r[1]+'</span><span><i class="bd" style="background:'+c[0]+';color:'+c[1]+';--g:'+c[2]+';font-style:normal">'+r[2]+'</i></span><span>'+r[3]+'</span><span>'+r[4]+'</span></div>'}).join('');
 const SB=[['cases','Cases',44],['dash','Dashboard',88,1],['cases','Cases',137],['run','Run Test',175],['samp','Samples',214],['chart','Analytics',253],['gear','Settings',294]];
 document.querySelector('.sb').innerHTML='<svg class="a" style="left:10px;top:10px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"><path d="M12 3v18M7 8v8M17 8v8M3 12h3M18 12h3"/></svg>'+SB.map(s=>'<div class="it'+(s[3]?' on':'')+'" style="top:'+(s[2]-(s[3]?9:0))+'px"><i class="ic">'+svg(s[0])+'</i>'+s[1]+'</div>').join('');

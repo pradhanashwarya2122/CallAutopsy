@@ -1,0 +1,41 @@
+{
+ "id": "stress-07-older-female-confused-corrections.wav",
+ "segments": [
+  {
+   "who": "customer",
+   "text": "Hello, dear. I think there's a problem with my bill.",
+   "start": 0.5,
+   "end": 3.66
+  },
+  {
+   "who": "customer",
+   "text": "I was charged on the twelfth of March... oh, no, the fourteenth. Yes, the fourteenth.",
+   "start": 4.56,
+   "end": 10.2
+  },
+  {
+   "who": "customer",
+   "text": "It was forty-eight dollars... no, sorry, forty-six eighty. That's right, forty-six eighty.",
+   "start": 11.1,
+   "end": 17.67
+  },
+  {
+   "who": "customer",
+   "text": "And my order number, oh, I've forgotten it. Give me a moment.",
+   "start": 18.47,
+   "end": 22.48
+  },
+  {
+   "who": "customer",
+   "text": "Yes. It's 2 0 7 5 9. Two, oh, seven, five, nine.",
+   "start": 25.48,
+   "end": 32.5
+  },
+  {
+   "who": "customer",
+   "text": "That's the one. So the fourteenth, forty-six eighty, order 2 0 7 5 9.",
+   "start": 33.3,
+   "end": 40.22
+  }
+ ]
+}

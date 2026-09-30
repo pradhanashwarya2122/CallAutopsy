@@ -252,7 +252,7 @@ const CHANNEL = {
 // ---------------------------------------------------------------- render one call
 const STYLE_SPEECH_DB = -20; // loudnorm target of the customer track
 
-async function render(entry) {
+async function render(entry, layoutOnly = false) {
   const r = rng(entry.id);
   const post = entry.post ?? { preset: 'studio' };
   const events = (entry.timeline ?? entry.segments.map((s, i, all) => ({ who: 'customer', text: s.text, gap: i === 0 ? 0.3 : all[i - 1].pause ?? 0.35 })));
@@ -269,6 +269,7 @@ async function render(entry) {
     laid.push({ ev, who, file, start, end: start + dur, dur });
     prevEnd = start + dur;
   }
+  if (layoutOnly) return laid.map((l) => ({ who: l.who, text: l.ev.text, start: +l.start.toFixed(2), end: +l.end.toFixed(2) }));
   const T = Math.max(...laid.map((l) => l.end)) + 0.6;
 
   // 2. customer track: voice + breaths, then the microphone chain
@@ -325,6 +326,20 @@ async function render(entry) {
 }
 
 const report = [];
+// --truth: write the exact speaker timeline of each multi-speaker call to samples/truth/<id>.json (used by the diarization
+// and overlap benchmarks). Layout only: uses the cached speech clips, renders no audio and sends nothing to the TTS API.
+if (args.includes('--truth')) {
+  const dir = path.join(SAMPLES, 'truth');
+  fs.mkdirSync(dir, { recursive: true });
+  for (const s of manifest.samples) {
+    if (!s.timeline || (only?.length && !only.includes(s.id))) continue;
+    const segs = await render(s, true);
+    fs.writeFileSync(path.join(dir, s.id.replace(/\.wav$/, '.json')), `${JSON.stringify({ id: s.id, segments: segs }, null, 1)}\n`);
+    console.log(s.id, segs.length, 'segments');
+  }
+  console.log(`new TTS characters sent: ${charsSent}`);
+  process.exit(0);
+}
 for (const s of manifest.samples) {
   if (!s.segments && !s.timeline) continue;
   if (s.frozen && !args.includes('--force')) continue; // hand-tuned earlier; --force re-renders with the current recipes

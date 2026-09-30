@@ -1,0 +1,29 @@
+{
+ "id": "stress-06-young-female-busy-cafe-repeats.wav",
+ "segments": [
+  {
+   "who": "customer",
+   "text": "Hi, sorry, it's really loud in here. I'm calling about a payment that's been pending for two days.",
+   "start": 0.4,
+   "end": 6.75
+  },
+  {
+   "who": "customer",
+   "text": "It says pending in my banking app but the order still hasn't— sorry, hold on.",
+   "start": 7.35,
+   "end": 12.99
+  },
+  {
+   "who": "customer",
+   "text": "Sorry. The order still hasn't shipped. I said, the order still hasn't shipped.",
+   "start": 14.49,
+   "end": 19.69
+  },
+  {
+   "who": "customer",
+   "text": "It's order 6 6 0 3 7, and the amount was thirty-six seventy.",
+   "start": 20.19,
+   "end": 26.09
+  }
+ ]
+}

@@ -1,0 +1,98 @@
+{
+ "environmentWords": 3,
+ "flagged": 0,
+ "missed": 3,
+ "scriptedWordsWronglyFlagged": 0,
+ "rows": [
+  {
+   "id": "stress-01-young-male-clear-baselin",
+   "envWords": 0,
+   "flagged": 0,
+   "missed": 0,
+   "wronglyFlagged": 0,
+   "missedText": "",
+   "wrongText": ""
+  },
+  {
+   "id": "stress-02-middle-aged-female-hesit",
+   "envWords": 0,
+   "flagged": 0,
+   "missed": 0,
+   "wronglyFlagged": 0,
+   "missedText": "",
+   "wrongText": ""
+  },
+  {
+   "id": "stress-03-older-male-slow-noisy-re",
+   "envWords": 1,
+   "flagged": 0,
+   "missed": 1,
+   "wronglyFlagged": 0,
+   "missedText": "It",
+   "wrongText": ""
+  },
+  {
+   "id": "stress-04-young-female-fast-interr",
+   "envWords": 0,
+   "flagged": 0,
+   "missed": 0,
+   "wronglyFlagged": 0,
+   "missedText": "",
+   "wrongText": ""
+  },
+  {
+   "id": "stress-05-middle-aged-male-phone-s",
+   "envWords": 0,
+   "flagged": 0,
+   "missed": 0,
+   "wronglyFlagged": 0,
+   "missedText": "",
+   "wrongText": ""
+  },
+  {
+   "id": "stress-06-young-female-busy-cafe-r",
+   "envWords": 1,
+   "flagged": 0,
+   "missed": 1,
+   "wronglyFlagged": 0,
+   "missedText": "Sorry.",
+   "wrongText": ""
+  },
+  {
+   "id": "stress-07-older-female-confused-co",
+   "envWords": 0,
+   "flagged": 0,
+   "missed": 0,
+   "wronglyFlagged": 0,
+   "missedText": "",
+   "wrongText": ""
+  },
+  {
+   "id": "stress-08-nervous-male-long-pauses",
+   "envWords": 0,
+   "flagged": 0,
+   "missed": 0,
+   "wronglyFlagged": 0,
+   "missedText": "",
+   "wrongText": ""
+  },
+  {
+   "id": "stress-09-frustrated-female-multi-",
+   "envWords": 1,
+   "flagged": 0,
+   "missed": 1,
+   "wronglyFlagged": 0,
+   "missedText": "Like",
+   "wrongText": ""
+  },
+  {
+   "id": "stress-10-max-stress-train-phone-m",
+   "envWords": 0,
+   "flagged": 0,
+   "missed": 0,
+   "wronglyFlagged": 0,
+   "missedText": "",
+   "wrongText": ""
+  }
+ ]
+}

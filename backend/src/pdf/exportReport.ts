@@ -1,3 +1,4 @@
+import { redactDeep, redactPII } from '../redaction/piiRedactor.js';
 import PDFDocument from 'pdfkit';
 import type { Response } from 'express';
 import { query } from '../db/client.js';
@@ -52,8 +53,10 @@ export async function streamIncidentReport(callId: string, res: Response) {
   }
   doc.moveDown();
 
-  const a = call.analysis;
+  // Everything printed is redacted again here, so rows stored before a redaction rule existed cannot leak through the report.
+  const a = call.analysis ? redactDeep(call.analysis) : null;
   const u = a?.understanding;
+  const who = (sp: number) => (a?.attribution?.speakers > 1 ? (u?.customer_speaker === sp ? 'Customer' : u?.customer_speaker == null ? `Voice ${sp + 1}` : 'Other voice') : 'Caller');
   if (u) {
     doc.font('Helvetica-Bold').fontSize(12).text('CALL UNDERSTANDING');
     doc.font('Helvetica').fontSize(10);
@@ -61,14 +64,39 @@ export async function streamIncidentReport(callId: string, res: Response) {
     doc.moveDown(0.3);
     doc.text(`Primary intent: ${label(u.primary_intent?.label)}${u.primary_intent?.description ? ` - ${u.primary_intent.description}` : ''}`);
     for (const i of u.secondary_intents ?? []) doc.text(`Also: ${label(i.label)}${i.description ? ` - ${i.description}` : ''}`);
-    doc.text(`Customer emotion: ${u.sentiment?.emotion} (${u.sentiment?.intensity})${u.sentiment?.evidence ? ` - ${u.sentiment.evidence}` : ''}`);
-    const ent = u.entities ?? {};
-    for (const [k, v] of Object.entries({ 'Order numbers': ent.order_ids, 'Transaction IDs': ent.transaction_ids, Amounts: ent.amounts, Dates: ent.dates, Other: ent.other }) as [string, string[]][]) {
-      if (v?.length) doc.text(`${k}: ${v.join(', ')}`);
+    doc.moveDown(0.3);
+    doc.font('Helvetica-Bold').text('Tone (three separate readings)');
+    doc.font('Helvetica');
+    const lex = a.tone?.lexical ?? (u.sentiment ? { emotion: u.sentiment.emotion, intensity: u.sentiment.intensity, evidence: u.sentiment.evidence } : null);
+    doc.text(`From the words: ${lex ? `${label(lex.emotion === 'not_evident' ? 'no emotion evident' : lex.emotion)}${lex.emotion === 'not_evident' ? '' : ` (${lex.intensity})`}${lex.evidence ? ` - "${lex.evidence}"` : ''}` : 'not assessed'}`);
+    const v = a.tone?.vocal;
+    doc.text(`From the voice: ${v ? `${v.arousal === 'unclear' ? 'no clear reading' : `${v.arousal} activation (${v.confidence} confidence)`}. ${v.cues?.length ? `${v.cues.join('; ')}. ` : ''}${v.reason}` : 'the audio could not be measured'}`);
+    if (a.tone?.overall) doc.text(`Overall: ${a.tone.overall.label} (${a.tone.overall.confidence} confidence). ${a.tone.overall.basis}`);
+    doc.moveDown(0.3);
+    const groups: [string, any][] = [[a.attribution?.speakers > 1 && a.attribution?.reliable ? 'Details the customer gave' : 'Details heard', u.entities], ['Said only by the other voice', u.agent_stated], ['Heard, speaker unclear', u.unverified_speaker]];
+    for (const [title, ent] of groups) {
+      const rows = Object.entries({ 'Order numbers': ent?.order_ids, 'Transaction IDs': ent?.transaction_ids, Amounts: ent?.amounts, Dates: ent?.dates, Other: ent?.other }).filter(([, x]) => (x as string[])?.length) as [string, string[]][];
+      if (!rows.length) continue;
+      doc.font('Helvetica-Bold').text(title);
+      doc.font('Helvetica');
+      for (const [k, x] of rows) doc.text(`${k}: ${x.join(', ')}`);
     }
     for (const c of u.corrections ?? []) doc.text(`Correction (${c.field || 'detail'}): ${c.original} -> ${c.corrected}`);
     if (u.ambiguities?.length) { doc.moveDown(0.3); doc.font('Helvetica-Bold').text('Unclear or conflicting'); doc.font('Helvetica'); for (const x of u.ambiguities) doc.text(`- ${x}`); }
+    if (u.off_topic_speech?.length) { doc.moveDown(0.3); doc.font('Helvetica-Bold').text('Words that are not part of the call'); doc.font('Helvetica'); for (const x of u.off_topic_speech) doc.text(`- "${x}"`); }
     if (u.next_steps?.length) { doc.moveDown(0.3); doc.font('Helvetica-Bold').text('Recommended next steps'); doc.font('Helvetica'); for (const x of u.next_steps) doc.text(`- ${x}`); }
+    doc.moveDown();
+  }
+  if (a?.attribution) {
+    doc.font('Helvetica-Bold').fontSize(12).text('SPEAKERS AND CONVERSATION');
+    doc.font('Helvetica').fontSize(10);
+    doc.text(`Voices: ${a.attribution.speakers} (${a.attribution.source.replace('+', ' + ')}${a.attribution.reliable ? '' : ', NOT verified from the audio'}).`);
+    for (const n of a.attribution.notes ?? []) doc.text(`Note: ${n}`);
+    for (const b of (a.boundaries ?? []).filter((x: any) => x.kind === 'simultaneous' || x.kind === 'interruption')) doc.text(`- ${b.kind === 'simultaneous' ? 'Talking at the same time' : 'Interruption'} at ${b.at}s (confidence ${Math.round(b.confidence * 100)}%): ${b.evidence.join('; ')}`);
+    if (a.overlap_visibility === 'limited') doc.text('Overlapping speech may be hidden: in a single-channel recording the recognizer usually keeps only the louder voice.');
+    doc.moveDown(0.3);
+    for (const t of a.turns ?? []) doc.text(`${who(t.speaker)}${t.uncertain ? ' (?)' : ''}${t.start != null ? ` [${t.start.toFixed(1)}s]` : ''}: ${t.text}`);
+    for (const bgt of a.background ?? []) doc.text(`Background, not part of the call: "${bgt.text}"`);
     doc.moveDown();
   }
   if (a?.findings?.length) {
@@ -80,13 +108,13 @@ export async function streamIncidentReport(callId: string, res: Response) {
 
   if (call.redacted_transcript) {
     doc.font('Helvetica-Bold').fontSize(12).text('TRANSCRIPT (redacted)');
-    doc.font('Helvetica').fontSize(10).text(call.redacted_transcript);
+    doc.font('Helvetica').fontSize(10).text(redactPII(call.redacted_transcript));
     doc.moveDown();
   }
 
   if (reports[0]?.report_text) {
     doc.font('Helvetica-Bold').fontSize(12).text('POSTMORTEM');
-    doc.font('Helvetica').fontSize(10).text(reports[0].report_text, { align: 'justify' });
+    doc.font('Helvetica').fontSize(10).text(redactPII(reports[0].report_text), { align: 'justify' });
   }
 
   doc.end();

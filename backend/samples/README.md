@@ -47,3 +47,16 @@ corrections, tone, difficulty, measured audio quality) stored in `calls.analysis
 
 Old synthetic rows in an existing database: `npm run purge-synthetic` (dry run) then `-- --yes`.
 Operator-only: set `ADMIN_TOKEN` to enable the SLA webhook test.
+
+## Ground truth and test fixtures
+
+- `samples/truth/<call>.json`: the exact speaker timeline (who, text, start, end) of every multi-speaker stress call, produced by
+  `node scripts/generate-demo-calls.mjs --engine openai --truth`, which lays the calls out from the cached speech clips (no audio is
+  rendered and nothing is sent to the TTS API). Overlaps are real: a line that starts before the previous one ends overlaps it. The
+  diarization, interruption and background-speech benchmarks are scored against these files. Single-speaker calls have one voice.
+- `test/fixtures/stt/<call>.json`: the real Deepgram output for each call (words, timings, confidence, speaker labels), captured by
+  `bench/capture-stt.mjs`. `test/fixtures/whisper/`: real Whisper responses for four calls (`bench/capture-whisper.ts`).
+  Tests and offline benchmarks run on these, so they need no network.
+- `test/groundTruth.ts`: what is actually in each call (intent, the numbers the customer said, self-corrections, ambiguity, the
+  delivery each voice was told to use). `test/audioTruth.ts`: the recording conditions each call was rendered with.
+- Recording conditions and per-voice pitch are described in `manifest.json` (`voice`, `agent`, `post`).

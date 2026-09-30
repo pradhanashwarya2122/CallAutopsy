@@ -1,0 +1,53 @@
+{
+ "id": "stress-09-frustrated-female-multi-intent-street.wav",
+ "segments": [
+  {
+   "who": "customer",
+   "text": "Hi. I've been charged for something I didn't order, and honestly I'm pretty fed up.",
+   "start": 0.4,
+   "end": 4.64
+  },
+  {
+   "who": "agent",
+   "text": "I'm sorry to hear that. Let me pull up your account and—",
+   "start": 5.04,
+   "end": 9.23
+  },
+  {
+   "who": "customer",
+   "text": "It's twenty-two ninety-nine, it came out on Monday.",
+   "start": 8.73,
+   "end": 12.04
+  },
+  {
+   "who": "customer",
+   "text": "And that's not all. My order number is 4821... wait, that's the old one. The current order is 4917, and it never showed up.",
+   "start": 12.94,
+   "end": 23.13
+  },
+  {
+   "who": "customer",
+   "text": "I think I was also charged twice for it, because my bank shows two payments.",
+   "start": 23.93,
+   "end": 28.52
+  },
+  {
+   "who": "customer",
+   "text": "And there's an extra fee of six dollars that I don't recognise.",
+   "start": 29.22,
+   "end": 32.59
+  },
+  {
+   "who": "customer",
+   "text": "Like I said, I was charged for something I didn't order.",
+   "start": 33.49,
+   "end": 36.83
+  },
+  {
+   "who": "customer",
+   "text": "I just want the wrong charge reversed and someone to tell me where my order is.",
+   "start": 37.43,
+   "end": 41.6
+  }
+ ]
+}

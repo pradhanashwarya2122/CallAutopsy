@@ -32,6 +32,7 @@ export async function llmTurn(
       { role: 'user', content: userText },
     ],
     temperature: opts.temperature ?? 0.7,
+    max_tokens: 600, // a spoken reply is a sentence or two; this bounds a runaway answer
   });
 
   return {

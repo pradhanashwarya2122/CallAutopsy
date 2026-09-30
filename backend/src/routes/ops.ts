@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { pool, query } from '../db/client.js';
+import { requireAdmin } from '../auth/adminGuard.js';
+import { pool } from '../db/client.js';
 import { redisConnection } from '../queue/connection.js';
 import { callQueue } from '../queue/retryQueue.js';
 import { dlq } from '../queue/dlq.js';
@@ -79,7 +80,7 @@ opsRouter.get('/queue/stats', async (_req, res) => {
   }
 });
 
-opsRouter.get('/queue/dlq', async (_req, res) => {
+opsRouter.get('/queue/dlq', requireAdmin, async (_req, res) => {
   try {
     const jobs = await dlq.getJobs(['completed', 'failed', 'waiting'], 0, 20);
     res.json({
@@ -96,7 +97,7 @@ opsRouter.get('/queue/dlq', async (_req, res) => {
   }
 });
 
-opsRouter.get('/budget', async (_req, res) => {
+opsRouter.get('/budget', requireAdmin, async (_req, res) => {
   const caps = getCaps();
   const sessionSpent = getSessionSpend();
   const todaySpent = await getTodaySpend();

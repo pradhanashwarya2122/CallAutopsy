@@ -30,7 +30,6 @@ export function createServer() {
       endpoints: {
         health: '/health',
         readiness: '/health/ready',
-        status: '/status',
         calls: '/calls',
         ws: '/ws',
       },

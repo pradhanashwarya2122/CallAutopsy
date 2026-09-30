@@ -1,6 +1,8 @@
 import OpenAI from 'openai';
 import 'dotenv/config';
 import { query } from '../db/client.js';
+import { llmCost } from '../cost/pricing.js';
+import { recordSpend } from '../cost/ledger.js';
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 // A failure type has to recur before a fix is worth suggesting.
@@ -9,13 +11,19 @@ export const HEALING_THRESHOLD = 3;
 export async function generateSuggestions(ownerId: string) {
   const { rows } = await query(
     `SELECT predicted_category AS fault_type, COUNT(*)::int AS n
-     FROM calls WHERE owner_id=$1 AND status='failed' AND started_at > now() - interval '24 hours'
+     FROM calls WHERE owner_id=$1 AND status='failed' AND predicted_category IS NOT NULL AND started_at > now() - interval '24 hours'
      GROUP BY predicted_category HAVING COUNT(*) >= $2`,
     [ownerId, HEALING_THRESHOLD],
   );
 
   const suggestions: any[] = [];
   for (const r of rows as any[]) {
+    // one suggestion per failure type per two hours: clicking Generate again must not spend again or stack duplicates
+    const { rows: fresh } = await query(
+      `SELECT 1 FROM healing_suggestions WHERE owner_id=$1 AND fault_type IS NOT DISTINCT FROM $2 AND generated_at > now() - interval '2 hours' LIMIT 1`,
+      [ownerId, r.fault_type],
+    );
+    if (fresh.length) continue;
     const { rows: recent } = await query(
       `SELECT predicted_category, stt_provider_used, total_cost_usd, injected_fault, sample_id
        FROM calls WHERE owner_id=$1 AND predicted_category=$2 ORDER BY started_at DESC LIMIT 10`,
@@ -34,6 +42,7 @@ Note: records with an injected_fault were failures created on purpose for testin
         temperature: 0.3,
       });
       text = res.choices[0]?.message?.content ?? '';
+      await recordSpend(ownerId, 'healing', llmCost('gpt-4o-mini', res.usage?.prompt_tokens ?? 0, res.usage?.completion_tokens ?? 0));
     } else {
       text = `${r.n} recent ${r.fault_type} failures observed; consider tightening the corresponding stage SLA or provider config.`;
     }

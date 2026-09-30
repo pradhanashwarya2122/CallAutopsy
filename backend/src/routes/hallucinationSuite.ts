@@ -3,14 +3,17 @@ import { runHallucinationSuite, getHistory, getRun, getAggregate } from '../hall
 import { requireWorkspace } from '../auth/workspace.js';
 import { budgetGuard } from '../cost/budget.js';
 import { rateLimited } from './calls.js';
+import { ipAllows } from '../abuse.js';
 
 export const hallucinationRouter = Router();
 hallucinationRouter.use('/hallucination-suite', requireWorkspace);
 
-hallucinationRouter.post('/hallucination-suite/run', async (_req, res) => {
+hallucinationRouter.post('/hallucination-suite/run', async (req, res) => {
   const ws: string = res.locals.workspaceId;
-  if (rateLimited('hsuite:' + ws, 20000)) return res.status(429).json({ error: 'rate_limited', message: 'Wait a few seconds between suite runs.' });
+  // checks first, allowances last: a request that is refused must not use up the rate slot or the network's hourly units
   if (!(await budgetGuard()).ok) return res.status(402).json({ error: 'budget_cap', message: 'The demo has hit its spend cap for now.' });
+  if (rateLimited('hsuite:' + ws, 20000)) return res.status(429).json({ error: 'rate_limited', message: 'Wait a few seconds between suite runs.' });
+  if (!ipAllows(req, res, 5)) return;
   res.json(await runHallucinationSuite(ws));
 });
 

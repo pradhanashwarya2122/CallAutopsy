@@ -282,7 +282,7 @@ export default function LandingHome() {
           <div className="stages">
             <div><small>STT</small><b>Deepgram</b><span>0.821s · $0.001231</span></div>
             <div><small>LLM</small><b>OpenAI</b><span>1.103s · $0.006441</span></div>
-            <div><small>TTS</small><b>ElevenLabs</b><span>0.460s · $0.000640</span></div>
+            <div><small>TTS</small><b>OpenAI</b><span>0.460s · $0.000640</span></div>
           </div>
 
           <div className="tabs">

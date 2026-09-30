@@ -1,0 +1,167 @@
+{
+ "rows": [
+  {
+   "id": "call-1-clean-baseline",
+   "snr": 39.9,
+   "hf": -23.9,
+   "lvlSd": 7.7,
+   "clip": 0,
+   "condition": "clean_wideband",
+   "flags": "",
+   "truth": "clean preset"
+  },
+  {
+   "id": "call-2-noisy-cafe",
+   "snr": 8.7,
+   "hf": -21.6,
+   "lvlSd": 1.2,
+   "clip": 0,
+   "condition": "noisy",
+   "flags": "very_noisy",
+   "truth": "cafe, ~10 dB above noise"
+  },
+  {
+   "id": "refund-request",
+   "snr": 22.5,
+   "hf": -29.2,
+   "lvlSd": 3.9,
+   "clip": 0,
+   "condition": "degraded",
+   "flags": "noisy,band_limited",
+   "truth": "low-rate synthetic voice: spectrum stops at ~5 kHz"
+  },
+  {
+   "id": "weather-today",
+   "snr": 21.3,
+   "hf": -40.2,
+   "lvlSd": 3.8,
+   "clip": 0,
+   "condition": "degraded",
+   "flags": "noisy,band_limited",
+   "truth": "low-rate synthetic voice: spectrum stops at ~5 kHz"
+  },
+  {
+   "id": "call-4-long-multi-detail",
+   "snr": 36.2,
+   "hf": -38.8,
+   "lvlSd": 8.4,
+   "clip": 0,
+   "condition": "band_limited",
+   "flags": "band_limited",
+   "truth": "phone preset"
+  },
+  {
+   "id": "call-5-failure-heavy-multi-int",
+   "snr": 35,
+   "hf": -35.9,
+   "lvlSd": 8,
+   "clip": 0,
+   "condition": "band_limited",
+   "flags": "band_limited",
+   "truth": "phone preset"
+  },
+  {
+   "id": "stress-01-young-male-clear-bas",
+   "snr": 46.5,
+   "hf": -9.2,
+   "lvlSd": 8,
+   "clip": 0,
+   "condition": "clean_wideband",
+   "flags": "",
+   "truth": "studio, no noise"
+  },
+  {
+   "id": "stress-02-middle-aged-female-h",
+   "snr": 38.3,
+   "hf": -20.8,
+   "lvlSd": 7.6,
+   "clip": 0,
+   "condition": "clean_wideband",
+   "flags": "",
+   "truth": "quiet room 38 dB"
+  },
+  {
+   "id": "stress-03-older-male-slow-nois",
+   "snr": 24.8,
+   "hf": -21.2,
+   "lvlSd": 5.4,
+   "clip": 0,
+   "condition": "noisy",
+   "flags": "noisy",
+   "truth": "home TV 22 dB, distant mic (6.5 kHz low-pass)"
+  },
+  {
+   "id": "stress-04-young-female-fast-in",
+   "snr": 20.7,
+   "hf": -22.3,
+   "lvlSd": 3.7,
+   "clip": 0,
+   "condition": "noisy",
+   "flags": "noisy",
+   "truth": "office 21 dB"
+  },
+  {
+   "id": "stress-05-middle-aged-male-pho",
+   "snr": 19,
+   "hf": -54.3,
+   "lvlSd": 2.7,
+   "clip": 0,
+   "condition": "degraded",
+   "flags": "noisy,band_limited,compressed",
+   "truth": "telephone channel: 300-3400 Hz + compressor"
+  },
+  {
+   "id": "stress-06-young-female-busy-ca",
+   "snr": 15,
+   "hf": -9.9,
+   "lvlSd": 2.7,
+   "clip": 0,
+   "condition": "noisy",
+   "flags": "noisy",
+   "truth": "cafe 14 dB, distant mic (6.5 kHz low-pass)"
+  },
+  {
+   "id": "stress-07-older-female-confuse",
+   "snr": 39.7,
+   "hf": -13.2,
+   "lvlSd": 7.9,
+   "clip": 0,
+   "condition": "clean_wideband",
+   "flags": "",
+   "truth": "quiet reverberant room 40 dB"
+  },
+  {
+   "id": "stress-08-nervous-male-long-pa",
+   "snr": 27.1,
+   "hf": -12.3,
+   "lvlSd": 6.1,
+   "clip": 0,
+   "condition": "acceptable",
+   "flags": "",
+   "truth": "intermittent hiss 27 dB"
+  },
+  {
+   "id": "stress-09-frustrated-female-mu",
+   "snr": 17.7,
+   "hf": -42.1,
+   "lvlSd": 3.3,
+   "clip": 0,
+   "condition": "degraded",
+   "flags": "noisy,band_limited",
+   "truth": "street 16 dB, muffled mic (3 kHz low-pass)"
+  },
+  {
+   "id": "stress-10-max-stress-train-pho",
+   "snr": 9.5,
+   "hf": -16.2,
+   "lvlSd": 0.4,
+   "clip": 0,
+   "condition": "noisy",
+   "flags": "very_noisy",
+   "truth": "train 12 dB + compressed line (4.5 kHz low-pass); codec noise hides the band limit and the compression, so those are not scored"
+  }
+ ],
+ "right": 43,
+ "checks": 43,
+ "wrong": []
+}

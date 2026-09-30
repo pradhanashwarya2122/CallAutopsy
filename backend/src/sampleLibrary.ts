@@ -12,10 +12,18 @@ export interface ManifestEntry {
   segments?: Event[]; timeline?: Event[];
 }
 
+// The manifest is read on every sample call and every library listing, so it is parsed once and re-read only when the file changes.
+let cache: { mtimeMs: number; dir: string; map: Map<string, ManifestEntry & { order: number }> } | null = null;
+
 export async function loadManifest(): Promise<Map<string, ManifestEntry & { order: number }>> {
   try {
-    const parsed = JSON.parse(await fs.readFile(path.join(SAMPLES_DIR(), 'manifest.json'), 'utf8'));
-    return new Map((parsed.samples as ManifestEntry[]).map((e, i) => [e.id, { ...e, order: i }]));
+    const file = path.join(SAMPLES_DIR(), 'manifest.json');
+    const { mtimeMs } = await fs.stat(file);
+    if (cache && cache.mtimeMs === mtimeMs && cache.dir === file) return cache.map;
+    const parsed = JSON.parse(await fs.readFile(file, 'utf8'));
+    const map = new Map((parsed.samples as ManifestEntry[]).map((e, i) => [e.id, { ...e, order: i }] as [string, ManifestEntry & { order: number }]));
+    cache = { mtimeMs, dir: file, map };
+    return map;
   } catch {
     return new Map();
   }

@@ -12,6 +12,10 @@ import { ALL_FAULTS, type FaultType } from '../pipeline/faultInjection.js';
 
 export { MAX_UPLOAD_BYTES, DAILY_CALL_LIMIT } from '../limits.js';
 import { MAX_UPLOAD_BYTES, DAILY_CALL_LIMIT } from '../limits.js';
+import type { InputSource } from '../pipeline/orchestrator.js';
+import { redactDeep, redactPII } from '../redaction/piiRedactor.js';
+import { getSlaConfig } from '../sla/monitor.js';
+import { ipAllows } from '../abuse.js';
 
 const AUDIO_EXT = new Set(['wav', 'mp3', 'm4a', 'mp4', 'ogg', 'oga', 'webm', 'flac', 'aac', 'mpeg', 'mpga']);
 const EXT_FROM_MIME: Record<string, string> = {
@@ -87,7 +91,7 @@ callsRouter.post('/calls', requireWorkspace, upload.single('audio'), async (req,
 
   let audio: Buffer;
   let ext: string;
-  let inputSource: 'sample' | 'live_mic';
+  let inputSource: InputSource;
   if (req.file) {
     const e = audioExt(req.file.originalname, req.file.mimetype);
     if (!e) {
@@ -96,7 +100,7 @@ callsRouter.post('/calls', requireWorkspace, upload.single('audio'), async (req,
     if (req.file.size === 0) return res.status(400).json({ error: 'empty_audio', message: 'That recording is empty.' });
     audio = req.file.buffer;
     ext = e;
-    inputSource = 'live_mic';
+    inputSource = req.body?.source === 'recording' ? 'recording' : 'upload';
   } else if (sampleId) {
     const s = await loadSample(sampleId).catch(() => null);
     if (!s) return res.status(404).json({ error: 'unknown_sample', message: 'That sample does not exist.' });
@@ -106,7 +110,7 @@ callsRouter.post('/calls', requireWorkspace, upload.single('audio'), async (req,
   } else if (req.body?.audioBase64) {
     audio = Buffer.from(req.body.audioBase64, 'base64');
     ext = 'webm';
-    inputSource = 'live_mic';
+    inputSource = 'recording';
     if (audio.length === 0 || audio.length > MAX_UPLOAD_BYTES) {
       return res.status(400).json({ error: 'bad_audio_size', maxBytes: MAX_UPLOAD_BYTES });
     }
@@ -131,6 +135,7 @@ callsRouter.post('/calls', requireWorkspace, upload.single('audio'), async (req,
   if (rateLimited('calls:' + ws)) {
     return res.status(429).json({ error: 'rate_limited', message: 'One analysis every 10 seconds. Try again in a moment.' });
   }
+  if (!ipAllows(req, res, 1)) return;
 
   const callId = randomUUID();
   await query(
@@ -193,7 +198,7 @@ callsRouter.get('/me/summary', requireWorkspace, async (_req, res) => {
      FROM calls WHERE owner_id=$1`,
     [ws],
   );
-  const { rows: sla } = await query('SELECT max_failure_rate_pct FROM sla_config WHERE id=1');
+  const sla = await getSlaConfig(ws);
   const r = rows[0];
   const finished = r.total - r.in_flight;
   res.json({
@@ -203,7 +208,7 @@ callsRouter.get('/me/summary', requireWorkspace, async (_req, res) => {
     failure_rate: finished > 0 ? (r.failed / finished) * 100 : 0,
     avg_latency_s: r.avg_latency_s,
     total_cost_usd: r.total_cost_usd,
-    sla_target_rate: Number(sla[0]?.max_failure_rate_pct ?? 5),
+    sla_target_rate: sla.max_failure_rate_pct,
     daily_used: r.used_24h,
     daily_limit: DAILY_CALL_LIMIT,
     max_upload_bytes: MAX_UPLOAD_BYTES,
@@ -226,7 +231,12 @@ callsRouter.get('/calls/:id', async (req, res) => {
     'SELECT report_text, generated_at FROM autopsy_reports WHERE call_id=$1 ORDER BY generated_at DESC LIMIT 1',
     [req.params.id],
   );
-  res.json({ call, stages, autopsy: reports[0] ?? null });
+  // Rows written before a redaction rule existed are cleaned on the way out too.
+  res.json({
+    call: { ...call, redacted_transcript: redactPII(call.redacted_transcript ?? ''), analysis: call.analysis ? redactDeep(call.analysis) : null },
+    stages: stages.map((st: any) => ({ ...st, raw_meta: redactDeep(st.raw_meta) })),
+    autopsy: reports[0] ? { ...reports[0], report_text: redactPII(reports[0].report_text) } : null,
+  });
 });
 
 callsRouter.get('/calls/:id/audio/:kind', async (req, res) => {

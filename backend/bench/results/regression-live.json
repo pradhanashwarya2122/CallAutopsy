@@ -1,0 +1,566 @@
+{
+ "runtime": [
+  {
+   "id": "call-1-clean-baseline",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 6.8,
+   "cost": 0.00313
+  },
+  {
+   "id": "call-2-noisy-cafe",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 12.6,
+   "cost": 0.00282
+  },
+  {
+   "id": "call-3-mumbled-unsure",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 6.6,
+   "cost": 0.00404
+  },
+  {
+   "id": "call-4-long-multi-detail",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 8.1,
+   "cost": 0.00589
+  },
+  {
+   "id": "call-5-failure-heavy-multi-intent",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 12.6,
+   "cost": 0.00447
+  },
+  {
+   "id": "stress-01-young-male-clear-baselin",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 6.5,
+   "cost": 0.00334
+  },
+  {
+   "id": "stress-02-middle-aged-female-hesit",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 6.6,
+   "cost": 0.0045
+  },
+  {
+   "id": "stress-03-older-male-slow-noisy-re",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 6.6,
+   "cost": 0.00487
+  },
+  {
+   "id": "stress-04-young-female-fast-interr",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 6.6,
+   "cost": 0.0038
+  },
+  {
+   "id": "stress-05-middle-aged-male-phone-s",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 6.6,
+   "cost": 0.00477
+  },
+  {
+   "id": "stress-06-young-female-busy-cafe-r",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 6.7,
+   "cost": 0.00481
+  },
+  {
+   "id": "stress-07-older-female-confused-co",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 8.2,
+   "cost": 0.00554
+  },
+  {
+   "id": "stress-08-nervous-male-long-pauses",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 6.6,
+   "cost": 0.00434
+  },
+  {
+   "id": "stress-09-frustrated-female-multi-",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 8.1,
+   "cost": 0.00625
+  },
+  {
+   "id": "stress-10-max-stress-train-phone-m",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 8.2,
+   "cost": 0.00674
+  },
+  {
+   "id": "refund-request",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 5.1,
+   "cost": 0.00277
+  },
+  {
+   "id": "book-table",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 5,
+   "cost": 0.00151
+  },
+  {
+   "id": "weather-today",
+   "status": "completed",
+   "category": "ok",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 3.5,
+   "cost": 0.00206
+  },
+  {
+   "id": "noisy-line",
+   "status": "failed",
+   "category": "bad_stt",
+   "stt": "deepgram",
+   "failover": false,
+   "analysis": true,
+   "seconds": 5,
+   "cost": 0.00182
+  }
+ ],
+ "perCall": [
+  {
+   "id": "call-1",
+   "intent": "duplicate_charge",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Easy",
+   "condition": "clean_wideband",
+   "wer": 0,
+   "werStrict": 27.9,
+   "numbers": "3/3",
+   "lexTone": "neutral",
+   "vocal": "high",
+   "overall": "animated delivery",
+   "interrupts": 0,
+   "cost": 0.00044
+  },
+  {
+   "id": "call-2",
+   "intent": "pending_transaction",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Hard",
+   "condition": "noisy",
+   "wer": 18.5,
+   "werStrict": 30.3,
+   "numbers": "2/2",
+   "lexTone": "neutral",
+   "vocal": "unclear",
+   "overall": "not evident",
+   "interrupts": 0,
+   "cost": 0.00046
+  },
+  {
+   "id": "call-3",
+   "intent": "duplicate_charge",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Hard",
+   "condition": "band_limited",
+   "wer": 15.6,
+   "werStrict": 21.7,
+   "numbers": "2/2",
+   "lexTone": "confused",
+   "vocal": "unclear",
+   "overall": "confused",
+   "interrupts": 0,
+   "cost": 0.00041
+  },
+  {
+   "id": "call-4",
+   "intent": "duplicate_charge",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Hard",
+   "condition": "band_limited",
+   "wer": 9.2,
+   "werStrict": 24.7,
+   "numbers": "7/7",
+   "lexTone": "frustrated",
+   "vocal": "medium",
+   "overall": "frustrated",
+   "interrupts": 0,
+   "cost": 0.00053
+  },
+  {
+   "id": "call-5",
+   "intent": "duplicate_charge",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Hard",
+   "condition": "band_limited",
+   "wer": 16.4,
+   "werStrict": 24.7,
+   "numbers": "5/5",
+   "lexTone": "confused",
+   "vocal": "high",
+   "overall": "confused",
+   "interrupts": 0,
+   "cost": 0.00053
+  },
+  {
+   "id": "stress-01",
+   "intent": "refund_request",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Easy",
+   "condition": "clean_wideband",
+   "wer": 2.9,
+   "werStrict": 24.4,
+   "numbers": "3/3",
+   "lexTone": "neutral",
+   "vocal": "high",
+   "overall": "animated delivery",
+   "interrupts": 0,
+   "cost": 0.00042
+  },
+  {
+   "id": "stress-02",
+   "intent": "missing_order",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Hard",
+   "condition": "clean_wideband",
+   "wer": 0,
+   "werStrict": 13.5,
+   "numbers": "2/2",
+   "lexTone": "nervous",
+   "vocal": "medium",
+   "overall": "nervous",
+   "interrupts": 0,
+   "cost": 0.00043
+  },
+  {
+   "id": "stress-03",
+   "intent": "incorrect_charge",
+   "speakers": 2,
+   "source": "acoustic",
+   "reliable": true,
+   "difficulty": "Hard",
+   "condition": "noisy",
+   "wer": 1.3,
+   "werStrict": 20.5,
+   "numbers": "6/6",
+   "lexTone": "confused",
+   "vocal": "unclear/unclear",
+   "overall": "confused",
+   "interrupts": 0,
+   "cost": 0.00044
+  },
+  {
+   "id": "stress-04",
+   "intent": "pending_transaction",
+   "speakers": 2,
+   "source": "acoustic",
+   "reliable": true,
+   "difficulty": "Severe",
+   "condition": "noisy",
+   "wer": 8.6,
+   "werStrict": 20.5,
+   "numbers": "3/3",
+   "lexTone": "neutral",
+   "vocal": "unclear/unclear",
+   "overall": "not evident",
+   "interrupts": 1,
+   "cost": 0.00044
+  },
+  {
+   "id": "stress-05",
+   "intent": "incorrect_charge",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Hard",
+   "condition": "degraded",
+   "wer": 3.1,
+   "werStrict": 37.2,
+   "numbers": "4/4",
+   "lexTone": "neutral",
+   "vocal": "unclear",
+   "overall": "not evident",
+   "interrupts": 0,
+   "cost": 0.00043
+  },
+  {
+   "id": "stress-06",
+   "intent": "pending_transaction",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Hard",
+   "condition": "noisy",
+   "wer": 0,
+   "werStrict": 13.3,
+   "numbers": "4/4",
+   "lexTone": "neutral",
+   "vocal": "medium",
+   "overall": "even delivery",
+   "interrupts": 0,
+   "cost": 0.00046
+  },
+  {
+   "id": "stress-07",
+   "intent": "billing_account_issue",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Moderate",
+   "condition": "clean_wideband",
+   "wer": 4.8,
+   "werStrict": 38,
+   "numbers": "11/11",
+   "lexTone": "neutral",
+   "vocal": "unclear",
+   "overall": "not evident",
+   "interrupts": 0,
+   "cost": 0.00046
+  },
+  {
+   "id": "stress-08",
+   "intent": "pending_transaction",
+   "speakers": 1,
+   "source": "single_voice",
+   "reliable": true,
+   "difficulty": "Moderate",
+   "condition": "acceptable",
+   "wer": 0,
+   "werStrict": 0,
+   "numbers": "0/0",
+   "lexTone": "confused",
+   "vocal": "medium",
+   "overall": "confused",
+   "interrupts": 0,
+   "cost": 0.00045
+  },
+  {
+   "id": "stress-09",
+   "intent": "incorrect_charge",
+   "speakers": 2,
+   "source": "acoustic",
+   "reliable": true,
+   "difficulty": "Severe",
+   "condition": "degraded",
+   "wer": 3.6,
+   "werStrict": 7,
+   "numbers": "5/7",
+   "lexTone": "frustrated",
+   "vocal": "high/unclear",
+   "overall": "frustrated",
+   "interrupts": 1,
+   "cost": 0.00057
+  },
+  {
+   "id": "stress-10",
+   "intent": "missing_order",
+   "speakers": 2,
+   "source": "acoustic",
+   "reliable": true,
+   "difficulty": "Severe",
+   "condition": "noisy",
+   "wer": 4.1,
+   "werStrict": 16.9,
+   "numbers": "7/7",
+   "lexTone": "confused",
+   "vocal": "unclear/unclear",
+   "overall": "confused",
+   "interrupts": 1,
+   "cost": 0.00055
+  }
+ ],
+ "matrix": {
+  "STT: normalized WER <= 10%": {
+   "ok": 12,
+   "total": 15,
+   "notes": [
+    "call-2 19%",
+    "call-3 16%",
+    "call-5 16%"
+   ]
+  },
+  "STT: numbers heard exactly": {
+   "ok": 14,
+   "total": 15,
+   "notes": [
+    "stress-09 5/7"
+   ]
+  },
+  "Diarization: speaker count": {
+   "ok": 15,
+   "total": 15,
+   "notes": []
+  },
+  "Diarization: labels reliable when verified": {
+   "ok": 15,
+   "total": 15,
+   "notes": []
+  },
+  "Intent: primary correct": {
+   "ok": 15,
+   "total": 15,
+   "notes": []
+  },
+  "Entities: customer details found": {
+   "ok": 14,
+   "total": 15,
+   "notes": [
+    "call-2 missing 62 in [73905]"
+   ]
+  },
+  "Entities: no invented or merged values": {
+   "ok": 15,
+   "total": 15,
+   "notes": []
+  },
+  "Findings: no false alarm": {
+   "ok": 9,
+   "total": 9,
+   "notes": []
+  },
+  "Findings: expected finding present": {
+   "ok": 22,
+   "total": 22,
+   "notes": []
+  },
+  "Corrections: self-corrections captured": {
+   "ok": 9,
+   "total": 9,
+   "notes": []
+  },
+  "Ambiguity: unresolved state reported": {
+   "ok": 4,
+   "total": 4,
+   "notes": []
+  },
+  "Intent: all expected further intents found": {
+   "ok": 2,
+   "total": 2,
+   "notes": []
+  },
+  "Emotion (words): abstained (none evident in the wording)": {
+   "ok": 5,
+   "total": 5,
+   "notes": []
+  },
+  "Emotion (overall): asserted and consistent with styled delivery": {
+   "ok": 7,
+   "total": 7,
+   "notes": []
+  },
+  "Emotion (words): asserted and consistent with styled delivery": {
+   "ok": 5,
+   "total": 5,
+   "notes": []
+  },
+  "Emotion (overall): abstained or flagged mixed": {
+   "ok": 3,
+   "total": 3,
+   "notes": []
+  },
+  "Vocal arousal: abstained (no claim)": {
+   "ok": 2,
+   "total": 2,
+   "notes": []
+  },
+  "Vocal arousal: claimed and correct": {
+   "ok": 1,
+   "total": 1,
+   "notes": []
+  },
+  "Intent: at least one expected further intent found": {
+   "ok": 1,
+   "total": 1,
+   "notes": []
+  },
+  "Attribution: agent-only values not credited to the customer": {
+   "ok": 1,
+   "total": 1,
+   "notes": []
+  },
+  "Attribution: agent-only values reported as agent-stated": {
+   "ok": 1,
+   "total": 1,
+   "notes": []
+  }
+ }
+}

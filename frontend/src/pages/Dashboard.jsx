@@ -5,7 +5,7 @@ import { getWorkspaceId, isValidWorkspaceId, switchWorkspace } from '../lib/work
 import { useLiveCallFeed } from '../hooks/useLiveCallFeed';
 import { ClipboardIcon, WaveformIcon } from '../components/Icons';
 import { Skeleton } from '../components/Skeleton';
-import CallAnalysisPanels from '../components/CallAnalysis.jsx';
+import CallAnalysisPanels, { Turns } from '../components/CallAnalysis.jsx';
 import '../styles/dashboard.css';
 
 const NAV = [
@@ -192,6 +192,7 @@ function StatsRibbon({ summary }) {
 function DropZone({ disabled, maxBytes, onFile, onReject }) {
   const input = useRef(null);
   const [over, setOver] = useState(false);
+  const [converting, setConverting] = useState(false); // converting an mp3/m4a/... takes a moment; no second file until it is done
   const take = (files) => {
     const f = files && files[0];
     if (!f) return;
@@ -200,21 +201,27 @@ function DropZone({ disabled, maxBytes, onFile, onReject }) {
       onReject(`That file is ${(f.size / 1048576).toFixed(1)} MB. The limit is ${Math.round(maxBytes / 1048576)} MB.`);
       return;
     }
-    onFile(f);
+    // mp3, m4a, ogg, webm and flac cannot be decoded by the server, so they would get no noise/bandwidth/speaker analysis.
+    // The browser can, so they are converted to 16 kHz WAV first (the original is sent if that fails or would exceed the limit).
+    if (/wav/i.test(f.type) || /\.wav$/i.test(f.name)) { onFile(f); return; }
+    setConverting(true);
+    recordingToWav16k(f)
+      .then((wav) => onFile(wav && wav.size <= maxBytes ? new File([wav], `${f.name.replace(/\.[^.]+$/, '')}.wav`, { type: 'audio/wav' }) : f))
+      .finally(() => setConverting(false));
   };
   return (
     <>
       <button
         type="button"
         className={`ap-drop ${over ? 'over' : ''}`}
-        disabled={disabled}
+        disabled={disabled || converting}
         onClick={() => input.current && input.current.click()}
-        onDragOver={(e) => { e.preventDefault(); if (!disabled) setOver(true); }}
+        onDragOver={(e) => { e.preventDefault(); if (!disabled && !converting) setOver(true); }}
         onDragLeave={() => setOver(false)}
-        onDrop={(e) => { e.preventDefault(); setOver(false); if (!disabled) take(e.dataTransfer.files); }}
+        onDrop={(e) => { e.preventDefault(); setOver(false); if (!disabled && !converting) take(e.dataTransfer.files); }}
       >
         <UploadIcon size={22} />
-        <b>Drop an audio file here</b>
+        <b>{converting ? 'Preparing your file…' : 'Drop an audio file here'}</b>
         <small>or click to browse · wav, mp3, m4a, ogg, webm · up to {Math.round(maxBytes / 1048576)} MB</small>
       </button>
       <input
@@ -285,8 +292,9 @@ function Recorder({ disabled, onRecorded, onError }) {
   useEffect(() => { if (recording && seconds >= MAX_RECORD_SECONDS) stop(); }, [recording, seconds, stop]);
 
   const start = async () => {
+    let s = null;
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      s = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.current = s;
       const mime = pickMime();
       const r = mime ? new MediaRecorder(s, { mimeType: mime }) : new MediaRecorder(s);
@@ -306,8 +314,9 @@ function Recorder({ disabled, onRecorded, onError }) {
       setSeconds(0);
       r.start();
       setRecording(true);
-    } catch {
-      onError('Microphone blocked or unavailable. Allow access in your browser, or upload a file instead.');
+    } catch (e) {
+      if (s) { s.getTracks().forEach((t) => t.stop()); stream.current = null; } // never leave the microphone on after a failed start
+      onError(s && e?.name !== 'NotAllowedError' ? 'This browser could not start recording. Upload a file instead.' : 'Microphone blocked or unavailable. Allow access in your browser, or upload a file instead.');
     }
   };
 
@@ -487,7 +496,7 @@ function AnalyzePanel({ samples, summary, busy, notice, fault, onFault, onFile, 
       <p className="ap-step">Pick a demo call</p>
       <DemoPicker samples={samples} busy={busy} onRun={onSample} />
       <div className="ap-or">or record your own</div>
-      <Recorder disabled={busy} onRecorded={onFile} onError={reject} />
+      <Recorder disabled={busy} onRecorded={(f) => onFile(f, 'recording')} onError={reject} />
       <div className="ap-or">or upload a file</div>
       <DropZone disabled={busy} maxBytes={maxBytes} onFile={onFile} onReject={reject} />
       <FaultFold value={fault} onChange={onFault} />
@@ -808,9 +817,9 @@ function AudioPlayer({ url }) {
 }
 
 function AudioPanel({ detail, script }) {
-  const turns = detail?.analysis?.turns || [];
-  const multi = new Set(turns.map((t) => t.speaker)).size > 1;
-  const match = detail?.analysis?.script_match;
+  const analysis = detail?.analysis;
+  const hasTurns = (analysis?.turns || []).length > 0;
+  const match = analysis?.script_match;
   const [tab, setTab] = useState('input');
   const id = detail?.id;
   useEffect(() => { setTab('input'); }, [id]);
@@ -827,13 +836,13 @@ function AudioPanel({ detail, script }) {
       {tab === 'transcript' ? (
         <div className="ap-transcript">
           <small>What speech-to-text heard (personal details redacted)</small>
-          {multi
-            ? turns.map((t, i) => <div key={i}><b>{`Voice ${t.speaker + 1}: `}</b>{t.text}</div>)
+          {hasTurns
+            ? <Turns analysis={analysis} />
             : (detail.transcript || 'No transcript. Speech-to-text did not produce one for this call.')}
           {script && (
             <>
               <small style={{ marginTop: 14 }}>
-                What was actually said (demo call script){match ? ` · transcript matches about ${Math.round((1 - match.wer) * 100)}%` : ''}
+                What was actually said (demo call script){match ? ` · ${Math.round((1 - match.wer) * 100)}% of words match (${Math.round((1 - match.wer_strict) * 100)}% counting number formatting), ${match.numbers_matched} of ${match.numbers_expected} numbers heard exactly` : ''}
               </small>
               <span style={{ whiteSpace: 'pre-wrap' }}>{script}</span>
             </>
@@ -1002,7 +1011,7 @@ export default function Dashboard() {
     return () => clearTimeout(t);
   }, [notice]);
 
-  const onFile = useCallback((file) => startAnalysis({ file }), [startAnalysis]);
+  const onFile = useCallback((file, source = 'upload') => startAnalysis({ file, source }), [startAnalysis]);
   const onSample = useCallback((s) => startAnalysis({ sampleId: s.id }), [startAnalysis]);
 
   const empty = cases !== null && cases.length === 0;

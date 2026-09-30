@@ -4,7 +4,9 @@ import { runCall } from '../pipeline/orchestrator.js';
 import type { FaultType, FaultParams } from '../pipeline/faultInjection.js';
 import { readSample } from '../sampleLibrary.js';
 import { remainingQuota } from '../limits.js';
+import { redactPII } from '../redaction/piiRedactor.js';
 import { budgetGuard } from '../cost/budget.js';
+import { buildSideRuns, decideAbWinner } from './verdict.js';
 
 export interface AbConfig {
   llmModel?: string;
@@ -25,6 +27,8 @@ export class AbError extends Error {
 export async function startAbTest(input: {
   ownerId: string; sampleId: string; configA: any; configB: any;
   faultType: FaultType | null; faultParams?: FaultParams; iterations: number;
+  // called last, once every check has passed and just before paid calls start; returns an error to refuse (rate slot, network hour)
+  charge?: () => AbError | null;
 }): Promise<string> {
   const sample = await readSample(input.sampleId);
   if (!sample) throw new AbError(404, 'unknown_sample', 'That demo call does not exist.');
@@ -33,6 +37,8 @@ export async function startAbTest(input: {
     throw new AbError(429, 'daily_limit', `This run needs ${iterations * 2} analyses and you have fewer left today.`);
   }
   if (!(await budgetGuard()).ok) throw new AbError(402, 'budget_cap', 'The demo has hit its spend cap for now.');
+  const refused = input.charge?.();
+  if (refused) throw refused;
 
   const configA = cleanConfig(input.configA);
   const configB = cleanConfig(input.configB);
@@ -61,8 +67,14 @@ export async function getAbResult(runId: string, ownerId: string) {
   if (!runRows.length) return null;
   const run = runRows[0];
   const { rows: calls } = await query(
+    // only the few analysis fields the comparison uses, not the whole JSON document, because this is polled every second or two
     `SELECT id, ab_side, stt_provider_used, stt_failover_occurred, predicted_category, status, total_cost_usd,
-            redacted_transcript, started_at, ended_at, analysis
+            redacted_transcript, started_at, ended_at,
+            jsonb_build_object(
+              'script_match', analysis->'script_match',
+              'speech', jsonb_build_object('avg_confidence', analysis->'speech'->'avg_confidence'),
+              'understanding', jsonb_build_object('primary_intent', analysis->'understanding'->'primary_intent')
+            ) AS analysis
      FROM calls WHERE ab_run_id=$1 ORDER BY started_at ASC`,
     [runId],
   );
@@ -71,48 +83,37 @@ export async function getAbResult(runId: string, ownerId: string) {
   const stale = Date.now() - new Date(run.created_at).getTime() > 5 * 60_000;
   const status = finished >= expected || stale ? 'done' : 'running';
 
+  // Pipeline time = the three stages the comparison is about. The analysis runs in parallel and its wait is not part of either config.
+  const { rows: stageRows } = await query(
+    `SELECT s.call_id, SUM(s.duration_ms)::float AS ms FROM call_stages s JOIN calls c ON c.id=s.call_id
+     WHERE c.ab_run_id=$1 AND s.stage IN ('stt','llm','tts') GROUP BY s.call_id`,
+    [runId],
+  );
+  const pipelineS = new Map<string, number>(stageRows.map((r: any) => [r.call_id, Number(r.ms) / 1000]));
+  const runsOf = (subset: any[]) => buildSideRuns(subset, pipelineS);
   const summarize = (subset: any[]) => {
+    const r = runsOf(subset);
     const done = subset.filter((c) => c.status === 'completed' || c.status === 'failed');
-    const failed = done.filter((c) => c.status === 'failed').length;
-    const costs = done.map((c) => Number(c.total_cost_usd ?? 0));
-    const latencies = done.filter((c) => c.ended_at).map((c) => (new Date(c.ended_at).getTime() - new Date(c.started_at).getTime()) / 1000);
-    const wers = done.map((c) => c.analysis?.script_match?.wer).filter((x: any) => typeof x === 'number');
     const confs = done.map((c) => c.analysis?.speech?.avg_confidence).filter((x: any) => typeof x === 'number');
     const first = done.find((c) => c.redacted_transcript);
     return {
-      n: done.length,
-      failed,
-      failureRate: done.length ? failed / done.length : 0,
-      avgCostUsd: avg(costs) ?? 0,
-      totalCostUsd: costs.reduce((a, b) => a + b, 0),
-      avgLatencyS: avg(latencies),
-      avgWordErrorRate: avg(wers),
+      n: r.n,
+      failed: r.failed,
+      failureRate: r.n ? r.failed / r.n : 0,
+      avgCostUsd: avg(r.costUsd) ?? 0,
+      totalCostUsd: r.costUsd.reduce((a, b) => a + b, 0),
+      avgLatencyS: avg(r.latencyS),
+      avgWordErrorRate: avg(r.wer),
       avgSttConfidence: avg(confs),
-      failoverCount: done.filter((c) => c.stt_failover_occurred).length,
-      sampleTranscript: first?.redacted_transcript ?? null,
+      failoverCount: r.failovers,
+      sampleTranscript: first ? redactPII(first.redacted_transcript) : null,
       primaryIntent: first?.analysis?.understanding?.primary_intent?.label ?? null,
     };
   };
   const side = (s: 'A' | 'B') => calls.filter((c: any) => c.ab_side === s);
   const A = summarize(side('A'));
   const B = summarize(side('B'));
-
-  // The verdict names the metric that decided it, and says "no clear winner" instead of crowning noise.
-  const reasons: string[] = [];
-  let winner: 'A' | 'B' | 'tie' = 'tie';
-  const decide = (a: number | null, b: number | null, minGap: number, lowerIsBetter: boolean, label: string, fmt: (x: number) => string) => {
-    if (winner !== 'tie' || a === null || b === null) return;
-    if (Math.abs(a - b) < minGap) return;
-    const aWins = lowerIsBetter ? a < b : a > b;
-    winner = aWins ? 'A' : 'B';
-    reasons.push(`${label}: A ${fmt(a)} vs B ${fmt(b)}`);
-  };
-  if (status === 'done' && A.n && B.n) {
-    decide(A.failureRate, B.failureRate, 0.19, true, 'Fewer failed calls', (x) => `${Math.round(x * 100)}%`);
-    decide(A.avgWordErrorRate, B.avgWordErrorRate, 0.03, true, 'More accurate transcript (word error rate)', (x) => `${Math.round(x * 100)}%`);
-    decide(A.avgLatencyS, B.avgLatencyS, Math.max(0.4, ((A.avgLatencyS ?? 0) + (B.avgLatencyS ?? 0)) * 0.1), true, 'Faster end to end', (x) => `${x.toFixed(1)}s`);
-    decide(A.avgCostUsd, B.avgCostUsd, Math.max(0.0002, (A.avgCostUsd + B.avgCostUsd) * 0.1), true, 'Cheaper per call', (x) => `$${x.toFixed(4)}`);
-  }
+  const verdict = status === 'done' ? decideAbWinner(runsOf(side('A')), runsOf(side('B')), runsOf(calls).wer.length > 0) : null;
 
   return {
     status,
@@ -121,10 +122,10 @@ export async function getAbResult(runId: string, ownerId: string) {
     calls: calls.map((c: any) => ({
       id: c.id, side: c.ab_side, stt_provider_used: c.stt_provider_used, failover: c.stt_failover_occurred,
       predicted_category: c.predicted_category, status: c.status, total_cost_usd: c.total_cost_usd,
-      latency_s: c.ended_at ? (new Date(c.ended_at).getTime() - new Date(c.started_at).getTime()) / 1000 : null,
+      latency_s: pipelineS.get(c.id) ?? null,
       wer: c.analysis?.script_match?.wer ?? null,
     })),
     summary: { configA: A, configB: B },
-    verdict: { winner, reasons },
+    verdict,
   };
 }

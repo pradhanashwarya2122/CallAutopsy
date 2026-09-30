@@ -24,7 +24,21 @@ function prettify(id: string): string {
 }
 
 // PCM WAV only (what the bundled samples are); other formats report null rather than a guess.
+const durationCache = new Map<string, { mtimeMs: number; value: number | null }>();
 async function wavDurationSeconds(file: string): Promise<number | null> {
+  try {
+    const { mtimeMs } = await fs.stat(file);
+    const hit = durationCache.get(file);
+    if (hit && hit.mtimeMs === mtimeMs) return hit.value;
+    const value = await readWavDuration(file);
+    durationCache.set(file, { mtimeMs, value });
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+async function readWavDuration(file: string): Promise<number | null> {
   try {
     const fh = await fs.open(file, 'r');
     try {

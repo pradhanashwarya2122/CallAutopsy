@@ -43,8 +43,6 @@ function SLASettings() {
   const [state, setState] = useState(null);
   const [breaches, setBreaches] = useState(null);
   const [savedFlash, setSavedFlash] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState(null);
   const [error, setError] = useState('');
 
   const refresh = () => {
@@ -61,12 +59,6 @@ function SLASettings() {
   const save = async () => {
     try { await api.setSla(pct, mins); setSavedFlash(true); setTimeout(() => setSavedFlash(false), 2000); refresh(); }
     catch (e) { setError(errText(e, 'Could not save. Check your connection and try again.')); }
-  };
-  const testWebhook = async () => {
-    setTesting(true); setTestResult(null);
-    try { const r = await api.slaTestWebhook(); setTestResult(r.ok ? 'Sent to Discord.' : (r.note || 'Failed.')); }
-    catch (e) { setTestResult(errText(e, 'Could not send.')); }
-    finally { setTesting(false); }
   };
   const breached = state?.breached;
 
@@ -102,7 +94,7 @@ function SLASettings() {
               <span style={{ letterSpacing: '.14em', textTransform: 'uppercase' }}>Max failure rate</span>
               <span className="mono">{pct}%</span>
             </div>
-            <input type="range" min={1} max={50} step={1} value={pct}
+            <input type="range" min={1} max={50} step={1} value={pct} aria-label="Max failure rate percent"
               onChange={(e) => setPct(Number(e.target.value))}
               className="pc-range" style={{ '--pct': `${((pct - 1) / 49) * 100}%` }} />
           </label>
@@ -111,7 +103,7 @@ function SLASettings() {
               <span style={{ letterSpacing: '.14em', textTransform: 'uppercase' }}>Window</span>
               <span className="mono">{mins} min</span>
             </div>
-            <input type="range" min={5} max={360} step={5} value={mins}
+            <input type="range" min={5} max={360} step={5} value={mins} aria-label="Window in minutes"
               onChange={(e) => setMins(Number(e.target.value))}
               className="pc-range" style={{ '--pct': `${((mins - 5) / 355) * 100}%` }} />
           </label>
@@ -127,12 +119,6 @@ function SLASettings() {
         <p className="pc-sub" style={{ marginBottom: 12 }}>
           A breach is recorded once per 15 minutes. Discord alerting is an operator feature and is off on the public demo.
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button onClick={testWebhook} disabled={testing} className="pc-btn ghost">
-            {testing ? 'Sending…' : 'Send test alert'}
-          </button>
-          {testResult && <span className="pc-sub">{testResult}</span>}
-        </div>
       </div>
 
       <div className="pc-panel pc-section">

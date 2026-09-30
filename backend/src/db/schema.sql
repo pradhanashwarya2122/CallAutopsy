@@ -128,3 +128,17 @@ CREATE TABLE IF NOT EXISTS workspace_sla (
   max_failure_rate_pct NUMERIC NOT NULL DEFAULT 5,
   window_minutes INTEGER NOT NULL DEFAULT 60
 );
+
+-- A call with no injected fault is only ground truth "ok" when it was made as a control (a calibration run's clean call);
+-- a real upload or recording can legitimately fail, so it must not be scored as a classifier mistake.
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS label_source TEXT;
+
+-- Money spent outside a pipeline call (hallucination suite, self-healing suggestions), so the spend caps see it.
+CREATE TABLE IF NOT EXISTS ai_spend (
+  id BIGSERIAL PRIMARY KEY,
+  at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  owner_id UUID,
+  kind TEXT NOT NULL,
+  cost_usd NUMERIC(12,6) NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_ai_spend_at ON ai_spend (at DESC);

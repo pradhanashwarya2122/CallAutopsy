@@ -1,6 +1,7 @@
-// Signal-level audio quality for PCM WAV input: noise floor, signal-to-noise, clipping and usable bandwidth.
+// Signal-level audio quality for PCM WAV input: noise floor, signal-to-noise, clipping, bandwidth and dynamics.
 // Compressed uploads (mp3/m4a/webm) cannot be decoded here without ffmpeg, so they return null and the
 // findings fall back to the STT provider's confidence.
+import { fft, readPcm16, type Pcm } from './audioIO.js';
 
 export interface AudioSignal {
   duration_s: number;
@@ -9,72 +10,56 @@ export interface AudioSignal {
   speech_level_db: number;
   snr_db: number;
   clipping_ratio: number;
-  hf_ratio_db: number | null; // energy at 4-7 kHz relative to 0.3-3 kHz in the loud frames
-  narrowband: boolean; // limited high-frequency content: a phone line or muffled recording
+  hf_ratio_db: number | null; // energy at 5-7 kHz relative to 0.5-2.5 kHz in the loud frames (null when the sample rate cannot show it)
+  band_limited: boolean; // almost nothing above ~4.5 kHz: a phone line, a muffled or low-rate recording
+  level_sd_db: number; // spread of the loudness of speech frames; very low = squashed by compression / AGC
+  dynamics_compressed: boolean;
+  condition: Condition;
 }
 
-interface Pcm { samples: Float64Array; rate: number }
+// Thresholds are calibrated on the bundled demo calls, whose recording conditions are known (bench/audio-quality-benchmark.ts
+// prints the measurements next to the truth). Band limit: filtered calls measure <= -29 dB, unfiltered ones >= -24 dB.
+// Noise: calls rendered at <= 24 dB speech-to-noise measure <= 24.8 dB, calls rendered at >= 27 dB measure >= 27.1 dB.
+export const AUDIO_THRESHOLDS = {
+  bandLimitedHfDb: -27,
+  compressedLevelSdDb: 3.5,
+  compressedMinSnrDb: 18, // below this, steady noise flattens the loudness spread by itself, so compression cannot be told from noise
+  noisyDb: 26,
+  veryNoisyDb: 12,
+  clippingRatio: 0.005,
+  cleanSnrDb: 30,
+} as const;
 
-function readPcm16(buf: Buffer): Pcm | null {
-  if (buf.length < 44 || buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') return null;
-  let pos = 12;
-  let fmt: { tag: number; ch: number; rate: number; bits: number } | null = null;
-  while (pos + 8 <= buf.length) {
-    const id = buf.toString('ascii', pos, pos + 4);
-    const size = buf.readUInt32LE(pos + 4);
-    const body = pos + 8;
-    if (id === 'fmt ') fmt = { tag: buf.readUInt16LE(body), ch: buf.readUInt16LE(body + 2), rate: buf.readUInt32LE(body + 4), bits: buf.readUInt16LE(body + 14) };
-    if (id === 'data') {
-      if (!fmt || fmt.tag !== 1 || fmt.bits !== 16) return null;
-      const end = Math.min(buf.length, body + size);
-      const frames = Math.floor((end - body) / (2 * fmt.ch));
-      const out = new Float64Array(frames);
-      for (let i = 0; i < frames; i += 1) {
-        let acc = 0;
-        for (let c = 0; c < fmt.ch; c += 1) acc += buf.readInt16LE(body + (i * fmt.ch + c) * 2);
-        out[i] = acc / fmt.ch / 32768;
-      }
-      return { samples: out, rate: fmt.rate };
-    }
-    pos = body + size + (size % 2);
-  }
-  return null;
+export type ConditionFlag = 'noisy' | 'very_noisy' | 'band_limited' | 'clipped' | 'compressed';
+export interface Condition {
+  label: 'clean_wideband' | 'noisy' | 'band_limited' | 'clipped' | 'compressed' | 'degraded' | 'acceptable';
+  flags: ConditionFlag[];
 }
 
-function fft(re: Float64Array, im: Float64Array) {
-  const n = re.length;
-  for (let i = 1, j = 0; i < n; i += 1) {
-    let bit = n >> 1;
-    for (; j & bit; bit >>= 1) j ^= bit;
-    j ^= bit;
-    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
-  }
-  for (let len = 2; len <= n; len <<= 1) {
-    const ang = (-2 * Math.PI) / len;
-    const wr = Math.cos(ang);
-    const wi = Math.sin(ang);
-    for (let i = 0; i < n; i += len) {
-      let cr = 1;
-      let ci = 0;
-      for (let k = 0; k < len / 2; k += 1) {
-        const ur = re[i + k]; const ui = im[i + k];
-        const vr = re[i + k + len / 2] * cr - im[i + k + len / 2] * ci;
-        const vi = re[i + k + len / 2] * ci + im[i + k + len / 2] * cr;
-        re[i + k] = ur + vr; im[i + k] = ui + vi;
-        re[i + k + len / 2] = ur - vr; im[i + k + len / 2] = ui - vi;
-        const nr = cr * wr - ci * wi;
-        ci = cr * wi + ci * wr;
-        cr = nr;
-      }
-    }
-  }
+export function classifyCondition(sig: Pick<AudioSignal, 'snr_db' | 'clipping_ratio' | 'band_limited' | 'dynamics_compressed'>): Condition {
+  const T = AUDIO_THRESHOLDS;
+  const flags: ConditionFlag[] = [];
+  if (sig.snr_db < T.veryNoisyDb) flags.push('very_noisy');
+  else if (sig.snr_db < T.noisyDb) flags.push('noisy');
+  if (sig.band_limited) flags.push('band_limited');
+  if (sig.clipping_ratio > T.clippingRatio) flags.push('clipped');
+  if (sig.dynamics_compressed) flags.push('compressed');
+  let label: Condition['label'];
+  if (flags.length === 0) label = sig.snr_db >= T.cleanSnrDb ? 'clean_wideband' : 'acceptable';
+  else if (flags.length === 1) label = flags[0] === 'very_noisy' ? 'noisy' : flags[0];
+  else label = 'degraded';
+  return { label, flags };
 }
 
 const percentile = (sorted: number[], p: number) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
 
 export function analyzeWavSignal(buf: Buffer): AudioSignal | null {
   const pcm = readPcm16(buf);
-  if (!pcm || pcm.samples.length < pcm.rate * 0.5) return null;
+  return pcm ? analyzePcmSignal(pcm) : null;
+}
+
+export function analyzePcmSignal(pcm: Pcm): AudioSignal | null {
+  if (pcm.samples.length < pcm.rate * 0.5) return null;
   const { samples, rate } = pcm;
 
   const frame = Math.round(rate * 0.02);
@@ -85,18 +70,19 @@ export function analyzeWavSignal(buf: Buffer): AudioSignal | null {
     frames.push({ db: 10 * Math.log10(e / frame + 1e-12), start: s });
   }
   const sortedDb = frames.map((f) => f.db).sort((a, b) => a - b);
-  const floor = percentile(sortedDb, 0.1);
+  const floor = percentile(sortedDb, 0.2); // 20th percentile tracks the rendered speech-to-noise ratio of the demo calls within ~2 dB
   const speech = percentile(sortedDb, 0.9);
 
   let clipped = 0;
   for (let i = 0; i < samples.length; i += 1) if (Math.abs(samples[i]) >= 0.999) clipped += 1;
 
-  // A channel limit (phone line, muffled mic) shows up as a cliff above ~3.5 kHz. Clean wideband voices measure about
-  // -12 to -25 dB here; the band-limited demo calls measure about -33 dB or lower.
+  // A channel limit (phone line, muffled mic, low sample rate) leaves almost nothing at 5-7.5 kHz. Measured on the loudest
+  // frames so noise between words does not decide it.
   let hfRatio: number | null = null;
   if (rate >= 16000) {
-    const N = 512;
-    const loud = frames.filter((f) => f.db >= speech - 6 && f.start + N <= samples.length).slice(0, 200);
+    // 5-7 kHz is used instead of 5-8 kHz: the last few hundred Hz below the Nyquist limit always roll off and say nothing about the channel
+    const N = 1024;
+    const loud = frames.filter((f) => f.db >= speech - 6 && f.start + N <= samples.length).slice(0, 300);
     if (loud.length >= 5) {
       let lo = 0;
       let hi = 0;
@@ -108,22 +94,37 @@ export function analyzeWavSignal(buf: Buffer): AudioSignal | null {
         for (let k = 1; k < N / 2; k += 1) {
           const hz = (k * rate) / N;
           const p = re[k] * re[k] + im[k] * im[k];
-          if (hz >= 300 && hz <= 3000) lo += p;
-          else if (hz >= 4000 && hz <= 7000) hi += p;
+          if (hz >= 500 && hz <= 2500) lo += p;
+          else if (hz >= 5000 && hz <= 7000) hi += p;
         }
       }
       hfRatio = Math.round(10 * Math.log10((hi + 1e-12) / (lo + 1e-12)) * 10) / 10;
     }
   }
+  const bandLimited = hfRatio !== null ? hfRatio <= AUDIO_THRESHOLDS.bandLimitedHfDb : rate <= 8000;
+
+  // loudness spread of the speech frames
+  const active = frames.filter((f) => f.db > floor + 10).map((f) => f.db);
+  let levelSd = 0;
+  if (active.length >= 10) {
+    const m = active.reduce((a, b) => a + b, 0) / active.length;
+    levelSd = Math.sqrt(active.reduce((a, b) => a + (b - m) ** 2, 0) / active.length);
+  }
+  const snr = Math.round(Math.min(60, speech - floor) * 10) / 10;
+  const dynamicsCompressed = active.length >= 10 && levelSd <= AUDIO_THRESHOLDS.compressedLevelSdDb && snr >= AUDIO_THRESHOLDS.compressedMinSnrDb;
+  const clipRatio = clipped / samples.length;
 
   return {
     duration_s: Math.round((samples.length / rate) * 10) / 10,
     sample_rate: rate,
     noise_floor_db: Math.round(floor * 10) / 10,
     speech_level_db: Math.round(speech * 10) / 10,
-    snr_db: Math.round(Math.min(60, speech - floor) * 10) / 10,
-    clipping_ratio: clipped / samples.length,
+    snr_db: snr,
+    clipping_ratio: clipRatio,
     hf_ratio_db: hfRatio,
-    narrowband: hfRatio !== null && hfRatio < -38,
+    band_limited: bandLimited,
+    level_sd_db: Math.round(levelSd * 10) / 10,
+    dynamics_compressed: dynamicsCompressed,
+    condition: classifyCondition({ snr_db: snr, clipping_ratio: clipRatio, band_limited: bandLimited, dynamics_compressed: dynamicsCompressed }),
   };
 }

@@ -1,0 +1,98 @@
+{
+ "truthEvents": 10,
+ "detected": 3,
+ "missed": 7,
+ "falseAlarms": 0,
+ "rows": [
+  {
+   "id": "stress-01-young-male-clear-basel",
+   "speakers": 1,
+   "truthEvents": "",
+   "detected": "",
+   "falseAlarms": 0,
+   "backchannels": 0,
+   "visibility": "not_applicable"
+  },
+  {
+   "id": "stress-02-middle-aged-female-hes",
+   "speakers": 1,
+   "truthEvents": "",
+   "detected": "",
+   "falseAlarms": 0,
+   "backchannels": 0,
+   "visibility": "not_applicable"
+  },
+  {
+   "id": "stress-03-older-male-slow-noisy-",
+   "speakers": 2,
+   "truthEvents": "",
+   "detected": "",
+   "falseAlarms": 0,
+   "backchannels": 0,
+   "visibility": "limited"
+  },
+  {
+   "id": "stress-04-young-female-fast-inte",
+   "speakers": 2,
+   "truthEvents": "interruption@5.0 simultaneous@5.0 simultaneous@10.7 interruption@13.7 simultaneous@16.8",
+   "detected": "interruption@17.16(0.7)",
+   "falseAlarms": 0,
+   "backchannels": 1,
+   "visibility": "limited"
+  },
+  {
+   "id": "stress-05-middle-aged-male-phone",
+   "speakers": 1,
+   "truthEvents": "",
+   "detected": "",
+   "falseAlarms": 0,
+   "backchannels": 0,
+   "visibility": "not_applicable"
+  },
+  {
+   "id": "stress-06-young-female-busy-cafe",
+   "speakers": 1,
+   "truthEvents": "",
+   "detected": "",
+   "falseAlarms": 0,
+   "backchannels": 0,
+   "visibility": "not_applicable"
+  },
+  {
+   "id": "stress-07-older-female-confused-",
+   "speakers": 1,
+   "truthEvents": "",
+   "detected": "",
+   "falseAlarms": 0,
+   "backchannels": 0,
+   "visibility": "not_applicable"
+  },
+  {
+   "id": "stress-08-nervous-male-long-paus",
+   "speakers": 1,
+   "truthEvents": "",
+   "detected": "",
+   "falseAlarms": 0,
+   "backchannels": 0,
+   "visibility": "not_applicable"
+  },
+  {
+   "id": "stress-09-frustrated-female-mult",
+   "speakers": 2,
+   "truthEvents": "interruption@8.7 simultaneous@8.7",
+   "detected": "interruption@9.12(0.7)",
+   "falseAlarms": 0,
+   "backchannels": 0,
+   "visibility": "limited"
+  },
+  {
+   "id": "stress-10-max-stress-train-phone",
+   "speakers": 2,
+   "truthEvents": "simultaneous@14.8 interruption@32.1 simultaneous@32.1",
+   "detected": "interruption@32(0.55)",
+   "falseAlarms": 0,
+   "backchannels": 0,
+   "visibility": "limited"
+  }
+ ]
+}

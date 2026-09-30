@@ -7,9 +7,10 @@ import { query } from '../db/client.js';
 // UUID is a bearer secret, not a login: anyone who has it can see that data.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-// Header for fetch(); ?ws= for <audio src>, PDF links and the WebSocket, which cannot set headers.
+// Header for fetch(); ?ws= only on GET, for <audio src>, PDF links and the WebSocket, which cannot set headers. State-changing
+// requests never accept the id in the URL, so it does not end up in access logs, referrers or shareable links for those.
 export function workspaceId(req: Request): string | null {
-  const raw = req.header('x-workspace-id') ?? (typeof req.query.ws === 'string' ? req.query.ws : '');
+  const raw = req.header('x-workspace-id') ?? (req.method === 'GET' && typeof req.query.ws === 'string' ? req.query.ws : '');
   return UUID.test(raw) ? raw.toLowerCase() : null;
 }
 

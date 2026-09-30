@@ -1,15 +1,7 @@
-// Objective speech measurements derived from the STT provider's per-word timings, confidences and speaker labels.
+// Objective speech measurements derived from the STT provider's per-word timings and confidences and from the speaker analysis.
 // Nothing here is estimated by a language model.
-import type { SttResult } from '../pipeline/stt/deepgram.js';
-
-export type SttWord = SttResult['words'][number];
-
-export interface Turn {
-  speaker: number;
-  start: number | null;
-  end: number | null;
-  text: string;
-}
+import type { Diarization } from './diarize.js';
+import type { SttWord, TurnAnalysis } from './turns.js';
 
 export interface SpeechMetrics {
   duration_s: number;
@@ -24,9 +16,10 @@ export interface SpeechMetrics {
   longest_pause_s: number;
   speakers: number;
   turn_count: number;
-  overlap_count: number; // episodes where a second speaker starts before the first has finished
+  overlap_count: number; // simultaneous speech confirmed by timestamps (a lower bound on mono recordings, see turns.ts)
   overlap_s: number;
-  interruption_count: number; // a speaker's sentence is cut off and the other speaker starts right away
+  interruption_count: number; // a sentence cut off by the other speaker (see analysis.boundaries for evidence and confidence)
+  backchannel_count: number;
 }
 
 const FILLERS = new Set(['uh', 'um', 'uhm', 'uhh', 'umm', 'er', 'erm', 'ah', 'hmm', 'mm', 'mmm']);
@@ -36,23 +29,9 @@ const LOW_CONF = 0.7;
 
 const bare = (w: string) => w.toLowerCase().replace(/[^a-z']/g, '');
 
-export function buildTurns(words: SttWord[], fallbackText: string): Turn[] {
-  if (!words.length) return fallbackText.trim() ? [{ speaker: 0, start: null, end: null, text: fallbackText.trim() }] : [];
-  const turns: Turn[] = [];
-  for (const w of words) {
-    const speaker = w.speaker ?? 0;
-    const last = turns[turns.length - 1];
-    if (last && last.speaker === speaker) {
-      last.text += ` ${w.word}`;
-      last.end = w.end ?? last.end;
-    } else {
-      turns.push({ speaker, start: w.start ?? null, end: w.end ?? null, text: w.word });
-    }
-  }
-  return turns;
-}
-
-export function computeSpeechMetrics(words: SttWord[], durationSec: number, turns: Turn[]): SpeechMetrics {
+// `wordConfidence`: the provider gives a real confidence for each word (Deepgram does). Whisper only gives one per segment, which is not
+// comparable with the 0.7 threshold (clear speech scores 0.6-0.75), so for it no word is called "low confidence" and there is no average.
+export function computeSpeechMetrics(words: SttWord[], durationSec: number, ta: TurnAnalysis, d: Diarization | null, wordConfidence = true): SpeechMetrics {
   const timed = words.filter((w) => typeof w.start === 'number' && typeof w.end === 'number');
   const speechSpan = timed.length ? (timed[timed.length - 1].end as number) - (timed[0].start as number) : 0;
 
@@ -66,32 +45,9 @@ export function computeSpeechMetrics(words: SttWord[], durationSec: number, turn
     if (gap > longest) longest = gap;
   }
 
-  let overlapCount = 0;
-  let overlapS = 0;
-  let inOverlap = false;
-  for (let i = 1; i < timed.length; i += 1) {
-    const prev = timed[i - 1];
-    const cur = timed[i];
-    const overlapping = prev.speaker !== cur.speaker && (cur.start as number) < (prev.end as number) - 0.05;
-    if (overlapping) {
-      overlapS += (prev.end as number) - (cur.start as number);
-      if (!inOverlap) overlapCount += 1;
-    }
-    inOverlap = overlapping;
-  }
-
-  // Mono recordings usually cannot show two people talking at once (the recognizer keeps one word stream), so also look for
-  // a turn that stops mid-sentence and is followed almost immediately by the other speaker.
-  let interruptions = 0;
-  for (let i = 1; i < turns.length; i += 1) {
-    const prev = turns[i - 1];
-    const cur = turns[i];
-    if (prev.speaker === cur.speaker || prev.end === null || cur.start === null) continue;
-    if (cur.start - prev.end < 0.35 && !/[.?!]["')]*$/.test(prev.text.trim())) interruptions += 1;
-  }
-
-  const lowConf = words.filter((w) => w.confidence < LOW_CONF);
-  const avg = words.length ? words.reduce((s, w) => s + w.confidence, 0) / words.length : null;
+  const sim = ta.boundaries.filter((x) => x.kind === 'simultaneous');
+  const lowConf = wordConfidence ? words.filter((w) => w.confidence < LOW_CONF) : [];
+  const avg = wordConfidence && words.length ? words.reduce((s, w) => s + w.confidence, 0) / words.length : null;
   return {
     duration_s: durationSec,
     word_count: words.length,
@@ -103,10 +59,11 @@ export function computeSpeechMetrics(words: SttWord[], durationSec: number, turn
     pause_count: pauseCount,
     long_pause_count: longPauseCount,
     longest_pause_s: Math.round(longest * 10) / 10,
-    speakers: new Set(words.map((w) => w.speaker ?? 0)).size || (turns.length ? 1 : 0),
-    turn_count: turns.length,
-    overlap_count: overlapCount,
-    overlap_s: Math.round(overlapS * 10) / 10,
-    interruption_count: interruptions,
+    speakers: d?.speakers ?? (ta.turns.length ? 1 : 0),
+    turn_count: ta.turns.length,
+    overlap_count: sim.length,
+    overlap_s: Math.round(sim.reduce((a, x) => a + x.overlap_s, 0) * 10) / 10,
+    interruption_count: ta.boundaries.filter((x) => x.kind === 'interruption').length,
+    backchannel_count: ta.boundaries.filter((x) => x.kind === 'backchannel').length,
   };
 }

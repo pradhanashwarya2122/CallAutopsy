@@ -11,6 +11,7 @@ const states = new Map<string, OutageState>();
 const MAX_SECONDS = 300;
 
 export function enableDeepgramOutage(ownerId: string, durationSec: number) {
+  if (states.size > 1000) { const now = Date.now(); for (const [k, v] of states) if (!v.expiresAt || v.expiresAt < now) states.delete(k); } // bounded memory
   states.set(ownerId, {
     enabled: true,
     expiresAt: Date.now() + Math.min(MAX_SECONDS, Math.max(1, durationSec)) * 1000,

@@ -1,0 +1,347 @@
+{
+ "version": 2,
+ "attribution": {
+  "speakers": 2,
+  "source": "acoustic",
+  "reliable": true,
+  "pitch_gap_semitones": 15,
+  "voice_pitch_hz": [
+   222,
+   94
+  ],
+  "recognizer_speakers": 1,
+  "agreement": null,
+  "notes": [
+   "The speech recogniser reported one speaker; two distinct voices were found in the audio itself."
+  ]
+ },
+ "turns": [
+  {
+   "speaker": 0,
+   "start": 0,
+   "end": 4.96,
+   "text": "Hi. I've been charged for something I didn't order. And honestly, I'm pretty fed up.",
+   "confidence": 0.94,
+   "uncertain": false
+  },
+  {
+   "speaker": 1,
+   "start": 5.12,
+   "end": 9.12,
+   "text": "I'm sorry to hear that. Let me pull up your account. It's",
+   "confidence": 0.91,
+   "uncertain": false
+  },
+  {
+   "speaker": 0,
+   "start": 9.12,
+   "end": 41.48,
+   "text": "2299. It came out on Monday. And that's not all. My order number is 4821. Wait. That's the old one. The current order is 4917, and it never showed up. I think I was also charged twice for it because my bank shows two payments. And there's an extra fee of $6 that I don't recognize. Like I said, I was charged for something I didn't order. I just want the wrong charge reversed and someone to tell me where my order is.",
+   "confidence": 0.9,
+   "uncertain": false
+  }
+ ],
+ "background": [],
+ "boundaries": [
+  {
+   "kind": "transition",
+   "at": 5.12,
+   "from": 0,
+   "to": 1,
+   "gap_s": 0.16,
+   "overlap_s": 0,
+   "confidence": 0.7,
+   "evidence": [
+    "the previous turn ended with a complete sentence, then a 0.16 s pause"
+   ]
+  },
+  {
+   "kind": "interruption",
+   "at": 9.12,
+   "from": 1,
+   "to": 0,
+   "gap_s": 0,
+   "overlap_s": 0,
+   "confidence": 0.7,
+   "evidence": [
+    "the previous speaker's sentence stops without an ending (\"...It's\")",
+    "the other speaker starts immediately",
+    "the last word is one a sentence does not normally end on"
+   ]
+  }
+ ],
+ "overlap_visibility": "limited",
+ "speech": {
+  "duration_s": 42.2,
+  "word_count": 110,
+  "words_per_minute": 159,
+  "avg_confidence": 0.9723904720909095,
+  "low_confidence_words": [
+   "because"
+  ],
+  "low_confidence_ratio": 0.00909090909090909,
+  "filler_count": 0,
+  "pause_count": 1,
+  "long_pause_count": 0,
+  "longest_pause_s": 0.9,
+  "speakers": 2,
+  "turn_count": 3,
+  "overlap_count": 0,
+  "overlap_s": 0,
+  "interruption_count": 1,
+  "backchannel_count": 0
+ },
+ "voices": [
+  {
+   "speaker": 0,
+   "words": 98,
+   "speech_s": 18.4,
+   "measurements": {
+    "pitch_hz": 211,
+    "pitch_range_st": 11.4,
+    "loudness_sd_db": 4.4,
+    "articulation_wpm": 170,
+    "pause_ratio": 0.17,
+    "long_pauses": 1,
+    "fillers_per_min": 0,
+    "filler_count": 0
+   },
+   "cues": [
+    {
+     "id": "fast",
+     "text": "fast speech (170 words per minute)"
+    },
+    {
+     "id": "wide_pitch",
+     "text": "wide pitch movement (11.4 semitones)"
+    }
+   ],
+   "arousal": "high",
+   "confidence": "low",
+   "reason": "2 cues agree on an animated delivery. The recording is noisy or band-limited, which distorts pitch and loudness, so this is a weak indication."
+  },
+  {
+   "speaker": 1,
+   "words": 12,
+   "speech_s": 2,
+   "measurements": {
+    "pitch_hz": 87,
+    "pitch_range_st": 5.3,
+    "loudness_sd_db": 3.9,
+    "articulation_wpm": 205,
+    "pause_ratio": 0.12,
+    "long_pauses": 0,
+    "fillers_per_min": 0,
+    "filler_count": 0
+   },
+   "cues": [
+    {
+     "id": "fast",
+     "text": "fast speech (205 words per minute)"
+    }
+   ],
+   "arousal": "unclear",
+   "confidence": "low",
+   "reason": "Only 2 s of clear speech from this speaker; too little to judge how it sounds."
+  }
+ ],
+ "tone": {
+  "lexical": {
+   "emotion": "frustrated",
+   "valence": "negative",
+   "intensity": "medium",
+   "evidence": "I'm pretty fed up"
+  },
+  "vocal": {
+   "arousal": "high",
+   "hesitant": false,
+   "confidence": "low",
+   "cues": [
+    "fast speech (170 words per minute)",
+    "wide pitch movement (11.4 semitones)"
+   ],
+   "reason": "2 cues agree on an animated delivery. The recording is noisy or band-limited, which distorts pitch and loudness, so this is a weak indication."
+  },
+  "overall": {
+   "label": "frustrated",
+   "confidence": "low",
+   "agreement": "agree",
+   "basis": "The words (frustrated) and the way it sounds (high activation) point the same way."
+  }
+ },
+ "signal": {
+  "duration_s": 42.2,
+  "sample_rate": 16000,
+  "noise_floor_db": -33.9,
+  "speech_level_db": -16.2,
+  "snr_db": 17.7,
+  "clipping_ratio": 0,
+  "hf_ratio_db": -42.1,
+  "band_limited": true,
+  "level_sd_db": 3.3,
+  "dynamics_compressed": false,
+  "condition": {
+   "label": "degraded",
+   "flags": [
+    "noisy",
+    "band_limited"
+   ]
+  }
+ },
+ "understanding": {
+  "summary": "The customer reported being charged for an order they did not place and expressed frustration over the situation. They mentioned a specific order number that never arrived and indicated possible duplicate charges along with an unrecognized fee.",
+  "customer_speaker": 0,
+  "primary_intent": {
+   "label": "incorrect_charge",
+   "description": "The customer is disputing an extra fee they do not recognize."
+  },
+  "secondary_intents": [
+   {
+    "label": "duplicate_charge",
+    "description": "The customer believes they were charged twice."
+   },
+   {
+    "label": "missing_order",
+    "description": "The customer is reporting that their order did not arrive."
+   },
+   {
+    "label": "refund_request",
+    "description": "The customer is requesting a reversal of the wrong charge."
+   }
+  ],
+  "intent_confidence": "high",
+  "entities": {
+   "order_ids": [
+    "4917"
+   ],
+   "transaction_ids": [],
+   "amounts": [
+    "2299",
+    "6"
+   ],
+   "dates": [],
+   "other": []
+  },
+  "agent_stated": {
+   "order_ids": [],
+   "transaction_ids": [],
+   "amounts": [],
+   "dates": [],
+   "other": []
+  },
+  "unverified_speaker": {
+   "order_ids": [],
+   "transaction_ids": [],
+   "amounts": [],
+   "dates": [],
+   "other": []
+  },
+  "corrections": [
+   {
+    "field": "order_number",
+    "original": "4821",
+    "corrected": "4917"
+   }
+  ],
+  "lexical_tone": {
+   "emotion": "frustrated",
+   "valence": "negative",
+   "intensity": "medium",
+   "evidence": "I'm pretty fed up"
+  },
+  "established_facts": [
+   "The customer was charged $2299.",
+   "The customer has an order number 4917 that never showed up.",
+   "The customer has an extra fee of $6 that they do not recognize."
+  ],
+  "ambiguities": [
+   "The customer thinks they were charged twice, but it's not confirmed.",
+   "Heard \"2299\" as an amount without a currency or decimal point; it may be $22.99 (spoken as \"22, 99\") and should be confirmed."
+  ],
+  "repetitions": [],
+  "late_information": [],
+  "off_topic_speech": [],
+  "next_steps": [
+   "Verify the customer's account and charges.",
+   "Check the status of order number 4917.",
+   "Investigate the duplicate charge claim.",
+   "Clarify the nature of the extra fee of $6."
+  ],
+  "escalate": false,
+  "dropped_unverified": 0
+ },
+ "findings": [
+  {
+   "id": "noise",
+   "severity": "warn",
+   "area": "audio",
+   "title": "Background noise",
+   "detail": "Speech is about 18 dB above the noise floor, so the recognizer has less margin."
+  },
+  {
+   "id": "band_limited",
+   "severity": "warn",
+   "area": "audio",
+   "title": "Limited bandwidth (phone-like, muffled or low-rate audio)",
+   "detail": "Almost nothing above 5 kHz (-42.1 dB relative to the speech band), which hides consonants such as s, f and t."
+  },
+  {
+   "id": "long_pauses",
+   "severity": "warn",
+   "area": "speech",
+   "title": "Long pauses",
+   "detail": "1 pause over 1 s in the customer's voice."
+  },
+  {
+   "id": "speakers",
+   "severity": "info",
+   "area": "conversation",
+   "title": "2 speakers detected",
+   "detail": "Found from the audio itself (the recognizer reported one speaker); typical pitch 222 Hz and 94 Hz."
+  },
+  {
+   "id": "overlap",
+   "severity": "warn",
+   "area": "conversation",
+   "title": "Interruptions",
+   "detail": "1 sentence cut off by the other speaker (at 9.12 s; the previous speaker's sentence stops without an ending (\"...It's\"))."
+  },
+  {
+   "id": "overlap_limited",
+   "severity": "info",
+   "area": "conversation",
+   "title": "Overlapping speech may be hidden",
+   "detail": "This is a single-channel recording: when two people talk at once the recognizer usually keeps only the louder voice, so interruptions are a lower bound."
+  },
+  {
+   "id": "corrections",
+   "severity": "warn",
+   "area": "content",
+   "title": "Customer corrected 1 detail",
+   "detail": "order_number: 4821 → 4917"
+  },
+  {
+   "id": "ambiguity",
+   "severity": "warn",
+   "area": "content",
+   "title": "Unclear or conflicting information",
+   "detail": "The customer thinks they were charged twice, but it's not confirmed."
+  },
+  {
+   "id": "multi_intent",
+   "severity": "warn",
+   "area": "content",
+   "title": "4 separate issues raised",
+   "detail": "incorrect charge, duplicate charge, missing order, refund request"
+  }
+ ],
+ "difficulty": {
+  "score": 15,
+  "label": "Severe"
+ },
+ "model": "gpt-4o-mini",
+ "prompt_tokens": 1382,
+ "completion_tokens": 595,
+ "cost_usd": 0.0005642999999999999,
+ "duration_ms": 6184
+}

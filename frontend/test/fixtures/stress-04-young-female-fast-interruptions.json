@@ -1,0 +1,390 @@
+{
+ "version": 2,
+ "attribution": {
+  "speakers": 2,
+  "source": "acoustic",
+  "reliable": true,
+  "pitch_gap_semitones": 10.4,
+  "voice_pitch_hz": [
+   91,
+   167
+  ],
+  "recognizer_speakers": 2,
+  "agreement": 0.66,
+  "notes": [
+   "The recogniser's speaker labels agree with the audio only 66% of the time, so the acoustic labels were used."
+  ]
+ },
+ "turns": [
+  {
+   "speaker": 0,
+   "start": 0,
+   "end": 5.12,
+   "text": "Thank you for calling support. Before we begin, I'll need to verify a few details.",
+   "confidence": 0.95,
+   "uncertain": false
+  },
+  {
+   "speaker": 1,
+   "start": 5.12,
+   "end": 11.599999,
+   "text": "Yeah. Yeah. My order is 84160. I paid $49 sorry, $59, and it still says pending.",
+   "confidence": 0.89,
+   "uncertain": false
+  },
+  {
+   "speaker": 0,
+   "start": 11.715,
+   "end": 13.475,
+   "text": "And can you confirm the name on the",
+   "confidence": 0.98,
+   "uncertain": false
+  },
+  {
+   "speaker": 1,
+   "start": 13.635,
+   "end": 14.915,
+   "text": "Sorry. Go ahead.",
+   "confidence": 0.92,
+   "uncertain": false
+  },
+  {
+   "speaker": 0,
+   "start": 14.915,
+   "end": 17.155,
+   "text": "I just need the name on the account. It's",
+   "confidence": 0.98,
+   "uncertain": false
+  },
+  {
+   "speaker": 1,
+   "start": 17.155,
+   "end": 20.035,
+   "text": "Jordan Lee. Can we please just fix the payment?",
+   "confidence": 0.98,
+   "uncertain": false
+  },
+  {
+   "speaker": 0,
+   "start": 20.195,
+   "end": 22.915,
+   "text": "Absolutely. Let me look into it now.",
+   "confidence": 0.98,
+   "uncertain": false
+  }
+ ],
+ "background": [],
+ "boundaries": [
+  {
+   "kind": "transition",
+   "at": 5.12,
+   "from": 0,
+   "to": 1,
+   "gap_s": 0,
+   "overlap_s": 0,
+   "confidence": 0.7,
+   "evidence": [
+    "the previous turn ended with a complete sentence, then a direct hand-over"
+   ]
+  },
+  {
+   "kind": "transition",
+   "at": 11.72,
+   "from": 1,
+   "to": 0,
+   "gap_s": 0.12,
+   "overlap_s": 0,
+   "confidence": 0.7,
+   "evidence": [
+    "the previous turn ended with a complete sentence, then a 0.12 s pause"
+   ]
+  },
+  {
+   "kind": "backchannel",
+   "at": 13.64,
+   "from": 0,
+   "to": 1,
+   "gap_s": 0.16,
+   "overlap_s": 0,
+   "confidence": 0.75,
+   "evidence": [
+    "3-word acknowledgement (\"Sorry. Go ahead.\") and the previous speaker carried on"
+   ]
+  },
+  {
+   "kind": "transition",
+   "at": 14.92,
+   "from": 1,
+   "to": 0,
+   "gap_s": 0,
+   "overlap_s": 0,
+   "confidence": 0.7,
+   "evidence": [
+    "the previous turn ended with a complete sentence, then a direct hand-over"
+   ]
+  },
+  {
+   "kind": "interruption",
+   "at": 17.16,
+   "from": 0,
+   "to": 1,
+   "gap_s": 0,
+   "overlap_s": 0,
+   "confidence": 0.7,
+   "evidence": [
+    "the previous speaker's sentence stops without an ending (\"...It's\")",
+    "the other speaker starts immediately",
+    "the last word is one a sentence does not normally end on"
+   ]
+  },
+  {
+   "kind": "transition",
+   "at": 20.2,
+   "from": 1,
+   "to": 0,
+   "gap_s": 0.16,
+   "overlap_s": 0,
+   "confidence": 0.7,
+   "evidence": [
+    "the previous turn ended with a complete sentence, then a 0.16 s pause"
+   ]
+  }
+ ],
+ "overlap_visibility": "limited",
+ "speech": {
+  "duration_s": 23.62,
+  "word_count": 67,
+  "words_per_minute": 175,
+  "avg_confidence": 0.9845320516417911,
+  "low_confidence_words": [],
+  "low_confidence_ratio": 0,
+  "filler_count": 0,
+  "pause_count": 0,
+  "long_pause_count": 0,
+  "longest_pause_s": 0.4,
+  "speakers": 2,
+  "turn_count": 7,
+  "overlap_count": 0,
+  "overlap_s": 0,
+  "interruption_count": 1,
+  "backchannel_count": 1
+ },
+ "voices": [
+  {
+   "speaker": 0,
+   "words": 39,
+   "speech_s": 7.3,
+   "measurements": {
+    "pitch_hz": 90,
+    "pitch_range_st": 5.8,
+    "loudness_sd_db": 3.9,
+    "articulation_wpm": 205,
+    "pause_ratio": 0.5,
+    "long_pauses": 3,
+    "fillers_per_min": 0,
+    "filler_count": 0
+   },
+   "cues": [
+    {
+     "id": "fast",
+     "text": "fast speech (205 words per minute)"
+    },
+    {
+     "id": "hesitant",
+     "text": "hesitant delivery (0 fillers/min, 50% of the time in pauses)"
+    }
+   ],
+   "arousal": "unclear",
+   "confidence": "low",
+   "reason": "Only 7 s of clear speech from this speaker; too little to judge how it sounds."
+  },
+  {
+   "speaker": 1,
+   "words": 28,
+   "speech_s": 5.8,
+   "measurements": {
+    "pitch_hz": 160,
+    "pitch_range_st": 11.3,
+    "loudness_sd_db": 5.1,
+    "articulation_wpm": 158,
+    "pause_ratio": 0.29,
+    "long_pauses": 2,
+    "fillers_per_min": 0,
+    "filler_count": 0
+   },
+   "cues": [
+    {
+     "id": "hesitant",
+     "text": "hesitant delivery (0 fillers/min, 29% of the time in pauses)"
+    },
+    {
+     "id": "wide_pitch",
+     "text": "wide pitch movement (11.3 semitones)"
+    }
+   ],
+   "arousal": "unclear",
+   "confidence": "low",
+   "reason": "Only 6 s of clear speech from this speaker; too little to judge how it sounds."
+  }
+ ],
+ "tone": {
+  "lexical": {
+   "emotion": "neutral",
+   "valence": "neutral",
+   "intensity": "low",
+   "evidence": "Yeah. Yeah."
+  },
+  "vocal": {
+   "arousal": "unclear",
+   "hesitant": true,
+   "confidence": "low",
+   "cues": [
+    "hesitant delivery (0 fillers/min, 29% of the time in pauses)",
+    "wide pitch movement (11.3 semitones)"
+   ],
+   "reason": "Only 6 s of clear speech from this speaker; too little to judge how it sounds."
+  },
+  "overall": {
+   "label": "not evident",
+   "confidence": "low",
+   "agreement": "insufficient",
+   "basis": "The wording is businesslike and the delivery gives no clear signal, so no emotion is claimed."
+  }
+ },
+ "signal": {
+  "duration_s": 23.6,
+  "sample_rate": 16000,
+  "noise_floor_db": -34.3,
+  "speech_level_db": -13.6,
+  "snr_db": 20.7,
+  "clipping_ratio": 0,
+  "hf_ratio_db": -22.3,
+  "band_limited": false,
+  "level_sd_db": 3.7,
+  "dynamics_compressed": false,
+  "condition": {
+   "label": "noisy",
+   "flags": [
+    "noisy"
+   ]
+  }
+ },
+ "understanding": {
+  "summary": "The customer, Jordan Lee, is calling about an order with the number 84160. They are concerned about a payment of $59 that is still showing as pending and are requesting assistance to fix the payment issue.",
+  "customer_speaker": 1,
+  "primary_intent": {
+   "label": "pending_transaction",
+   "description": "The customer is inquiring about a payment that is still pending."
+  },
+  "secondary_intents": [],
+  "intent_confidence": "high",
+  "entities": {
+   "order_ids": [
+    "84160"
+   ],
+   "transaction_ids": [],
+   "amounts": [
+    "59"
+   ],
+   "dates": [],
+   "other": [
+    "Jordan Lee"
+   ]
+  },
+  "agent_stated": {
+   "order_ids": [],
+   "transaction_ids": [],
+   "amounts": [],
+   "dates": [],
+   "other": []
+  },
+  "unverified_speaker": {
+   "order_ids": [],
+   "transaction_ids": [],
+   "amounts": [],
+   "dates": [],
+   "other": []
+  },
+  "corrections": [
+   {
+    "field": "amount",
+    "original": "49",
+    "corrected": "59"
+   }
+  ],
+  "lexical_tone": {
+   "emotion": "neutral",
+   "valence": "neutral",
+   "intensity": "low",
+   "evidence": "Yeah. Yeah."
+  },
+  "established_facts": [
+   "The customer's name is Jordan Lee.",
+   "The order number is 84160."
+  ],
+  "ambiguities": [],
+  "repetitions": [],
+  "late_information": [],
+  "off_topic_speech": [],
+  "next_steps": [
+   "Investigate the pending payment for order 84160.",
+   "Confirm with the customer if there are any additional details needed.",
+   "Provide an update to the customer regarding the payment status."
+  ],
+  "escalate": false,
+  "dropped_unverified": 0
+ },
+ "findings": [
+  {
+   "id": "noise",
+   "severity": "warn",
+   "area": "audio",
+   "title": "Background noise",
+   "detail": "Speech is about 21 dB above the noise floor, so the recognizer has less margin."
+  },
+  {
+   "id": "long_pauses",
+   "severity": "warn",
+   "area": "speech",
+   "title": "Long pauses",
+   "detail": "2 pauses over 1 s in the customer's voice."
+  },
+  {
+   "id": "speakers",
+   "severity": "info",
+   "area": "conversation",
+   "title": "2 speakers detected",
+   "detail": "Found from the audio itself (the recognizer reported one speaker); typical pitch 91 Hz and 167 Hz."
+  },
+  {
+   "id": "overlap",
+   "severity": "warn",
+   "area": "conversation",
+   "title": "Interruptions",
+   "detail": "1 sentence cut off by the other speaker (at 17.16 s; the previous speaker's sentence stops without an ending (\"...It's\"))."
+  },
+  {
+   "id": "overlap_limited",
+   "severity": "info",
+   "area": "conversation",
+   "title": "Overlapping speech may be hidden",
+   "detail": "This is a single-channel recording: when two people talk at once the recognizer usually keeps only the louder voice, so interruptions are a lower bound."
+  },
+  {
+   "id": "corrections",
+   "severity": "warn",
+   "area": "content",
+   "title": "Customer corrected 1 detail",
+   "detail": "amount: 49 → 59"
+  }
+ ],
+ "difficulty": {
+  "score": 9,
+  "label": "Severe"
+ },
+ "model": "gpt-4o-mini",
+ "prompt_tokens": 1337,
+ "completion_tokens": 372,
+ "cost_usd": 0.00042375,
+ "duration_ms": 4171
+}

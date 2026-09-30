@@ -47,7 +47,8 @@ function pcm16Region(buf: Buffer): { start: number; end: number; frameBytes: num
     const body = pos + 8;
     if (id === 'fmt ') fmt = { tag: buf.readUInt16LE(body), ch: buf.readUInt16LE(body + 2), rate: buf.readUInt32LE(body + 4), bits: buf.readUInt16LE(body + 14) };
     if (id === 'data') {
-      if (!fmt || fmt.tag !== 1 || fmt.bits !== 16) return null;
+      // the header comes from the uploader: a 0-channel or 0-rate header would make frameBytes 0 and the caller loop forever
+      if (!fmt || fmt.tag !== 1 || fmt.bits !== 16 || fmt.ch < 1 || fmt.ch > 8 || fmt.rate < 1000) return null;
       return { start: body, end: Math.min(buf.length, body + size), frameBytes: Math.max(1, Math.round(fmt.rate * 0.02)) * fmt.ch * 2 };
     }
     pos = body + size + (size % 2);

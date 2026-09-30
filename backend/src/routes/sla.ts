@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireAdmin } from '../auth/adminGuard.js';
 import { query } from '../db/client.js';
 import { requireWorkspace } from '../auth/workspace.js';
 import { checkSla, getSlaConfig, setSlaConfig } from '../sla/monitor.js';
@@ -29,11 +30,7 @@ slaRouter.get('/sla/breaches', requireWorkspace, async (_req, res) => {
 });
 
 // Posts to the operator's Discord channel, so it is only enabled when an admin token is configured and supplied.
-slaRouter.post('/sla/test-webhook', async (req, res) => {
-  const token = process.env.ADMIN_TOKEN;
-  if (!token || req.header('x-admin-token') !== token) {
-    return res.json({ ok: false, note: 'Disabled on this deployment (needs an operator admin token).' });
-  }
+slaRouter.post('/sla/test-webhook', requireAdmin, async (_req, res) => {
   const { notifyDiscord } = await import('../sla/discordWebhook.js');
   const ok = await notifyDiscord('Test alert from CallAutopsy: manual SLA webhook test.');
   res.json({ ok, note: ok ? 'sent' : 'no DISCORD_WEBHOOK_URL configured or send failed' });

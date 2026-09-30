@@ -49,3 +49,10 @@ export function switchWorkspace(id: string | null): boolean {
   window.location.reload();
   return true;
 }
+
+// Another tab switched workspace: reload this one so it cannot keep showing (or writing to) the old workspace's data.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === KEY && e.newValue && UUID.test(e.newValue) && cached && e.newValue.toLowerCase() !== cached) window.location.reload();
+  });
+}

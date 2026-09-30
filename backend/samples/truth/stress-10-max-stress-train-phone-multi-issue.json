@@ -1,0 +1,65 @@
+{
+ "id": "stress-10-max-stress-train-phone-multi-issue.wav",
+ "segments": [
+  {
+   "who": "customer",
+   "text": "Yeah, hi... uh, I'm on the train so, sorry if it cuts out.",
+   "start": 0.5,
+   "end": 4.97
+  },
+  {
+   "who": "customer",
+   "text": "I ordered a phone case... two phone cases, sorry, three, last week, and it never arrived.",
+   "start": 5.77,
+   "end": 11.16
+  },
+  {
+   "who": "agent",
+   "text": "I can help with that. Can I get the order number, please?",
+   "start": 11.46,
+   "end": 15.25
+  },
+  {
+   "who": "customer",
+   "text": "Yeah, it's, um, 3 8 5 2 0... well, hang on.",
+   "start": 14.75,
+   "end": 19.82
+  },
+  {
+   "who": "customer",
+   "text": "Sorry. 3 8 5 2 0. No wait, that's the old one. 3 8 5 0 2.",
+   "start": 20.92,
+   "end": 27.2
+  },
+  {
+   "who": "agent",
+   "text": "Thanks. I can see a payment of forty-one dollars, and—",
+   "start": 27.6,
+   "end": 32.41
+  },
+  {
+   "who": "customer",
+   "text": "And I got charged twice for it, I think.",
+   "start": 32.11,
+   "end": 34.07
+  },
+  {
+   "who": "customer",
+   "text": "The, uh, the first payment failed, but then the bank shows both as pending, so... I don't know.",
+   "start": 35.07,
+   "end": 40.85
+  },
+  {
+   "who": "customer",
+   "text": "Oh, and I forgot, the card is my wife's card, not mine. Does that matter?",
+   "start": 42.45,
+   "end": 47.5
+  },
+  {
+   "who": "customer",
+   "text": "So, yeah, I need to know where the order is and I want the extra payment back.",
+   "start": 48.2,
+   "end": 52.45
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+{
+ "id": "stress-03-older-male-slow-noisy-repeats-amount.wav",
+ "segments": [
+  {
+   "who": "customer",
+   "text": "Hello? Yes, hello. There is a charge on my card that I do not recognise.",
+   "start": 0.5,
+   "end": 6.82
+  },
+  {
+   "who": "customer",
+   "text": "It is for twenty-nine dollars and ninety-five cents. From some company I cannot read.",
+   "start": 7.72,
+   "end": 13.46
+  },
+  {
+   "who": "agent",
+   "text": "I'm sorry, could you repeat the amount for me?",
+   "start": 13.96,
+   "end": 16.25
+  },
+  {
+   "who": "customer",
+   "text": "Twenty-nine... ninety-five. Twenty-nine dollars, ninety-five cents. Did you get that?",
+   "start": 16.95,
+   "end": 23.64
+  },
+  {
+   "who": "agent",
+   "text": "Got it, thank you. And when did it appear?",
+   "start": 23.94,
+   "end": 27.08
+  },
+  {
+   "who": "customer",
+   "text": "Oh, it was on, let me think, last Friday I believe. I did not buy anything. Maybe it is my grandson, I am not sure.",
+   "start": 27.98,
+   "end": 37.49
+  }
+ ]
+}

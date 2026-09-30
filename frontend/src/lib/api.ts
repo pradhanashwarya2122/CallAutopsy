@@ -92,22 +92,7 @@ async function j(path: string, init?: RequestInit) {
 const causeOf = (category: string | null | undefined) => (category && category !== 'ok' ? category : null);
 
 export const api = {
-  listCalls: (q: Record<string, string> = {}) => {
-    const qs = new URLSearchParams(q).toString();
-    return j(`/calls${qs ? `?${qs}` : ''}`);
-  },
   getCall: (id: string) => j(`/calls/${id}`),
-  startCallWithSample: (sampleId: string, faultType?: string | null, faultParams?: any) =>
-    j('/calls', { method: 'POST', body: JSON.stringify({ sampleId, faultType, faultParams }) }),
-  startCallWithBlob: async (blob: Blob, faultType?: string | null, faultParams?: any) => {
-    const fd = new FormData();
-    fd.append('audio', blob, 'recording.webm');
-    if (faultType) fd.append('faultType', faultType);
-    if (faultParams) fd.append('faultParams', JSON.stringify(faultParams));
-    const res = await fetch(BASE + '/calls', { method: 'POST', body: fd });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  },
   // ---- Analyze / A-B / Ops: all data is the caller's own workspace; there are no demo fallbacks. ----
   calibration: () => j('/calibration'),
   calibrationTrend: () => j('/calibration/trend'),
@@ -118,7 +103,6 @@ export const api = {
   setSla: (maxFailureRatePct: number, windowMinutes: number) =>
     j('/sla', { method: 'PUT', body: JSON.stringify({ maxFailureRatePct, windowMinutes }) }),
   slaBreaches: () => j('/sla/breaches'),
-  slaTestWebhook: () => j('/sla/test-webhook', { method: 'POST' }),
   runAb: (input: { sampleId: string; configA: any; configB: any; faultType: string | null; iterations: number }) =>
     j('/ab-tests', { method: 'POST', body: JSON.stringify(input) }),
   getAb: (id: string) => j(`/ab-tests/${id}`),
@@ -137,7 +121,6 @@ export const api = {
   chaosState: () => j('/chaos'),
   setChaos: (patch: any) => j('/chaos', { method: 'POST', body: JSON.stringify(patch) }),
   queueStats: () => j('/queue/stats'),
-  queueDLQ: () => j('/queue/dlq'),
 
   // ---- Dashboard: per-workspace data. No demo fallbacks; an empty account shows an empty state. ----
 
@@ -220,9 +203,9 @@ export const api = {
   },
 
   // Start an analysis from an uploaded/recorded file or a bundled sample. Resolves to the new call id.
-  async analyze(input: { file?: Blob & { name?: string }; sampleId?: string; fault?: FaultChoice }): Promise<{ callId: string }> {
+  async analyze(input: { file?: Blob & { name?: string }; source?: 'upload' | 'recording'; sampleId?: string; fault?: FaultChoice }): Promise<{ callId: string }> {
     const fd = new FormData();
-    if (input.file) fd.append('audio', input.file, input.file.name || 'recording.webm');
+    if (input.file) { fd.append('audio', input.file, input.file.name || 'recording.webm'); fd.append('source', input.source ?? 'upload'); }
     else if (input.sampleId) fd.append('sampleId', input.sampleId);
     const f = input.fault;
     if (f && f.type !== 'none') {

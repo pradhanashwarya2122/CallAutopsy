@@ -2,7 +2,7 @@ import { query } from '../db/client.js';
 
 // Two rolling counters:
 //   session — process-lifetime, resets on restart
-//   today   — sourced from db sum of today's calls
+//   today   — sourced from db: today's calls plus other AI spend (hallucination suite, self-healing)
 // Env vars:
 //   SESSION_COST_CAP_USD (default 1.00)
 //   DAILY_COST_CAP_USD   (default 5.00)
@@ -22,9 +22,8 @@ export function getSessionSpend() {
 
 export async function getTodaySpend(): Promise<number> {
   const { rows } = await query(
-    `SELECT COALESCE(SUM(total_cost_usd),0)::float AS s
-     FROM calls
-     WHERE started_at >= date_trunc('day', now())`,
+    `SELECT (SELECT COALESCE(SUM(total_cost_usd),0) FROM calls WHERE started_at >= date_trunc('day', now()))::float
+          + (SELECT COALESCE(SUM(cost_usd),0) FROM ai_spend WHERE at >= date_trunc('day', now()))::float AS s`,
   );
   return Number(rows[0]?.s ?? 0);
 }

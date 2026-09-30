@@ -1,0 +1,388 @@
+{
+ "version": 2,
+ "attribution": {
+  "speakers": 2,
+  "source": "acoustic",
+  "reliable": true,
+  "pitch_gap_semitones": 13.3,
+  "voice_pitch_hz": [
+   92,
+   200
+  ],
+  "recognizer_speakers": 1,
+  "agreement": null,
+  "notes": [
+   "The speech recogniser reported one speaker; two distinct voices were found in the audio itself."
+  ]
+ },
+ "turns": [
+  {
+   "speaker": 0,
+   "start": 0,
+   "end": 11.12,
+   "text": "Yeah. Hi. Uh, I'm on the train, so sorry if it cuts out. Ordered a phone case. Two phone cases. Sorry. Three last week, and it never arrived.",
+   "confidence": 0.9,
+   "uncertain": false
+  },
+  {
+   "speaker": 1,
+   "start": 11.12,
+   "end": 14.799999,
+   "text": "I can help with that. Can I get the order number?",
+   "confidence": 0.86,
+   "uncertain": false
+  },
+  {
+   "speaker": 0,
+   "start": 14.799999,
+   "end": 28.154999,
+   "text": "Yeah. It's 38520. Well, hang on. Sorry. 38520. No. Wait. That's the old one. 38502. Thanks.",
+   "confidence": 0.95,
+   "uncertain": false
+  },
+  {
+   "speaker": 1,
+   "start": 28.715,
+   "end": 31.599998,
+   "text": "I can see a payment of $41,",
+   "confidence": 0.92,
+   "uncertain": false
+  },
+  {
+   "speaker": 0,
+   "start": 32,
+   "end": 52.434937,
+   "text": "and I got charged twice for it, I think. The first payment failed, but then the bank shows both as pending. So I don't know. Oh. And I forgot. The card is my wife's card, not mine. Does that matter? So Okay. I need to know where the order is, and I want the extra payment back.",
+   "confidence": 0.92,
+   "uncertain": false
+  }
+ ],
+ "background": [],
+ "boundaries": [
+  {
+   "kind": "transition",
+   "at": 11.12,
+   "from": 0,
+   "to": 1,
+   "gap_s": 0,
+   "overlap_s": 0,
+   "confidence": 0.7,
+   "evidence": [
+    "the previous turn ended with a complete sentence, then a direct hand-over"
+   ]
+  },
+  {
+   "kind": "transition",
+   "at": 14.8,
+   "from": 1,
+   "to": 0,
+   "gap_s": 0,
+   "overlap_s": 0,
+   "confidence": 0.7,
+   "evidence": [
+    "the previous turn ended with a complete sentence, then a direct hand-over"
+   ]
+  },
+  {
+   "kind": "transition",
+   "at": 28.72,
+   "from": 0,
+   "to": 1,
+   "gap_s": 0.56,
+   "overlap_s": 0,
+   "confidence": 0.7,
+   "evidence": [
+    "the previous turn ended with a complete sentence, then a 0.56 s pause"
+   ]
+  },
+  {
+   "kind": "interruption",
+   "at": 32,
+   "from": 1,
+   "to": 0,
+   "gap_s": 0.4,
+   "overlap_s": 0,
+   "confidence": 0.55,
+   "evidence": [
+    "the previous speaker's sentence stops without an ending (\"...$41,\")",
+    "the other speaker starts 0.4 s later"
+   ]
+  }
+ ],
+ "overlap_visibility": "limited",
+ "speech": {
+  "duration_s": 53.05,
+  "word_count": 119,
+  "words_per_minute": 136,
+  "avg_confidence": 0.9527122175630255,
+  "low_confidence_words": [
+   "last",
+   "payment",
+   "first",
+   "Oh",
+   "Okay"
+  ],
+  "low_confidence_ratio": 0.04201680672268908,
+  "filler_count": 1,
+  "pause_count": 4,
+  "long_pause_count": 1,
+  "longest_pause_s": 1.8,
+  "speakers": 2,
+  "turn_count": 5,
+  "overlap_count": 0,
+  "overlap_s": 0,
+  "interruption_count": 1,
+  "backchannel_count": 0
+ },
+ "voices": [
+  {
+   "speaker": 0,
+   "words": 101,
+   "speech_s": 14.2,
+   "measurements": {
+    "pitch_hz": 92,
+    "pitch_range_st": 4.8,
+    "loudness_sd_db": 1.1,
+    "articulation_wpm": 159,
+    "pause_ratio": 0.28,
+    "long_pauses": 3,
+    "fillers_per_min": 1.1,
+    "filler_count": 1
+   },
+   "cues": [
+    {
+     "id": "hesitant",
+     "text": "hesitant delivery (1.1 fillers/min, 28% of the time in pauses)"
+    },
+    {
+     "id": "narrow_pitch",
+     "text": "narrow pitch movement (4.8 semitones)"
+    }
+   ],
+   "arousal": "unclear",
+   "confidence": "low",
+   "reason": "The recording is too noisy (or could not be measured) to judge how the voice sounds."
+  },
+  {
+   "speaker": 1,
+   "words": 18,
+   "speech_s": 2,
+   "measurements": {
+    "pitch_hz": 200,
+    "pitch_range_st": 4.2,
+    "loudness_sd_db": 0.8,
+    "articulation_wpm": 54,
+    "pause_ratio": 0.02,
+    "long_pauses": 0,
+    "fillers_per_min": 0,
+    "filler_count": 0
+   },
+   "cues": [
+    {
+     "id": "slow",
+     "text": "slow speech (54 words per minute)"
+    },
+    {
+     "id": "narrow_pitch",
+     "text": "narrow pitch movement (4.2 semitones)"
+    }
+   ],
+   "arousal": "unclear",
+   "confidence": "low",
+   "reason": "Only 2 s of clear speech from this speaker; too little to judge how it sounds."
+  }
+ ],
+ "tone": {
+  "lexical": {
+   "emotion": "confused",
+   "valence": "negative",
+   "intensity": "medium",
+   "evidence": "I think."
+  },
+  "vocal": {
+   "arousal": "unclear",
+   "hesitant": true,
+   "confidence": "low",
+   "cues": [
+    "hesitant delivery (1.1 fillers/min, 28% of the time in pauses)",
+    "narrow pitch movement (4.8 semitones)"
+   ],
+   "reason": "The recording is too noisy (or could not be measured) to judge how the voice sounds."
+  },
+  "overall": {
+   "label": "confused",
+   "confidence": "low",
+   "agreement": "words_only",
+   "basis": "Judged from the words only; the voice gave no clear indication."
+  }
+ },
+ "signal": {
+  "duration_s": 53.1,
+  "sample_rate": 16000,
+  "noise_floor_db": -24.5,
+  "speech_level_db": -15,
+  "snr_db": 9.5,
+  "clipping_ratio": 0,
+  "hf_ratio_db": -16.2,
+  "band_limited": false,
+  "level_sd_db": 0.4,
+  "dynamics_compressed": false,
+  "condition": {
+   "label": "noisy",
+   "flags": [
+    "very_noisy"
+   ]
+  }
+ },
+ "understanding": {
+  "summary": "The customer reported an issue with an order of three phone cases that never arrived and mentioned being charged twice for the payment. They also clarified that the payment was made using their wife's card.",
+  "customer_speaker": 0,
+  "primary_intent": {
+   "label": "missing_order",
+   "description": "The customer is inquiring about an order that has not arrived."
+  },
+  "secondary_intents": [
+   {
+    "label": "duplicate_charge",
+    "description": "The customer believes they were charged twice."
+   },
+   {
+    "label": "refund_request",
+    "description": "The customer is requesting a refund for the extra payment."
+   }
+  ],
+  "intent_confidence": "high",
+  "entities": {
+   "order_ids": [
+    "38502"
+   ],
+   "transaction_ids": [],
+   "amounts": [],
+   "dates": [],
+   "other": [
+    "wife's card"
+   ]
+  },
+  "agent_stated": {
+   "order_ids": [],
+   "transaction_ids": [],
+   "amounts": [
+    "41"
+   ],
+   "dates": [],
+   "other": []
+  },
+  "unverified_speaker": {
+   "order_ids": [],
+   "transaction_ids": [],
+   "amounts": [],
+   "dates": [],
+   "other": []
+  },
+  "corrections": [
+   {
+    "field": "order_id",
+    "original": "38520",
+    "corrected": "38502"
+   }
+  ],
+  "lexical_tone": {
+   "emotion": "confused",
+   "valence": "negative",
+   "intensity": "medium",
+   "evidence": "I think."
+  },
+  "established_facts": [
+   "The customer ordered three phone cases last week.",
+   "The payment amount was $41.",
+   "The payment was made using the customer's wife's card."
+  ],
+  "ambiguities": [
+   "The customer is unsure if they were charged twice."
+  ],
+  "repetitions": [],
+  "late_information": [],
+  "off_topic_speech": [],
+  "next_steps": [
+   "Confirm the status of the order with order ID 38502.",
+   "Investigate the duplicate charge and clarify the payment status.",
+   "Ask if the customer needs assistance with the payment method used."
+  ],
+  "escalate": false,
+  "dropped_unverified": 0
+ },
+ "findings": [
+  {
+   "id": "noise_heavy",
+   "severity": "issue",
+   "area": "audio",
+   "title": "Heavy background noise",
+   "detail": "Speech is only about 10 dB above the noise (noise floor -24.5 dB)."
+  },
+  {
+   "id": "stt_reduced",
+   "severity": "warn",
+   "area": "speech",
+   "title": "Reduced transcription confidence",
+   "detail": "Average word confidence 95%; uncertain words: \"last\", \"payment\", \"first\", \"Oh\", \"Okay\"."
+  },
+  {
+   "id": "long_pauses",
+   "severity": "warn",
+   "area": "speech",
+   "title": "Long pauses",
+   "detail": "3 pauses over 1 s in the customer's voice."
+  },
+  {
+   "id": "speakers",
+   "severity": "info",
+   "area": "conversation",
+   "title": "2 speakers detected",
+   "detail": "Found from the audio itself (the recognizer reported one speaker); typical pitch 92 Hz and 200 Hz."
+  },
+  {
+   "id": "overlap",
+   "severity": "warn",
+   "area": "conversation",
+   "title": "Interruptions",
+   "detail": "1 sentence cut off by the other speaker (at 32 s; the previous speaker's sentence stops without an ending (\"...$41,\"))."
+  },
+  {
+   "id": "overlap_limited",
+   "severity": "info",
+   "area": "conversation",
+   "title": "Overlapping speech may be hidden",
+   "detail": "This is a single-channel recording: when two people talk at once the recognizer usually keeps only the louder voice, so interruptions are a lower bound."
+  },
+  {
+   "id": "corrections",
+   "severity": "warn",
+   "area": "content",
+   "title": "Customer corrected 1 detail",
+   "detail": "order_id: 38520 → 38502"
+  },
+  {
+   "id": "ambiguity",
+   "severity": "warn",
+   "area": "content",
+   "title": "Unclear or conflicting information",
+   "detail": "The customer is unsure if they were charged twice."
+  },
+  {
+   "id": "multi_intent",
+   "severity": "warn",
+   "area": "content",
+   "title": "3 separate issues raised",
+   "detail": "missing order, duplicate charge, refund request"
+  }
+ ],
+ "difficulty": {
+  "score": 16,
+  "label": "Severe"
+ },
+ "model": "gpt-4o-mini",
+ "prompt_tokens": 1424,
+ "completion_tokens": 520,
+ "cost_usd": 0.0005256,
+ "duration_ms": 6598
+}

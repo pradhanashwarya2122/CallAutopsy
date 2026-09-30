@@ -1,0 +1,35 @@
+{
+ "id": "stress-08-nervous-male-long-pauses-ambiguous.wav",
+ "segments": [
+  {
+   "who": "customer",
+   "text": "Um, hi. So, I made a payment yesterday...",
+   "start": 0.5,
+   "end": 3.78
+  },
+  {
+   "who": "customer",
+   "text": "And I thought it failed, because it showed an error at first.",
+   "start": 5.58,
+   "end": 9.96
+  },
+  {
+   "who": "customer",
+   "text": "Actually, I'm not completely sure. Let me check.",
+   "start": 12.46,
+   "end": 16.13
+  },
+  {
+   "who": "customer",
+   "text": "Okay. On my banking app it just says pending. So, maybe it didn't fail?",
+   "start": 19.53,
+   "end": 26
+  },
+  {
+   "who": "customer",
+   "text": "I don't know. I don't want to pay twice, though. Could you tell me which it is?",
+   "start": 27.6,
+   "end": 33.14
+  }
+ ]
+}

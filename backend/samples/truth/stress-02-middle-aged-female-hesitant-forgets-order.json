@@ -1,0 +1,41 @@
+{
+ "id": "stress-02-middle-aged-female-hesitant-forgets-order.wav",
+ "segments": [
+  {
+   "who": "customer",
+   "text": "Um, hi. I'm calling about, uh, an order that hasn't arrived.",
+   "start": 0.4,
+   "end": 5.31
+  },
+  {
+   "who": "customer",
+   "text": "It was supposed to be here on Tuesday... no, wait, sorry, it was Wednesday.",
+   "start": 6.01,
+   "end": 10.47
+  },
+  {
+   "who": "customer",
+   "text": "And I was, I was hoping you could... I mean, could you check where it is?",
+   "start": 11.27,
+   "end": 15.62
+  },
+  {
+   "who": "customer",
+   "text": "The order number is... um... hold on, I had it written down somewhere.",
+   "start": 16.52,
+   "end": 21.77
+  },
+  {
+   "who": "customer",
+   "text": "Okay, sorry. It's 5 2 9 1 8. Yes, 5 2 9 1 8.",
+   "start": 24.97,
+   "end": 30.37
+  },
+  {
+   "who": "customer",
+   "text": "Thank you. I'm sorry, I'm terrible with these things.",
+   "start": 30.97,
+   "end": 34.48
+  }
+ ]
+}

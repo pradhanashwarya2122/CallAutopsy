@@ -19,6 +19,7 @@ const pretty = (s) => String(s || '').replace(/_/g, ' ');
 const usd = (n) => `$${Number(n || 0).toFixed(4)}`;
 const pct = (n) => (n == null ? '—' : `${Math.round(n * 100)}%`);
 const secs = (n) => (n == null ? '—' : `${n.toFixed(1)}s`);
+const fmtMetric = (id, v) => (v == null ? '—' : id === 'failures' ? pct(v) : id === 'accuracy' ? `${Math.round(v * 1000) / 10}%` : id === 'speed' ? secs(v) : usd(v));
 
 const Label = ({ children }) => (
   <p className="mono" style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--mute)', margin: 0 }}>{children}</p>
@@ -38,7 +39,7 @@ function SummaryCard({ label, cfg, sum, winner, hasScript }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Stat label="Finished" value={sum.n} />
         <Stat label="Failed" value={`${sum.failed} (${pct(sum.failureRate)})`} warn={sum.failed > 0} />
-        <Stat label="Avg time" value={secs(sum.avgLatencyS)} />
+        <Stat label="Avg pipeline time" value={secs(sum.avgLatencyS)} />
         <Stat label="Avg cost" value={usd(sum.avgCostUsd)} />
         {hasScript && <Stat label="Transcript errors" value={pct(sum.avgWordErrorRate)} />}
         <Stat label="Fell back to Whisper" value={sum.failoverCount} />
@@ -61,6 +62,7 @@ export default function AB() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
   const timer = useRef(null);
+  const alive = useRef(true);
 
   useEffect(() => {
     api.samples().then((r) => {
@@ -68,16 +70,18 @@ export default function AB() {
       setSamples(list);
       if (list.length) setSampleId((cur) => cur || list[0].id);
     }).catch(() => setSamples([]));
-    return () => clearTimeout(timer.current);
+    return () => { alive.current = false; clearTimeout(timer.current); };
   }, []);
 
   const poll = async (runId) => {
     try {
       const r = await api.getAb(runId);
+      if (!alive.current) return; // the page was left while this request was in flight
       setResult(r);
       if (r.status === 'running') timer.current = setTimeout(() => poll(runId), 1500);
       else setRunning(false);
     } catch (e) {
+      if (!alive.current) return;
       setError(e instanceof ApiError ? e.message : 'Lost contact with the server while the run was in progress.');
       setRunning(false);
     }
@@ -99,7 +103,8 @@ export default function AB() {
   const chosen = (samples || []).find((s) => s.id === sampleId);
   const summary = result?.summary;
   const done = result?.status === 'done';
-  const winner = done ? result.verdict.winner : null;
+  const verdict = done ? result.verdict : null;
+  const winner = verdict && (verdict.winner === 'A' || verdict.winner === 'B') ? verdict.winner : null;
   const hasScript = summary && (summary.configA.avgWordErrorRate != null || summary.configB.avgWordErrorRate != null);
 
   return (
@@ -147,8 +152,8 @@ export default function AB() {
           </div>
           <div>
             <p className="pc-h">4. Runs per side <span className="mono" style={{ color: 'var(--mute)', fontSize: 11 }}>({iterations})</span></p>
-            <input type="range" min={1} max={5} step={1} value={iterations} onChange={(e) => setIterations(Number(e.target.value))} className="pc-range" style={{ '--pct': `${((iterations - 1) / 4) * 100}%` }} aria-label="Runs per side" />
-            <p className="pc-sub" style={{ marginTop: 6 }}>{iterations * 2} calls in total, counted against your daily limit.</p>
+            <input type="range" min={2} max={5} step={1} value={iterations} onChange={(e) => setIterations(Number(e.target.value))} className="pc-range" style={{ '--pct': `${((iterations - 2) / 3) * 100}%` }} aria-label="Runs per side" />
+            <p className="pc-sub" style={{ marginTop: 6 }}>{iterations * 2} calls in total, counted against your daily limit. A verdict needs at least 2 runs per side.</p>
           </div>
         </div>
         <div style={{ marginTop: 20 }}>
@@ -161,19 +166,30 @@ export default function AB() {
 
       {summary && (
         <>
-          {done && (
+          {verdict && (
             <div className="pc-panel pc-section">
               <p className="pc-h">Verdict</p>
-              {winner === 'tie' ? (
-                <p style={{ fontFamily: 'var(--serif)', fontSize: 24, margin: '6px 0 0' }}>No clear winner: the two configurations performed about the same on this call.</p>
-              ) : (
-                <>
-                  <p style={{ fontFamily: 'var(--serif)', fontSize: 24, margin: '6px 0 0' }}>Config {winner} wins</p>
-                  {result.verdict.reasons.map((r) => <p key={r} className="pc-sub" style={{ marginTop: 4 }}>{r}</p>)}
-                </>
+              <p style={{ fontFamily: 'var(--serif)', fontSize: 24, margin: '6px 0 0' }}>{verdict.headline}</p>
+              {verdict.caveats.map((c) => <p key={c} className="pc-sub" style={{ marginTop: 6, color: 'var(--amber, #8a5a00)' }}>{c}</p>)}
+              {verdict.metrics.length > 0 && (
+                <div style={{ overflowX: 'auto', marginTop: 12 }}>
+                  <table className="pc-table">
+                    <thead><tr><th>Measure</th><th>Config A</th><th>Config B</th><th>Result</th></tr></thead>
+                    <tbody>
+                      {verdict.metrics.map((m) => (
+                        <tr key={m.id}>
+                          <td>{m.label}</td>
+                          <td className="mono">{fmtMetric(m.id, m.a)}</td>
+                          <td className="mono">{fmtMetric(m.id, m.b)}</td>
+                          <td>{m.better === 'none' ? <span className="pc-tag">no difference</span> : <span className="pc-tag green">{m.better} is better</span>} <span className="pc-sub" style={{ fontSize: 12 }}>{m.why}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
               <p className="pc-sub" style={{ marginTop: 10, fontSize: 12 }}>
-                A verdict needs a real gap: 1 or more failed calls out of 5, 3 points of transcript accuracy, or a 10% difference in time or cost. Small samples are noisy, so treat this as a hint, not proof.
+                A side only wins a measure when the gap is meaningful (half of the runs failing, 3 points of transcript accuracy, or 10% in time or cost) and every run of the better side beats every run of the other. Quality outranks speed and cost. With a handful of runs this is a strong hint, not proof.
               </p>
             </div>
           )}
@@ -186,7 +202,7 @@ export default function AB() {
             <p className="pc-h">Per-call detail</p>
             <div style={{ overflowX: 'auto' }}>
               <table className="pc-table">
-                <thead><tr><th>#</th><th>Side</th><th>STT</th><th>Outcome</th><th>Time</th><th>Transcript errors</th><th>Cost</th></tr></thead>
+                <thead><tr><th>#</th><th>Side</th><th>STT</th><th>Outcome</th><th>Pipeline time</th><th>Transcript errors</th><th>Cost</th></tr></thead>
                 <tbody>
                   {result.calls.map((c, i) => (
                     <tr key={c.id}>

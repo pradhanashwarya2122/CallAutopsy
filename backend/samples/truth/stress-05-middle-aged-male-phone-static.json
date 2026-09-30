@@ -1,0 +1,23 @@
+{
+ "id": "stress-05-middle-aged-male-phone-static.wav",
+ "segments": [
+  {
+   "who": "customer",
+   "text": "Good afternoon. I'm calling about an incorrect charge on my account.",
+   "start": 0.4,
+   "end": 4.98
+  },
+  {
+   "who": "customer",
+   "text": "The transaction number is 7 7 4 0 2 1, and the amount was one hundred twenty-eight dollars fifty.",
+   "start": 5.58,
+   "end": 15.22
+  },
+  {
+   "who": "customer",
+   "text": "I only authorised eighty-two dollars, so I'd like the difference refunded.",
+   "start": 15.72,
+   "end": 21
+  }
+ ]
+}

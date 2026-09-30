@@ -108,7 +108,7 @@ function Calibration() {
   return (
     <div className="pc-body" style={{ marginTop: 0 }}>
       <p className="pc-sub" style={{ marginBottom: 18 }}>
-        How often the classifier names the right failure, measured against the failures you injected on purpose. Clean calls count as "ok", so false alarms show up too. These are your own calls only.
+        How often the classifier names the right failure, measured against the failures you injected on purpose and the clean control calls made by "Generate calibration data" (so false alarms show up too). Your own uploads and recordings are not scored here: nobody knows in advance what should be diagnosed for them. These are your own calls only.
       </p>
 
       {error && <p className="pc-sub" role="alert" style={{ color: 'var(--red)', marginBottom: 14 }}>{error}</p>}
@@ -130,8 +130,8 @@ function Calibration() {
       <div className="pc-grid g3 pc-section">
         <div className="pc-meta-card">
           <p className="k">Overall accuracy</p>
-          <p className="v">{data ? `${overall.toFixed(1)}%` : '—'}</p>
-          <p className="h">{data ? (data.total ? `${data.correct} correct of ${data.total} calls (${data.faultRuns} with an injected failure, ${data.cleanRuns} clean)` : 'no calls yet') : 'loading…'}</p>
+          <p className="v">{data && data.total ? `${overall.toFixed(1)}%` : '—'}</p>
+          <p className="h">{data ? (data.total ? `${data.correct} correct of ${data.total} calls (${data.faultRuns} with an injected failure, ${data.cleanRuns} clean)` : 'no scored calls yet') : 'loading…'}</p>
         </div>
         <div className="pc-meta-card">
           <p className="k">Accuracy last 24h</p>
@@ -170,7 +170,7 @@ function Calibration() {
       <div className="pc-section pc-panel">
         <h3 className="pc-h">Per-label metrics</h3>
         {!data || !perLabelEntries.length ? (
-          <p className="pc-sub">No calls yet. Use "Generate calibration data" above, or run demo calls with "Simulate a failure" on the Dashboard.</p>
+          <p className="pc-sub">No scored calls yet. Use "Generate calibration data" above, or run demo calls with "Simulate a failure" on the Dashboard.</p>
         ) : (
           <table className="pc-table">
             <thead>
@@ -481,7 +481,7 @@ function HallucinationSuite() {
       <div className="pc-grid g3 pc-section">
         <div className="pc-meta-card">
           <p className="k">Latest rate</p>
-          <p className="v">{history ? `${latestRate.toFixed(1)}%` : '—'}</p>
+          <p className="v">{latest ? `${latestRate.toFixed(1)}%` : '—'}</p>
           <p className="h">{latest ? `${latest.hallucinated_count} / ${latest.total_prompts}` : 'no runs yet'}</p>
         </div>
         <div className="pc-meta-card">

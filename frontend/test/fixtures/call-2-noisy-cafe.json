@@ -1,0 +1,209 @@
+{
+ "version": 2,
+ "attribution": {
+  "speakers": 1,
+  "source": "single_voice",
+  "reliable": true,
+  "pitch_gap_semitones": null,
+  "voice_pitch_hz": [
+   104
+  ],
+  "recognizer_speakers": 1,
+  "agreement": null,
+  "notes": []
+ },
+ "turns": [
+  {
+   "speaker": 0,
+   "start": 0,
+   "end": 10.8,
+   "text": "Hey. I'm calling about my payment due. The money was deducted about sixty two hours, and my order still says call me. It's order 73905. Can you help me with this?",
+   "confidence": 0.9,
+   "uncertain": false
+  }
+ ],
+ "background": [],
+ "boundaries": [],
+ "overlap_visibility": "not_applicable",
+ "speech": {
+  "duration_s": 11.026313,
+  "word_count": 31,
+  "words_per_minute": 172,
+  "avg_confidence": 0.9220065187096773,
+  "low_confidence_words": [
+   "due",
+   "and",
+   "me"
+  ],
+  "low_confidence_ratio": 0.0967741935483871,
+  "filler_count": 0,
+  "pause_count": 0,
+  "long_pause_count": 0,
+  "longest_pause_s": 0.2,
+  "speakers": 1,
+  "turn_count": 1,
+  "overlap_count": 0,
+  "overlap_s": 0,
+  "interruption_count": 0,
+  "backchannel_count": 0
+ },
+ "voices": [
+  {
+   "speaker": 0,
+   "words": 31,
+   "speech_s": 2.3,
+   "measurements": {
+    "pitch_hz": 105,
+    "pitch_range_st": 5.7,
+    "loudness_sd_db": 2.2,
+    "articulation_wpm": 172,
+    "pause_ratio": 0,
+    "long_pauses": 0,
+    "fillers_per_min": 0,
+    "filler_count": 0
+   },
+   "cues": [
+    {
+     "id": "fast",
+     "text": "fast speech (172 words per minute)"
+    }
+   ],
+   "arousal": "unclear",
+   "confidence": "low",
+   "reason": "Only 2 s of clear speech from this speaker; too little to judge how it sounds."
+  }
+ ],
+ "tone": {
+  "lexical": {
+   "emotion": "neutral",
+   "valence": "neutral",
+   "intensity": "low",
+   "evidence": "Hey. I'm calling about my payment due."
+  },
+  "vocal": {
+   "arousal": "unclear",
+   "hesitant": false,
+   "confidence": "low",
+   "cues": [
+    "fast speech (172 words per minute)"
+   ],
+   "reason": "Only 2 s of clear speech from this speaker; too little to judge how it sounds."
+  },
+  "overall": {
+   "label": "not evident",
+   "confidence": "low",
+   "agreement": "insufficient",
+   "basis": "The wording is businesslike and the delivery gives no clear signal, so no emotion is claimed."
+  }
+ },
+ "signal": {
+  "duration_s": 11,
+  "sample_rate": 16000,
+  "noise_floor_db": -22.4,
+  "speech_level_db": -13.7,
+  "snr_db": 8.7,
+  "clipping_ratio": 0,
+  "hf_ratio_db": -21.6,
+  "band_limited": false,
+  "level_sd_db": 1.2,
+  "dynamics_compressed": false,
+  "condition": {
+   "label": "noisy",
+   "flags": [
+    "very_noisy"
+   ]
+  }
+ },
+ "understanding": {
+  "summary": "The customer is inquiring about a payment that was deducted but has not resolved their order status, which still indicates 'call me'. They provided an order number for reference.",
+  "customer_speaker": 0,
+  "primary_intent": {
+   "label": "pending_transaction",
+   "description": "The customer is inquiring about a payment that was deducted but has not resolved their order status."
+  },
+  "secondary_intents": [
+   {
+    "label": "missing_order",
+    "description": "The customer states that their order still indicates 'call me'."
+   }
+  ],
+  "intent_confidence": "high",
+  "entities": {
+   "order_ids": [
+    "73905"
+   ],
+   "transaction_ids": [],
+   "amounts": [],
+   "dates": [],
+   "other": []
+  },
+  "agent_stated": {
+   "order_ids": [],
+   "transaction_ids": [],
+   "amounts": [],
+   "dates": [],
+   "other": []
+  },
+  "unverified_speaker": {
+   "order_ids": [],
+   "transaction_ids": [],
+   "amounts": [],
+   "dates": [],
+   "other": []
+  },
+  "corrections": [],
+  "lexical_tone": {
+   "emotion": "neutral",
+   "valence": "neutral",
+   "intensity": "low",
+   "evidence": "Hey. I'm calling about my payment due."
+  },
+  "established_facts": [
+   "The money was deducted about sixty two hours ago.",
+   "The order number is 73905."
+  ],
+  "ambiguities": [],
+  "repetitions": [],
+  "late_information": [],
+  "off_topic_speech": [],
+  "next_steps": [
+   "Verify the payment status for the transaction.",
+   "Check the order status for order number 73905.",
+   "Provide an update to the customer regarding their order."
+  ],
+  "escalate": false,
+  "dropped_unverified": 0
+ },
+ "findings": [
+  {
+   "id": "noise_heavy",
+   "severity": "issue",
+   "area": "audio",
+   "title": "Heavy background noise",
+   "detail": "Speech is only about 9 dB above the noise (noise floor -22.4 dB)."
+  },
+  {
+   "id": "stt_reduced",
+   "severity": "warn",
+   "area": "speech",
+   "title": "Reduced transcription confidence",
+   "detail": "Average word confidence 92%; uncertain words: \"due\", \"and\", \"me\"."
+  },
+  {
+   "id": "two_intents",
+   "severity": "info",
+   "area": "content",
+   "title": "Two related issues raised",
+   "detail": "pending transaction and missing order"
+  }
+ ],
+ "difficulty": {
+  "score": 5.5,
+  "label": "Hard"
+ },
+ "model": "gpt-4o-mini",
+ "prompt_tokens": 1280,
+ "completion_tokens": 399,
+ "cost_usd": 0.00043139999999999997,
+ "duration_ms": 4177
+}

@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import 'dotenv/config';
 import { query } from '../db/client.js';
 import { llmCost } from '../cost/pricing.js';
+import { redactPII } from '../redaction/piiRedactor.js';
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -69,6 +70,7 @@ ${JSON.stringify(summary, null, 2)}`;
     auxCost = llmCost('gpt-4o-mini', pt, ct);
   }
 
+  text = redactPII(text); // the model saw a redacted transcript, but its prose is stored, so it is redacted too
   await query('INSERT INTO autopsy_reports (call_id, report_text) VALUES ($1, $2)', [callId, text]);
   if (auxCost > 0) {
     await query(

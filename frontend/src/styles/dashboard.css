@@ -380,3 +380,16 @@
 .ap-cat.interruptions,.ap-cat.corrections{background:#dbe9fb;color:#1e6fd9}
 .ap-cat.maximum{background:var(--red-bg);color:#c0301f}
 .ap-intent{font-size:11.5px;color:var(--mute);text-transform:capitalize}
+
+/* speaker turns, boundaries, three-way tone */
+.ap-turns{display:flex;flex-direction:column;gap:6px}
+.ap-turn{line-height:1.5}
+.ap-turn b{font-weight:600}
+.ap-turn em{font-style:normal;color:var(--mute);font-size:11px;margin-left:4px}
+.ap-turn.unsure{opacity:.78}
+.ap-turn.bg{color:var(--mute);font-style:italic;font-size:12.5px}
+.ap-bound{margin:4px 0 0;font-size:11.5px;letter-spacing:.02em;color:#8a5a00}
+.ap-bound.simultaneous{color:#8a2419}
+.ap-tone3{display:grid;gap:10px}
+.ap-tone3 .k{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-bottom:2px}
+.ap-tone3 p{margin:0}

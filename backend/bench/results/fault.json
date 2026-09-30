@@ -1,0 +1,193 @@
+{
+ "rows": [
+  {
+   "sample": "stress-03",
+   "fault": "bad_stt",
+   "status": "failed",
+   "diagnosed": "bad_stt",
+   "correct": true,
+   "stages": "stt:ok,llm:ok,tts:ok",
+   "temperature": 0.7
+  },
+  {
+   "sample": "stress-03",
+   "fault": "hallucination",
+   "status": "failed",
+   "diagnosed": "timeout",
+   "correct": false,
+   "stages": "stt:ok,llm:ok,tts:ok,analysis:ok",
+   "temperature": 1.5
+  },
+  {
+   "sample": "stress-03",
+   "fault": "tts_glitch",
+   "status": "failed",
+   "diagnosed": "tts_glitch",
+   "correct": true,
+   "stages": "analysis:ok,stt:ok,llm:ok,tts:ok",
+   "temperature": 0.7
+  },
+  {
+   "sample": "stress-03",
+   "fault": "timeout",
+   "status": "failed",
+   "diagnosed": "timeout",
+   "correct": true,
+   "stages": "stt:ok,llm:timeout,analysis:ok,tts:ok",
+   "temperature": 0.7
+  },
+  {
+   "sample": "stress-03",
+   "fault": "user_hangup",
+   "status": "failed",
+   "diagnosed": "user_hangup",
+   "correct": true,
+   "stages": "stt:error",
+   "temperature": null
+  },
+  {
+   "sample": "stress-03",
+   "fault": "network_drop",
+   "status": "failed",
+   "diagnosed": "network_drop",
+   "correct": true,
+   "stages": "stt:error",
+   "temperature": null
+  },
+  {
+   "sample": "stress-03",
+   "fault": "exception",
+   "status": "failed",
+   "diagnosed": "exception",
+   "correct": true,
+   "stages": "stt:error",
+   "temperature": null
+  },
+  {
+   "sample": "stress-07",
+   "fault": "bad_stt",
+   "status": "failed",
+   "diagnosed": "bad_stt",
+   "correct": true,
+   "stages": "stt:ok,llm:ok,tts:ok",
+   "temperature": 0.7
+  },
+  {
+   "sample": "stress-07",
+   "fault": "hallucination",
+   "status": "completed",
+   "diagnosed": "ok",
+   "correct": false,
+   "stages": "stt:ok,llm:ok,analysis:ok,tts:ok",
+   "temperature": 1.5
+  },
+  {
+   "sample": "stress-07",
+   "fault": "tts_glitch",
+   "status": "failed",
+   "diagnosed": "tts_glitch",
+   "correct": true,
+   "stages": "analysis:ok,stt:ok,llm:ok,tts:ok",
+   "temperature": 0.7
+  },
+  {
+   "sample": "stress-07",
+   "fault": "timeout",
+   "status": "failed",
+   "diagnosed": "timeout",
+   "correct": true,
+   "stages": "stt:ok,llm:timeout,analysis:ok,tts:ok",
+   "temperature": 0.7
+  },
+  {
+   "sample": "stress-07",
+   "fault": "user_hangup",
+   "status": "failed",
+   "diagnosed": "user_hangup",
+   "correct": true,
+   "stages": "stt:error",
+   "temperature": null
+  },
+  {
+   "sample": "stress-07",
+   "fault": "network_drop",
+   "status": "failed",
+   "diagnosed": "network_drop",
+   "correct": true,
+   "stages": "stt:error",
+   "temperature": null
+  },
+  {
+   "sample": "stress-07",
+   "fault": "exception",
+   "status": "failed",
+   "diagnosed": "exception",
+   "correct": true,
+   "stages": "stt:error",
+   "temperature": null
+  },
+  {
+   "sample": "stress-09",
+   "fault": "bad_stt",
+   "status": "failed",
+   "diagnosed": "bad_stt",
+   "correct": true,
+   "stages": "stt:ok,llm:ok,tts:ok",
+   "temperature": 0.7
+  },
+  {
+   "sample": "stress-09",
+   "fault": "hallucination",
+   "status": "failed",
+   "diagnosed": "timeout",
+   "correct": false,
+   "stages": "stt:ok,llm:ok,analysis:ok,tts:ok",
+   "temperature": 1.5
+  },
+  {
+   "sample": "stress-09",
+   "fault": "tts_glitch",
+   "status": "failed",
+   "diagnosed": "tts_glitch",
+   "correct": true,
+   "stages": "analysis:ok,stt:ok,llm:ok,tts:ok",
+   "temperature": 0.7
+  },
+  {
+   "sample": "stress-09",
+   "fault": "timeout",
+   "status": "failed",
+   "diagnosed": "timeout",
+   "correct": true,
+   "stages": "stt:ok,llm:timeout,analysis:ok,tts:ok",
+   "temperature": 0.7
+  },
+  {
+   "sample": "stress-09",
+   "fault": "user_hangup",
+   "status": "failed",
+   "diagnosed": "user_hangup",
+   "correct": true,
+   "stages": "stt:error",
+   "temperature": null
+  },
+  {
+   "sample": "stress-09",
+   "fault": "network_drop",
+   "status": "failed",
+   "diagnosed": "network_drop",
+   "correct": true,
+   "stages": "stt:error",
+   "temperature": null
+  },
+  {
+   "sample": "stress-09",
+   "fault": "exception",
+   "status": "failed",
+   "diagnosed": "exception",
+   "correct": true,
+   "stages": "stt:error",
+   "temperature": null
+  }
+ ]
+}

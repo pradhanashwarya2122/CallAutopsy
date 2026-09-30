@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { query } from '../db/client.js';
 import { transcribe, type SttOutcome } from './stt/index.js';
 import { llmTurn } from './llm.js';
-import { synthesize } from './tts.js';
+import { synthesize, TTS_MAX_CHARS } from './tts.js';
 import {
   ALL_FAULTS,
   MILD_ADVERSARIAL,
@@ -21,19 +21,19 @@ import { ttsDurationMismatch } from '../classifier/ttsQuality.js';
 import { detectHallucination } from '../classifier/grounding.js';
 import { costForStage } from '../cost/calculator.js';
 import { addSessionSpend } from '../cost/budget.js';
-import { redactPII } from '../redaction/piiRedactor.js';
+import { redactDeep, redactPII } from '../redaction/piiRedactor.js';
 import { broadcast } from '../websocket/broadcaster.js';
 import { generateAutopsyReport } from '../autopsy/generateReport.js';
 import { analyzeCall, type CallAnalysis } from '../analysis/index.js';
 import { loadManifest, scriptPlain } from '../sampleLibrary.js';
-import { wordErrorRate } from '../analysis/wer.js';
+import { numberAccuracy, wordErrorRate } from '../analysis/wer.js';
 import { checkSla } from '../sla/monitor.js';
 import { saveInputAudio, saveTtsAudio } from '../storage/audioStore.js';
 
 export interface RunCallOpts {
   callId?: string;
   audio: Buffer;
-  inputSource: 'sample' | 'live_mic';
+  inputSource: InputSource;
   sampleId?: string;
   faultType?: FaultType | null;
   faultParams?: FaultParams;
@@ -42,6 +42,7 @@ export interface RunCallOpts {
   abRunId?: string;
   ownerId?: string;
   abSide?: 'A' | 'B';
+  labelSource?: 'control'; // a clean call made on purpose as ground truth "ok" (calibration runs)
 }
 
 const SLA = {
@@ -63,7 +64,7 @@ async function insertStage(
   await query(
     `INSERT INTO call_stages (call_id, stage, provider, started_at, ended_at, duration_ms, status, raw_meta, cost_usd)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-    [callId, stage, provider, startedAt, endedAt, endedAt.getTime() - startedAt.getTime(), status, rawMeta, costUsd],
+    [callId, stage, provider, startedAt, endedAt, endedAt.getTime() - startedAt.getTime(), status, redactDeep(rawMeta), costUsd], // metadata can carry provider error text
   );
 }
 
@@ -87,6 +88,8 @@ function throwForStage(faultType: FaultType | null, params: FaultParams | undefi
   }
 }
 
+export type InputSource = 'sample' | 'upload' | 'recording' | 'live_mic'; // live_mic = rows written before uploads and recordings were told apart
+
 export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
   const callId = opts.callId ?? randomUUID();
   const startedAt = new Date();
@@ -97,9 +100,9 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
     await query(`UPDATE calls SET status='in_progress', started_at=$2 WHERE id=$1`, [callId, startedAt]);
   } else {
     await query(
-      `INSERT INTO calls (id, started_at, status, input_source, sample_id, injected_fault, ab_run_id, owner_id, ab_side)
-       VALUES ($1,$2,'in_progress',$3,$4,$5,$6,$7,$8)`,
-      [callId, startedAt, opts.inputSource, opts.sampleId ?? null, opts.faultType ?? null, opts.abRunId ?? null, opts.ownerId ?? null, opts.abSide ?? null],
+      `INSERT INTO calls (id, started_at, status, input_source, sample_id, injected_fault, ab_run_id, owner_id, ab_side, label_source)
+       VALUES ($1,$2,'in_progress',$3,$4,$5,$6,$7,$8,$9)`,
+      [callId, startedAt, opts.inputSource, opts.sampleId ?? null, opts.faultType ?? null, opts.abRunId ?? null, opts.ownerId ?? null, opts.abSide ?? null, opts.labelSource ?? null],
     );
   }
   saveInputAudio(callId, opts.audio, opts.audioExt ?? 'bin').catch(() => {});
@@ -187,13 +190,13 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
         if (faultType === 'user_hangup' && resolveParams('user_hangup', faultParams?.user_hangup).stage === 'llm') hangupSignaled = true;
 
         let systemPrompt: string | undefined;
-        let temperature: number | undefined;
+        let temperature: number | undefined = opts.abRunId ? 0 : undefined; // A/B runs use temperature 0 so the reply (and its cost) repeats
         if (faultType === 'hallucination') {
           const p = resolveParams('hallucination', faultParams?.hallucination);
           systemPrompt = p.intensity === 'mild' ? MILD_ADVERSARIAL : AGGRESSIVE_ADVERSARIAL;
           temperature = Math.max(0, Math.min(2, Number(p.temperature ?? 0.9)));
         }
-        const res = await llmTurn(sttResult!.transcript || 'hello', {
+        const res = await llmTurn(redactPII(sttResult!.transcript) || 'hello', { // the reply model never needs card, phone or e-mail details
           model: opts.config?.llmModel,
           systemPrompt,
           temperature,
@@ -218,7 +221,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
 
       const shouldCheck = faultType === 'hallucination';
       if (shouldCheck && llmText.length > 40) {
-        const hall = await detectHallucination(sttResult!.transcript, llmText);
+        const hall = await detectHallucination(redactPII(sttResult!.transcript), llmText);
         hallucinated = hall.hallucinated;
         totalCost += hall.auxCostUsd;
       }
@@ -259,7 +262,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
       const cost = costForStage({ stage: 'tts', provider: 'openai', rawMeta: { model: ttsResult.model, charCount: ttsResult.charCount } });
       totalCost += cost;
       await insertStage(callId, 'tts', 'openai', startedAtStage, endedAtStage, status, {
-        model: ttsResult.model, charCount: ttsResult.charCount, bytes: ttsResult.bytes,
+        model: ttsResult.model, charCount: ttsResult.charCount, bytes: ttsResult.bytes, truncated: ttsResult.truncated,
       }, cost);
       stages.push({ stage: 'tts', durationMs: endedAtStage.getTime() - startedAtStage.getTime(), status });
       emit({ type: 'call.stage', callId, stage: 'tts', status });
@@ -278,8 +281,10 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
     totalCost += analysis.cost_usd;
     const script = opts.sampleId && sttResult ? scriptPlain((await loadManifest()).get(opts.sampleId)) : null;
     if (script && sttResult) {
-      const { wer, refWords } = wordErrorRate(script, sttResult.transcript);
-      analysis.script_match = { wer, ref_words: refWords };
+      const normalized = wordErrorRate(script, sttResult.transcript);
+      const strict = wordErrorRate(script, sttResult.transcript, { strict: true });
+      const nums = numberAccuracy(script, sttResult.transcript);
+      analysis.script_match = { wer: normalized.wer, wer_strict: strict.wer, ref_words: normalized.refWords, numbers_expected: nums.expected, numbers_matched: nums.matched };
     }
     if (analysis.cost_usd > 0 || analysis.understanding) {
       await insertStage(callId, 'analysis', 'openai', new Date(analysisStart.getTime() - analysis.duration_ms), analysisStart, analysis.understanding ? 'ok' : 'error',
@@ -289,7 +294,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
   }
 
   const sttSignal = sttResult ? sttConfidenceSignal(sttResult) : { avgConfidence: 0, belowThreshold: false };
-  const ttsMismatch = ttsDurationMismatch(ttsResult, llmText);
+  const ttsMismatch = ttsDurationMismatch(ttsResult, llmText.slice(0, TTS_MAX_CHARS)); // a reply cut to the API limit is not a glitch
 
   const classification = classify({
     stages,

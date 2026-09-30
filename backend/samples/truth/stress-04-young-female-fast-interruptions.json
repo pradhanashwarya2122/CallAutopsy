@@ -1,0 +1,47 @@
+{
+ "id": "stress-04-young-female-fast-interruptions.wav",
+ "segments": [
+  {
+   "who": "agent",
+   "text": "Thank you for calling support. Before we begin I'll need to verify a few details, starting with—",
+   "start": 0.4,
+   "end": 6.34
+  },
+  {
+   "who": "customer",
+   "text": "Yeah, yeah, my order's 8 4 1 6 0, I paid forty-nine dollars... sorry, fifty-nine dollars, and it still says pending.",
+   "start": 5.04,
+   "end": 11.57
+  },
+  {
+   "who": "agent",
+   "text": "Okay, and can you confirm the name on the—",
+   "start": 10.67,
+   "end": 13.53
+  },
+  {
+   "who": "customer",
+   "text": "Sorry, go ahead.",
+   "start": 13.68,
+   "end": 14.74
+  },
+  {
+   "who": "agent",
+   "text": "I just need the name on the account, please.",
+   "start": 14.99,
+   "end": 17.2
+  },
+  {
+   "who": "customer",
+   "text": "It's Jordan Lee. Can we please just fix the payment?",
+   "start": 16.75,
+   "end": 19.81
+  },
+  {
+   "who": "agent",
+   "text": "Absolutely. Let me look into it now.",
+   "start": 20.11,
+   "end": 23.02
+  }
+ ]
+}
