@@ -344,7 +344,7 @@ function Recorder({ disabled, onRecorded, onError }) {
 const prettyIntent = (x) => String(x || '').replace(/_/g, ' ');
 
 // One dropdown for all demo calls. Choosing one shows what it is designed to stress; Analyze runs it through the real pipeline.
-function DemoPicker({ samples, error, onRetry, busy, onRun }) {
+function DemoPicker({ samples, error, onRetry, missing, busy, onRun }) {
   const [selectedId, setSelectedId] = useState('');
   const [previewing, setPreviewing] = useState(false);
   const audio = useRef(null);
@@ -387,6 +387,7 @@ function DemoPicker({ samples, error, onRetry, busy, onRun }) {
 
   return (
     <>
+      {missing > 0 && <p className="ap-warn" role="status">This server has {missing} fewer demo calls than the app expects (15 recordings). The backend needs redeploying with its latest <code>samples</code> folder.</p>}
       <div className="ap-tabs" role="tablist" aria-label="Demo call categories">
         {groups.map(([g, label, list]) => (
           <button key={g} type="button" role="tab" aria-selected={tab === g} className={tab === g ? 'on' : ''} onClick={() => { setTab(g); if (!list.some((x) => x.id === selectedId)) setSelectedId(list[0].id); }}>
@@ -494,6 +495,28 @@ function FaultFold({ value, onChange }) {
 }
 
 
+// "What is this?" panel: open for a first-time visitor, collapsed once they have calls, and it remembers a manual choice.
+function AboutBox({ hasCalls, faultOn }) {
+  const KEY = 'callautopsy.aboutOpen';
+  const stored = (() => { try { return localStorage.getItem(KEY); } catch { return null; } })();
+  const [open, setOpen] = useState(stored === null ? !hasCalls : stored === '1');
+  const toggle = () => { const n = !open; setOpen(n); try { localStorage.setItem(KEY, n ? '1' : '0'); } catch { /* storage unavailable */ } };
+  return (
+    <div className={`ap-about ${open ? 'open' : ''}`}>
+      <button type="button" className="ap-about-toggle" aria-expanded={open} onClick={toggle}>
+        <span><b>What is this?</b> <em>Find which step of a voice-bot call broke.</em></span>
+        <i aria-hidden="true">{open ? 'Hide ▴' : 'Show ▾'}</i>
+      </button>
+      {open && (
+        <div className="ap-about-body">
+          <p>A voice bot <b>listens</b> (speech to text), <b>thinks</b> (an AI model writes a reply) and <b>speaks</b> (text to speech). When a call goes wrong it is hard to tell which step failed. CallAutopsy runs a call through all three, names the step that broke and shows the evidence. It is for teams that build or test voice agents.</p>
+          <StartGuide hasCalls={hasCalls} faultOn={faultOn} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // A four-step path through the product, ticked off as the user does each step, so the order is never a guess.
 function StartGuide({ hasCalls, faultOn }) {
   const steps = [
@@ -514,14 +537,14 @@ function StartGuide({ hasCalls, faultOn }) {
   );
 }
 
-function AnalyzePanel({ samples, samplesError, onRetrySamples, summary, busy, notice, fault, onFault, onFile, onSample, onNotice }) {
+function AnalyzePanel({ samples, samplesError, onRetrySamples, missingSamples, summary, busy, notice, fault, onFault, onFile, onSample, onNotice }) {
   const maxBytes = summary?.max_upload_bytes || 5 * 1024 * 1024;
   const reject = (msg) => onNotice({ tone: 'err', msg });
   return (
     <section className="ap-panel">
       <h2 className="ap-h">Analyze a call</h2>
       <p className="ap-step">Pick a demo call</p>
-      <DemoPicker samples={samples} error={samplesError} onRetry={onRetrySamples} busy={busy} onRun={onSample} />
+      <DemoPicker samples={samples} error={samplesError} onRetry={onRetrySamples} missing={missingSamples} busy={busy} onRun={onSample} />
       <div className="ap-or">or record your own</div>
       <Recorder disabled={busy} onRecorded={(f) => onFile(f, 'recording')} onError={reject} />
       <div className="ap-or">or upload a file</div>
@@ -943,7 +966,7 @@ function humanize(ev) {
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [cases, setCases] = useState(null);
-  const { samples, error: samplesError, reload: reloadSamples } = useSampleLibrary();
+  const { samples, error: samplesError, reload: reloadSamples, missing: missingSamples } = useSampleLibrary();
   const [loadError, setLoadError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -1067,10 +1090,7 @@ export default function Dashboard() {
           <div className="ap-eyebrow">Case File</div>
           <h1 className="ap-title">Call<em>Autopsy</em></h1>
           <p className="ap-tagline">Trace every failed call to the stage that broke it.</p>
-          <div className="ap-about">
-            <p><b>What is this?</b> A voice bot does three things on every call: it <em>listens</em> (speech to text), <em>thinks</em> (an AI model writes a reply) and <em>speaks</em> (text to speech). When a call goes wrong, it is hard to tell which of the three failed. CallAutopsy runs a call through all three, names the step that broke, and shows the evidence. It is for teams that build or test voice agents.</p>
-            <StartGuide hasCalls={(summary?.total_calls ?? 0) > 0} faultOn={fault?.type && fault.type !== 'none'} />
-          </div>
+          <AboutBox hasCalls={(summary?.total_calls ?? 0) > 0} faultOn={!!(fault?.type && fault.type !== 'none')} />
         </div>
       </header>
 
@@ -1082,6 +1102,7 @@ export default function Dashboard() {
             samples={samples}
             samplesError={samplesError}
             onRetrySamples={reloadSamples}
+            missingSamples={missingSamples}
             summary={summary}
             busy={busy}
             notice={notice}

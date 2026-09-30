@@ -132,7 +132,7 @@ function ResultView({ result }) {
 }
 
 export default function AB() {
-  const { samples, error: samplesError, reload: reloadSamples } = useSampleLibrary();
+  const { samples, error: samplesError, reload: reloadSamples, missing: missingSamples } = useSampleLibrary();
   const [sampleId, setSampleId] = useState('');
   const [scenario, setScenario] = useState(SCENARIOS[0]);
   const [faultType, setFaultType] = useState('none');
@@ -196,6 +196,7 @@ export default function AB() {
         ) : (
           <>
             <SampleSelect samples={samples} value={sampleId} onChange={setSampleId} label="Call to test" style={{ width: '100%', maxWidth: 560 }} />
+            {missingSamples > 0 && <p className="pc-sub" role="status" style={{ color: 'var(--amber, #8a5a00)', marginTop: 8 }}>This server has {missingSamples} fewer demo calls than the app expects (15 recordings). The backend needs redeploying with its latest samples folder.</p>}
             {chosen?.summary && <p className="pc-sub" style={{ marginTop: 8 }}>{chosen.summary}</p>}
           </>
         )}

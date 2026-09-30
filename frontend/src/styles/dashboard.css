@@ -416,3 +416,13 @@
 .ap-guide li.locked{opacity:.65}.ap-guide li.next{border-color:var(--ink)}.ap-guide li.next a{color:var(--ink);font-weight:600}
 .ap-about{max-width:1000px}.ap-guide{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media(max-width:900px){.ap-guide{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.ap-guide{grid-template-columns:1fr}}
+
+/* collapsible "What is this?" */
+.ap-about{margin-top:12px;max-width:1000px}
+.ap-about-toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.55);cursor:pointer;font-family:inherit;font-size:13px;color:var(--ink);text-align:left}
+.ap-about-toggle em{font-style:normal;color:var(--mute,#6b6357);margin-left:6px}
+.ap-about-toggle i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--mute,#6b6357);white-space:nowrap}
+.ap-about-toggle:hover{background:rgba(255,255,255,.85)}
+.ap-about-body{padding:12px 2px 0}.ap-about-body>p{margin:0 0 10px;font-size:14px;line-height:1.55;max-width:760px}
+.ap-warn{margin:10px 0 0;padding:8px 10px;border:1px solid #e0b96b;border-radius:6px;background:#fbf1d9;font-size:12px;line-height:1.45}
+@media(max-width:560px){.ap-about-toggle em{display:none}}

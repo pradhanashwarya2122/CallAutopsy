@@ -104,7 +104,7 @@ function Calibration() {
   const [trend, setTrend] = useState(null);
   const [mistakes, setMistakes] = useState(null);
   const [error, setError] = useState('');
-  const { samples: library, error: samplesError, reload: reloadSamples } = useSampleLibrary();
+  const { samples: library, error: samplesError, reload: reloadSamples, missing: missingSamples } = useSampleLibrary();
   const samples = library ?? [];
   const [sampleId, setSampleId] = useState('');
   const [scope, setScope] = useState('one');
@@ -176,6 +176,7 @@ function Calibration() {
             {data?.running ? 'Running…' : starting ? 'Starting…' : `Run ${jobs} analyses`}
           </button>
         </div>
+        {missingSamples > 0 && <p className="pc-sub" role="status" style={{ color: 'var(--amber, #8a5a00)', marginTop: 8 }}>This server has {missingSamples} fewer demo calls than the app expects. The backend needs redeploying with its latest samples folder.</p>}
         <p className="pc-sub" style={{ marginTop: 8, fontSize: 12 }}>Costs roughly {usd(jobs * 0.004, 2)} and counts against your daily limit.</p>
         {note && <p className="pc-sub" style={{ marginTop: 10 }}>{note}</p>}
       </div>

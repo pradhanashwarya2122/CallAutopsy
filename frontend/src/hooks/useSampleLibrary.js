@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
+import { DEMO_CALLS } from '../lib/reference';
 
 // The demo-call library. A failed request is retried (a cold server often answers the first one late) and is reported as an error,
 // never as "no demo calls": an empty list and an unreachable server are different problems.
@@ -25,5 +26,7 @@ export function useSampleLibrary() {
   }, []);
 
   useEffect(() => { alive.current = true; load(); return () => { alive.current = false; }; }, [load]);
-  return { samples, error, reload: load };
+  // The 15 core and stress recordings the app ships with. A server that lacks some was deployed from an older build.
+  const missing = samples && !error ? DEMO_CALLS.filter((c) => !samples.some((x) => x.id === c.id)).length : 0;
+  return { samples, error, reload: load, missing };
 }
