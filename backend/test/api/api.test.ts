@@ -37,6 +37,7 @@ const call = async (method: string, url: string, opts: { ws?: string; body?: unk
 
 const SECRETS = ['jane.doe@example.com', '4111 1111 1111 1111', '415-555-0132'];
 const createdCalls: string[] = [];
+const createdAbRuns: string[] = [];
 
 async function insertCall(owner: string | null, fields: { transcript?: string; analysis?: unknown; sample?: string } = {}) {
   const id = randomUUID();
@@ -64,7 +65,7 @@ after(async () => {
   if (createdCalls.length) await query('DELETE FROM call_stages WHERE call_id = ANY($1)', [createdCalls]).catch(() => {});
   await query('DELETE FROM autopsy_reports WHERE call_id = ANY($1)', [createdCalls]).catch(() => {});
   await query('DELETE FROM calls WHERE id = ANY($1)', [createdCalls]).catch(() => {});
-  await query('DELETE FROM ab_runs WHERE owner_id = ANY($1)', [[A, B]]).catch(() => {});
+  await query('DELETE FROM ab_runs WHERE owner_id = ANY($1) OR id = ANY($2)', [[A, B], createdAbRuns]).catch(() => {});
   await query('DELETE FROM workspace_sla WHERE owner_id = ANY($1)', [[A, B]]).catch(() => {});
   await new Promise<void>((r) => server.close(() => r()));
   await pool.end().catch(() => {});
@@ -119,8 +120,11 @@ test('a brand-new workspace has no calls and no fabricated numbers anywhere', as
   assert.equal(cal.total, 0); assert.equal(cal.accuracy, null === cal.accuracy ? null : cal.accuracy);
   assert.deepEqual(cal.confusionMatrix ?? [], []);
   const blast = await call('POST', '/blast-radius', { ws: fresh, body: { callsPerDay: 1000 } });
-  assert.ok(blast.status === 400 || blast.status === 200);
-  if (blast.status === 200) assert.deepEqual(blast.json.projection ?? [], []);
+  assert.equal(blast.status, 200);
+  assert.equal(blast.json.sampleSize, 0);
+  assert.equal(blast.json.basis, 'reference'); // no calls of its own: the costs are the measured reference, and the response says so
+  assert.deepEqual(blast.json.byFault, []);
+  assert.deepEqual(blast.json.stages, []);
   assert.deepEqual((await call('GET', '/hallucination-suite/history', { ws: fresh })).json.history, []);
   assert.deepEqual((await call('GET', '/sla/breaches', { ws: fresh })).json.breaches, []);
 });
@@ -280,4 +284,93 @@ test('requests that are refused before anything runs do not use up the network\'
   resetIpUnits(); // start the next check from an empty hour, whatever the earlier tests used
   for (let i = 0; i < 12; i += 1) assert.notEqual((await call('POST', '/ab-tests', { ws: randomUUID(), body: { sampleId: 'no-such-call.wav', configA: {}, configB: {}, iterations: 5 } })).status, 429);
   assert.equal((await call('POST', '/healing-suggestions/generate', { ws })).status, 200, 'a real request still goes through afterwards');
+});
+
+// ------------------------------------------------------------------ blast radius, stage health, A/B list, calibration limits
+async function insertMeasured(owner: string, o: { status: 'completed' | 'failed'; cost: number; injected?: string | null; category?: string; stages?: [string, string, number, number][] }) {
+  const id = randomUUID();
+  await query(
+    `INSERT INTO calls (id, started_at, ended_at, status, input_source, owner_id, injected_fault, predicted_category, total_cost_usd)
+     VALUES ($1, now(), now(), $2, 'sample', $3, $4, $5, $6)`,
+    [id, o.status, owner, o.injected ?? null, o.category ?? (o.status === 'failed' ? 'timeout' : 'ok'), o.cost],
+  );
+  for (const [stage, provider, ms, cost] of o.stages ?? []) {
+    await query(`INSERT INTO call_stages (call_id, stage, provider, started_at, ended_at, duration_ms, status, cost_usd) VALUES ($1,$2,$3,now(),now(),$4,'ok',$5)`, [id, stage, provider, ms, cost]);
+  }
+  createdCalls.push(id);
+  return id;
+}
+
+test('blast radius: cost per call comes from healthy calls, the failure rate is the caller\'s, and the arithmetic is exact', async () => {
+  const ws = randomUUID();
+  await insertMeasured(ws, { status: 'completed', cost: 0.004 });
+  await insertMeasured(ws, { status: 'completed', cost: 0.006 });
+  // failures injected on purpose must not lower the cost of a call or set the failure rate
+  for (let i = 0; i < 6; i += 1) await insertMeasured(ws, { status: 'failed', cost: 0.001, injected: 'network_drop', category: 'network_drop' });
+  const r = (await call('POST', '/blast-radius', { ws, body: { callsPerDay: 1000, failureRatePct: 10 } })).json;
+  assert.equal(r.basis, 'your_calls');
+  assert.equal(r.sampleSize, 8);
+  assert.equal(r.injectedInSample, 6);
+  assert.ok(Math.abs(r.avgCallUsd - 0.005) < 1e-9, `avg healthy call ${r.avgCallUsd}`);
+  assert.equal(r.monthlyCalls, 30000);
+  assert.equal(r.monthlyFailures, 3000);
+  assert.ok(Math.abs(r.monthlySpendUsd - 150) < 1e-6);
+  assert.ok(Math.abs(r.wastedOnFailuresUsd - 3000 * 0.001) < 1e-6, `wasted ${r.wastedOnFailuresUsd}`); // what the failed calls actually cost
+  assert.ok(Math.abs(r.retryCostUsd - 3000 * 0.005) < 1e-6);
+  assert.deepEqual(r.byFault.map((f: any) => [f.faultType, f.n]), [['network_drop', 6]]);
+  const higher = (await call('POST', '/blast-radius', { ws, body: { callsPerDay: 1000, failureRatePct: 20 } })).json;
+  assert.equal(higher.monthlyFailures, 6000); // the rate is what the caller says, not what the workspace's injected calls suggest
+  assert.equal((await call('POST', '/blast-radius', { ws, body: { callsPerDay: 1000, failureRatePct: 101 } })).status, 400);
+  assert.equal((await call('POST', '/blast-radius', { ws, body: { callsPerDay: 0 } })).status, 400);
+});
+
+test('stage health leaves injected failures out and reports each stage against its limit', async () => {
+  const ws = randomUUID();
+  await insertMeasured(ws, { status: 'completed', cost: 0.004, stages: [['stt', 'deepgram', 800, 0.001], ['llm', 'openai', 1200, 0.00003], ['tts', 'openai', 1600, 0.002]] });
+  await insertMeasured(ws, { status: 'completed', cost: 0.004, stages: [['stt', 'deepgram', 1000, 0.001], ['llm', 'openai', 1400, 0.00003], ['tts', 'openai', 1800, 0.002]] });
+  await insertMeasured(ws, { status: 'failed', cost: 0.01, injected: 'timeout', stages: [['llm', 'openai', 13000, 0.00003]] }); // an injected delay must not distort the latency
+  const { stages } = (await call('GET', '/sla/stages', { ws })).json;
+  const llm = stages.find((x: any) => x.stage === 'llm');
+  assert.equal(llm.n, 2);
+  assert.equal(llm.maxMs, 1400);
+  assert.equal(llm.limitMs, 8000);
+  assert.equal(stages.find((x: any) => x.stage === 'stt').p50Ms, 900);
+  const empty = (await call('GET', '/sla/stages', { ws: randomUUID() })).json.stages;
+  assert.deepEqual(empty.map((x: any) => x.n), [0, 0, 0]);
+});
+
+test('the A/B list shows only the workspace\'s own comparisons, with their verdicts', async () => {
+  const ws = randomUUID();
+  const other = randomUUID();
+  const mkRun = async (owner: string) => {
+    const { rows } = await query(`INSERT INTO ab_runs (config_a, config_b, owner_id, sample_id, iterations) VALUES ('{}', '{}', $1, 'call-1-clean-baseline.wav', 2) RETURNING id`, [owner]);
+    createdAbRuns.push(rows[0].id);
+    return rows[0].id as string;
+  };
+  const mine = await mkRun(ws);
+  await mkRun(other);
+  for (const side of ['A', 'A', 'B', 'B']) {
+    const id = await insertMeasured(ws, { status: 'completed', cost: side === 'A' ? 0.003 : 0.006 });
+    await query('UPDATE calls SET ab_run_id=$1, ab_side=$2 WHERE id=$3', [mine, side, id]);
+  }
+  const { runs } = (await call('GET', '/ab-tests', { ws })).json;
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0].id, mine);
+  assert.equal(runs[0].status, 'done');
+  assert.ok(runs[0].headline);
+  assert.deepEqual((await call('GET', '/ab-tests', { ws: randomUUID() })).json.runs, []);
+});
+
+test('calibration never reports 0% for a label it could not measure, and limits a run to three calls', async () => {
+  const ws = randomUUID();
+  await insertMeasured(ws, { status: 'failed', cost: 0.001, injected: 'timeout', category: 'timeout' });
+  const cal = (await call('GET', '/calibration', { ws })).json;
+  assert.equal(cal.perLabel.timeout.precision, 1);
+  assert.equal(cal.perLabel.timeout.recall, 1);
+  await insertMeasured(ws, { status: 'failed', cost: 0.001, injected: 'bad_stt', category: 'timeout' });
+  const after = (await call('GET', '/calibration', { ws })).json;
+  assert.equal(after.perLabel.bad_stt.precision, null); // never predicted: no precision, not "0%"
+  assert.equal(after.perLabel.bad_stt.recall, 0);
+  assert.equal((await call('POST', '/calibration/run', { ws, body: { sampleIds: [] } })).status, 400);
+  assert.equal((await call('POST', '/calibration/run', { ws, body: { sampleIds: ['a.wav', 'b.wav', 'c.wav', 'd.wav'] } })).status, 400);
 });

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AB, CONFUSION, DETECTORS, FACTS, LIMITS, RUNS } from '../lib/landingData.js';
+import { DEMO_CALLS, QUICK_CLIPS } from '../lib/reference.js';
+import { CATEGORY_LABEL, GROUP_LABEL } from '../lib/sampleGroups.js';
 
 // Landing page. Every figure comes from lib/landingData.js and was measured on the real pipeline; nothing here is invented.
 // Every call to action routes to /app.
@@ -11,6 +13,7 @@ const NAV = [
   { id: 'accuracy', label: 'Accuracy' },
   { id: 'compare', label: 'Compare' },
   { id: 'analysis', label: 'Analysis' },
+  { id: 'demo-calls', label: 'Demo calls' },
 ];
 
 const CSS = `
@@ -361,6 +364,43 @@ function Analysis() {
   );
 }
 
+
+function DemoCalls() {
+  const groups = GROUP_LABEL.filter(([g]) => g !== 'quick').map(([g, label]) => [label, DEMO_CALLS.filter((c) => c.group === g)]);
+  return (
+    <section className="sec" id="demo-calls">
+      <p className="lab" data-rv>The demo library</p>
+      <h2 data-rv>{DEMO_CALLS.length} recorded calls, from clean to punishing.</h2>
+      <p className="lede" data-rv>
+        Every call in the app is one of these recordings, or one you record or upload yourself. The columns are what the live pipeline measured on each one, so you can pick a call to stress the part you care about.
+        {QUICK_CLIPS ? ` The app also holds ${QUICK_CLIPS} short test clips, not listed here.` : ''}
+      </p>
+      {groups.map(([label, list]) => (
+        <div key={label} className="scroll" data-rv style={{ marginBottom: 36 }}>
+          <p className="lab" style={{ marginBottom: 8 }}>{label} · {list.length}</p>
+          <table className="tbl">
+            <thead><tr><th>Call</th><th>Category</th><th>Length</th><th>Recording</th><th>Difficulty</th><th>Speakers</th><th>Transcript errors</th></tr></thead>
+            <tbody>
+              {list.map((c) => (
+                <tr key={c.id}>
+                  <td>{c.label}</td>
+                  <td className="k">{CATEGORY_LABEL[c.category] || c.category}</td>
+                  <td className="k">{Math.round(c.seconds)}s</td>
+                  <td className="k">{c.measured ? c.measured.condition.replace(/_/g, ' ') : '—'}</td>
+                  <td className="k">{c.measured ? c.measured.difficulty : '—'}</td>
+                  <td className="k">{c.measured ? c.measured.speakers : '—'}</td>
+                  <td className="k">{c.measured ? `${c.measured.wer}%` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+      <p className="note" data-rv>Transcript errors are the word error rate of the speech-to-text output against the script each call was generated from. The voices are synthetic; the noise, phone-line and overlap effects are mixed in on purpose.</p>
+    </section>
+  );
+}
+
 export default function LandingHome() {
   const nav = useNavigate();
   const root = useRef(null);
@@ -401,6 +441,7 @@ export default function LandingHome() {
       <Accuracy />
       <Compare />
       <Analysis />
+      <DemoCalls />
 
       <section className="band">
         <p>Run it on a call of your own.</p>

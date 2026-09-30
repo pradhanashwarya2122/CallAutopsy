@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import { getWorkspaceId, isValidWorkspaceId, switchWorkspace } from '../lib/workspace';
 import { useLiveCallFeed } from '../hooks/useLiveCallFeed';
+import { useSampleLibrary } from '../hooks/useSampleLibrary';
 import { ClipboardIcon, WaveformIcon } from '../components/Icons';
 import { Skeleton } from '../components/Skeleton';
 import CallAnalysisPanels, { Turns } from '../components/CallAnalysis.jsx';
+import { CATEGORY_LABEL, GROUP_LABEL } from '../lib/sampleGroups';
 import '../styles/dashboard.css';
 
 const NAV = [
@@ -339,16 +341,10 @@ function Recorder({ disabled, onRecorded, onError }) {
   );
 }
 
-const CATEGORY_LABEL = {
-  healthy: 'Healthy baseline', noisy: 'Noisy audio', mumbled: 'Unclear speech', long: 'Long conversation', multi_intent: 'Multi-intent',
-  clear: 'Clean baseline', hesitant: 'Hesitant speech', noisy_slow: 'Slow + noisy', interruptions: 'Interruptions',
-  telephone: 'Phone quality', cafe: 'Café noise', corrections: 'Self-corrections', ambiguity: 'Ambiguity', maximum: 'Maximum stress',
-};
-const GROUP_LABEL = [['core', 'Core scenarios'], ['stress', 'Stress tests'], ['quick', 'Quick clips']];
 const prettyIntent = (x) => String(x || '').replace(/_/g, ' ');
 
 // One dropdown for all demo calls. Choosing one shows what it is designed to stress; Analyze runs it through the real pipeline.
-function DemoPicker({ samples, busy, onRun }) {
+function DemoPicker({ samples, error, onRetry, busy, onRun }) {
   const [selectedId, setSelectedId] = useState('');
   const [previewing, setPreviewing] = useState(false);
   const audio = useRef(null);
@@ -381,6 +377,7 @@ function DemoPicker({ samples, busy, onRun }) {
   };
 
   if (samples === null) return <Skeleton className="h-10 w-full" />;
+  if (error) return <p className="ap-sub" role="alert" style={{ fontSize: 12, margin: 0 }}>{error} <button type="button" className="ap-btn ghost" onClick={onRetry}>Try again</button></p>;
   if (samples.length === 0) return <p className="ap-sub" style={{ fontSize: 12, margin: 0 }}>No demo calls on this server. Record or upload one instead.</p>;
 
   const optionText = (s) => `${s.label}${s.duration_s ? ` (${Math.round(s.duration_s)}s)` : ''}`;
@@ -487,14 +484,14 @@ function FaultFold({ value, onChange }) {
   );
 }
 
-function AnalyzePanel({ samples, summary, busy, notice, fault, onFault, onFile, onSample, onNotice }) {
+function AnalyzePanel({ samples, samplesError, onRetrySamples, summary, busy, notice, fault, onFault, onFile, onSample, onNotice }) {
   const maxBytes = summary?.max_upload_bytes || 5 * 1024 * 1024;
   const reject = (msg) => onNotice({ tone: 'err', msg });
   return (
     <section className="ap-panel">
       <h2 className="ap-h">Analyze a call</h2>
       <p className="ap-step">Pick a demo call</p>
-      <DemoPicker samples={samples} busy={busy} onRun={onSample} />
+      <DemoPicker samples={samples} error={samplesError} onRetry={onRetrySamples} busy={busy} onRun={onSample} />
       <div className="ap-or">or record your own</div>
       <Recorder disabled={busy} onRecorded={(f) => onFile(f, 'recording')} onError={reject} />
       <div className="ap-or">or upload a file</div>
@@ -916,7 +913,7 @@ function humanize(ev) {
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [cases, setCases] = useState(null);
-  const [samples, setSamples] = useState(null);
+  const { samples, error: samplesError, reload: reloadSamples } = useSampleLibrary();
   const [loadError, setLoadError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -944,7 +941,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     refresh();
-    api.sampleList().then(setSamples).catch(() => setSamples([]));
   }, [refresh]);
 
   // The socket does the real work; this is only a safety net (and the main path when the socket is down).
@@ -1050,6 +1046,8 @@ export default function Dashboard() {
         <div className="ap-left">
           <AnalyzePanel
             samples={samples}
+            samplesError={samplesError}
+            onRetrySamples={reloadSamples}
             summary={summary}
             busy={busy}
             notice={notice}

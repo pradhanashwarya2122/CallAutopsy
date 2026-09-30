@@ -60,39 +60,50 @@ calibrationRouter.get('/calibration', async (_req, res) => {
   }
   const perLabelStats = Object.fromEntries(
     Object.entries(perLabel).map(([label, m]) => {
-      const precision = m.tp + m.fp === 0 ? 0 : m.tp / (m.tp + m.fp);
-      const recall = m.tp + m.fn === 0 ? 0 : m.tp / (m.tp + m.fn);
+      // null, not 0: a label that was never predicted (or never injected) has no precision (or recall) to report
+      const precision = m.tp + m.fp === 0 ? null : m.tp / (m.tp + m.fp);
+      const recall = m.tp + m.fn === 0 ? null : m.tp / (m.tp + m.fn);
       return [label, { ...m, precision, recall }];
     }),
   );
   res.json({ total, faultRuns, cleanRuns: total - faultRuns, correct, accuracy: total ? correct / total : 0, confusionMatrix: rows, perLabel: perLabelStats, running: running.has(ws) });
 });
 
-// Builds calibration data in one click: every fault type once on the chosen demo call, plus one clean run.
+// Builds calibration data in one click: every fault type once on each chosen demo call, plus one clean run per call.
+// One call gives a single data point per label, so up to CALIBRATION_MAX_CALLS calls can be chosen for a sturdier sample.
+export const CALIBRATION_MAX_CALLS = 3;
 const running = new Set<string>();
 calibrationRouter.post('/calibration/run', async (req, res) => {
   const ws: string = res.locals.workspaceId;
-  const sampleId = String(req.body?.sampleId ?? '');
-  const sample = await readSample(sampleId);
-  if (!sample) return res.status(404).json({ error: 'unknown_sample', message: 'That demo call does not exist.' });
+  const raw = Array.isArray(req.body?.sampleIds) ? req.body.sampleIds : [req.body?.sampleId];
+  const ids = [...new Set(raw.map((x: unknown) => String(x ?? '')))].filter(Boolean) as string[];
+  if (ids.length === 0 || ids.length > CALIBRATION_MAX_CALLS) {
+    return res.status(400).json({ error: 'bad_request', message: `Choose between 1 and ${CALIBRATION_MAX_CALLS} demo calls.` });
+  }
+  const samples = [];
+  for (const id of ids) {
+    const sample = await readSample(id);
+    if (!sample) return res.status(404).json({ error: 'unknown_sample', message: 'That demo call does not exist.' });
+    samples.push({ id, ...sample });
+  }
   // Claimed before any await, so two requests arriving together cannot both start a run.
   if (running.has(ws)) return res.status(409).json({ error: 'already_running', message: 'A calibration run is already in progress.' });
   running.add(ws);
-  const jobs: (FaultType | null)[] = [null, ...ALL_FAULTS];
+  const jobs = samples.flatMap((s) => [null, ...ALL_FAULTS].map((fault) => ({ s, fault: fault as FaultType | null })));
   try {
     if ((await remainingQuota(ws)) < jobs.length) {
       running.delete(ws);
-      return res.status(429).json({ error: 'daily_limit', message: `A calibration run needs ${jobs.length} analyses and you have fewer left today.` });
+      return res.status(429).json({ error: 'daily_limit', message: `This run needs ${jobs.length} analyses and you have fewer left today.` });
     }
     if (!(await budgetGuard()).ok) { running.delete(ws); return res.status(402).json({ error: 'budget_cap', message: 'The demo has hit its spend cap for now.' }); }
   } catch (e) { running.delete(ws); throw e; }
   if (!ipAllows(req, res, jobs.length)) { running.delete(ws); return; }
-  res.json({ started: true, total: jobs.length });
+  res.json({ started: true, total: jobs.length, calls: ids.length });
   (async () => {
     try {
       for (let i = 0; i < jobs.length; i += 3) {
-        await Promise.all(jobs.slice(i, i + 3).map((fault) =>
-          runCall({ audio: sample.buf, inputSource: 'sample', sampleId, faultType: fault, audioExt: sample.ext, ownerId: ws, labelSource: fault === null ? 'control' : undefined })
+        await Promise.all(jobs.slice(i, i + 3).map(({ s, fault }) =>
+          runCall({ audio: s.buf, inputSource: 'sample', sampleId: s.id, faultType: fault, audioExt: s.ext, ownerId: ws, labelSource: fault === null ? 'control' : undefined })
             .catch((e) => console.error('[calibration]', (e as Error).message))));
       }
     } finally {

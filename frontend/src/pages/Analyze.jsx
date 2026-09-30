@@ -2,6 +2,9 @@ import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import PageChrome from '../components/PageChrome';
+import SampleSelect from '../components/SampleSelect';
+import { useSampleLibrary } from '../hooks/useSampleLibrary';
+import { REFERENCE } from '../lib/reference';
 
 /* ============================================================
    ANALYZE — three tabs (Calibration · Blast radius · Hallucination)
@@ -57,13 +60,54 @@ function Spark({ values, color = '#e2372b', h = 44, w = 260 }) {
 /* ============================================================
    1. Calibration
    ============================================================ */
+const fmtPct = (v) => (v == null ? '—' : `${(v * 100).toFixed(0)}%`);
+const usd = (v, dp = 2) => `$${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp })}`;
+const usd6 = (v) => `$${Number(v ?? 0).toFixed(6)}`;
+
+// Measured benchmark shown next to the workspace's own numbers, so an empty workspace still has real values to read.
+function CalibrationReference() {
+  const r = REFERENCE.faults;
+  const rows = r.rows.map((x) => ({ ...x, right: x.predicted.filter((p) => p === x.injected).length }));
+  const deterministic = rows.filter((x) => x.injected !== 'hallucination');
+  const okDet = deterministic.reduce((a, x) => a + x.right, 0);
+  const nDet = deterministic.reduce((a, x) => a + x.predicted.length, 0);
+  return (
+    <div className="pc-section pc-panel">
+      <h3 className="pc-h">Measured reference</h3>
+      <p className="pc-sub" style={{ marginBottom: 12 }}>
+        Each failure type was injected into {r.sample.length} different demo calls through the live pipeline ({REFERENCE.measuredOn}), and the diagnosis was compared with the fault that was injected.
+        {' '}The six rule-based faults were diagnosed correctly {okDet} of {nDet} times.
+        {' '}{REFERENCE.clean.ok} of {REFERENCE.clean.n} healthy demo calls were called healthy
+        {REFERENCE.clean.other.length ? ` (the other one, ${REFERENCE.clean.other.map((o) => `${o.id} → ${o.predicted}`).join(', ')}, is a deliberately noisy clip)` : ''}.
+      </p>
+      <table className="pc-table">
+        <thead><tr><th>Injected</th><th>Diagnosed correctly</th><th>Diagnosed as</th></tr></thead>
+        <tbody>
+          {rows.map((x) => (
+            <tr key={x.injected}>
+              <td className="mono">{x.injected}</td>
+              <td className="mono">{x.right} of {x.predicted.length}</td>
+              <td>{x.predicted.map((p, i) => <span key={i} className={`pc-tag ${p === x.injected ? 'green' : 'red'}`} style={{ marginRight: 6 }}>{p}</span>)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="pc-sub" style={{ marginTop: 12, fontSize: 12 }}>
+        Hallucination is the weak spot: making the model invent things also made two of the three replies slow enough to be called a timeout first (the classifier checks time before content), and one reply was simply not wrong. That verdict depends on the model misbehaving on cue.
+      </p>
+    </div>
+  );
+}
+
 function Calibration() {
   const [data, setData] = useState(null);
   const [trend, setTrend] = useState(null);
   const [mistakes, setMistakes] = useState(null);
   const [error, setError] = useState('');
-  const [samples, setSamples] = useState([]);
+  const { samples: library, error: samplesError, reload: reloadSamples } = useSampleLibrary();
+  const samples = library ?? [];
   const [sampleId, setSampleId] = useState('');
+  const [scope, setScope] = useState('one');
   const [starting, setStarting] = useState(false);
   const [note, setNote] = useState('');
   const timer = useRef(null);
@@ -80,15 +124,17 @@ function Calibration() {
 
   useEffect(() => {
     load();
-    api.samples().then((r) => { const l = r.samples ?? []; setSamples(l); if (l.length) setSampleId(l[0].id); }).catch(() => {});
     return () => clearTimeout(timer.current);
   }, [load]);
+  useEffect(() => { if (samples.length && !sampleId) setSampleId(samples[0].id); }, [samples, sampleId]);
 
+  const coreIds = samples.filter((x) => x.group === 'core').slice(0, 3).map((x) => x.id);
+  const jobs = scope === 'core' ? coreIds.length * 8 : 8;
   const startRun = async () => {
     setStarting(true); setNote('');
     try {
-      const r = await api.calibrationRun(sampleId);
-      setNote(`Running ${r.total} calls in the background (one clean, one per failure type). Results appear below as they finish.`);
+      const r = await api.calibrationRun(scope === 'core' ? coreIds : [sampleId]);
+      setNote(`Running ${r.total} analyses in the background (per call: one clean, one per failure type). Results appear below as they finish.`);
       clearTimeout(timer.current);
       timer.current = setTimeout(load, 2500);
     } catch (e) {
@@ -104,6 +150,7 @@ function Calibration() {
     return m?.n ?? 0;
   };
   const perLabelEntries = data ? Object.entries(data.perLabel) : [];
+  const smallSample = data && data.total > 0 && data.faultRuns < 14;
 
   return (
     <div className="pc-body" style={{ marginTop: 0 }}>
@@ -115,23 +162,29 @@ function Calibration() {
 
       <div className="pc-panel pc-section">
         <p className="pc-h">Generate calibration data</p>
-        <p className="pc-sub" style={{ marginBottom: 10 }}>Runs one clean call and each of the 7 failure types on the demo call you choose (8 analyses, roughly 5 cents).</p>
+        <p className="pc-sub" style={{ marginBottom: 10 }}>
+          Runs one clean call and each of the 7 failure types on the demo call you choose. One call gives a single example per failure type, so percentages stay coarse; three calls give a sturdier sample.
+        </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <select value={sampleId} onChange={(e) => setSampleId(e.target.value)} aria-label="Demo call for calibration" className="pc-input" style={{ minWidth: 260 }}>
-            {samples.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-          </select>
-          <button onClick={startRun} disabled={starting || data?.running || !sampleId} className="pc-btn">
-            {data?.running ? 'Running…' : starting ? 'Starting…' : 'Run calibration'}
+          <div className="pc-chip-row" role="group" aria-label="How many calls" style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className={`pc-chip ${scope === 'one' ? 'on' : ''}`} onClick={() => setScope('one')}>One call · 8 analyses</button>
+            <button type="button" className={`pc-chip ${scope === 'core' ? 'on' : ''}`} onClick={() => setScope('core')} disabled={coreIds.length < 3}>Three core calls · 24 analyses</button>
+          </div>
+          {samplesError && <span className="pc-sub" role="alert" style={{ color: 'var(--red)' }}>{samplesError} <button type="button" className="pc-chip" onClick={reloadSamples}>Try again</button></span>}
+          {scope === 'one' && <SampleSelect samples={samples} value={sampleId} onChange={setSampleId} label="Demo call for calibration" style={{ minWidth: 300 }} />}
+          <button onClick={startRun} disabled={starting || data?.running || (scope === 'one' ? !sampleId : coreIds.length < 3)} className="pc-btn">
+            {data?.running ? 'Running…' : starting ? 'Starting…' : `Run ${jobs} analyses`}
           </button>
         </div>
+        <p className="pc-sub" style={{ marginTop: 8, fontSize: 12 }}>Costs roughly {usd(jobs * 0.004, 2)} and counts against your daily limit.</p>
         {note && <p className="pc-sub" style={{ marginTop: 10 }}>{note}</p>}
       </div>
 
       <div className="pc-grid g3 pc-section">
         <div className="pc-meta-card">
           <p className="k">Overall accuracy</p>
-          <p className="v">{data && data.total ? `${overall.toFixed(1)}%` : '—'}</p>
-          <p className="h">{data ? (data.total ? `${data.correct} correct of ${data.total} calls (${data.faultRuns} with an injected failure, ${data.cleanRuns} clean)` : 'no scored calls yet') : 'loading…'}</p>
+          <p className="v">{data && data.total ? `${overall.toFixed(0)}%` : '—'}</p>
+          <p className="h">{data ? (data.total ? `${data.correct} correct of ${data.total} scored calls (${data.faultRuns} with an injected failure, ${data.cleanRuns} clean)` : 'no scored calls yet — see the measured reference below') : 'loading…'}</p>
         </div>
         <div className="pc-meta-card">
           <p className="k">Accuracy last 24h</p>
@@ -145,56 +198,61 @@ function Calibration() {
           ) : (
             <>
               <p className="v" style={{ color: 'var(--mute)' }}>—</p>
-              <p className="h">no labeled calls last 24h</p>
+              <p className="h">no scored calls in the last 24h</p>
             </>
           )}
         </div>
         <div className="pc-meta-card">
-          <p className="k">Labeled fault mix</p>
+          <p className="k">Injected failures scored</p>
           <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0', fontSize: 13 }}>
             {LABELS.filter((l) => l !== 'ok').map((l) => {
               const row = data ? LABELS.map((c) => cell(l, c) ?? 0).reduce((a, b) => a + b, 0) : 0;
               if (!row) return null;
+              const right = cell(l, l) ?? 0;
               return (
                 <li key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
                   <span className="mono">{l}</span>
-                  <b>{row}</b>
+                  <b>{right} of {row} right</b>
                 </li>
               );
             })}
-            {(!data || !perLabelEntries.length) && <li style={{ color: 'var(--mute)' }}>—</li>}
+            {(!data || !data.faultRuns) && <li style={{ color: 'var(--mute)' }}>—</li>}
           </ul>
         </div>
       </div>
 
+      {smallSample && (
+        <p className="pc-sub" role="note" style={{ marginBottom: 14, color: 'var(--amber, #8a5a00)' }}>
+          Only {data.faultRuns} injected failures are scored so far, so a single call moves a label's percentage by a large step. Read the counts (for example 1 of 1) rather than the percentages, or run the three-call set.
+        </p>
+      )}
+
       <div className="pc-section pc-panel">
         <h3 className="pc-h">Per-label metrics</h3>
         {!data || !perLabelEntries.length ? (
-          <p className="pc-sub">No scored calls yet. Use "Generate calibration data" above, or run demo calls with "Simulate a failure" on the Dashboard.</p>
+          <p className="pc-sub">No scored calls yet. Use "Generate calibration data" above, or run demo calls with "Simulate a failure" on the Dashboard. The measured reference below shows what a full run looks like.</p>
         ) : (
           <table className="pc-table">
             <thead>
-              <tr><th>Label</th><th>TP</th><th>FP</th><th>FN</th><th style={{ width: '30%' }}>Precision</th><th style={{ width: '30%' }}>Recall</th></tr>
+              <tr><th>Label</th><th>Right</th><th>Missed</th><th>Wrongly called</th><th style={{ width: '28%' }}>Precision</th><th style={{ width: '28%' }}>Recall</th></tr>
             </thead>
             <tbody>
               {perLabelEntries.map(([label, m]) => (
                 <tr key={label}>
                   <td className="mono">{label}</td>
-                  <td className="mono">{m.tp}</td>
-                  <td className="mono">{m.fp}</td>
-                  <td className="mono">{m.fn}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="mono" style={{ width: 52 }}>{(m.precision * 100).toFixed(1)}%</span>
-                      <div className="pc-bar" style={{ flex: 1 }}><i style={{ width: `${m.precision * 100}%` }} /></div>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="mono" style={{ width: 52 }}>{(m.recall * 100).toFixed(1)}%</span>
-                      <div className="pc-bar" style={{ flex: 1 }}><i style={{ width: `${m.recall * 100}%` }} /></div>
-                    </div>
-                  </td>
+                  <td className="mono" title="true positives">{m.tp}</td>
+                  <td className="mono" title="false negatives: injected but diagnosed as something else">{m.fn}</td>
+                  <td className="mono" title="false positives: diagnosed as this label when it was something else">{m.fp}</td>
+                  {[['precision', `${m.tp} of ${m.tp + m.fp}`], ['recall', `${m.tp} of ${m.tp + m.fn}`]].map(([k, frac]) => (
+                    <td key={k}>
+                      {m[k] == null ? <span className="mono" style={{ color: 'var(--mute)' }}>— <span style={{ fontSize: 11 }}>{k === 'precision' ? 'never predicted' : 'never injected'}</span></span> : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span className="mono" style={{ width: 92 }}>{fmtPct(m[k])} <span style={{ color: 'var(--mute)', fontSize: 11 }}>({frac})</span></span>
+                          <div className="pc-bar" style={{ flex: 1 }}><i style={{ width: `${m[k] * 100}%` }} /></div>
+                        </div>
+                      )}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
@@ -239,7 +297,7 @@ function Calibration() {
         {!mistakes ? (
           <p className="pc-sub">Loading…</p>
         ) : mistakes.length === 0 ? (
-          <p className="pc-sub">{data && data.total ? 'No mismatches on record.' : 'Nothing to show until you have some calls.'}</p>
+          <p className="pc-sub">{data && data.total ? 'No mismatches on record.' : 'Nothing to show until you have some scored calls.'}</p>
         ) : (
           <table className="pc-table">
             <thead>
@@ -260,6 +318,8 @@ function Calibration() {
           </table>
         )}
       </div>
+
+      <CalibrationReference />
     </div>
   );
 }
@@ -271,122 +331,128 @@ const PRESETS = [100, 1000, 10000, 100000, 1000000];
 
 function BlastRadius() {
   const [volume, setVolume] = useState(10000);
+  const [ratePct, setRatePct] = useState(5);
   const [reductionPct, setReductionPct] = useState(50);
-  const [result, setResult] = useState(null);
-  const [ran, setRan] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [r, setR] = useState(null);
   const [error, setError] = useState('');
 
-  const run = async () => {
-    setLoading(true); setError('');
-    try { setResult(await api.blastRadius(volume)); setRan(true); }
-    catch (e) { setResult(null); setRan(false); setError(e instanceof ApiError ? e.message : 'Could not project. Check your connection and try again.'); }
-    finally { setLoading(false); }
-  };
+  // Recomputed as the inputs change: the maths is a few multiplications on measured costs, so there is nothing to wait for.
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(async () => {
+      try { const res = await api.blastRadius(volume, ratePct); if (live) { setR(res); setError(''); } }
+      catch (e) { if (live) setError(e instanceof ApiError ? e.message : 'Could not project. Check your connection and try again.'); }
+    }, 250);
+    return () => { live = false; clearTimeout(t); };
+  }, [volume, ratePct]);
 
-  const totalMonthly = result?.failedMonthlyCostUsd ?? 0;
-  const savings = totalMonthly * (reductionPct / 100);
-  const maxFaultCost = result?.projection?.length ? Math.max(...result.projection.map((p) => p.projectedMonthlyCostUsd), 1) : 1;
+  const savings = r ? r.monthlyImpactUsd * (reductionPct / 100) : 0;
+  const stageRows = !r ? [] : r.stages.length ? r.stages : (() => {
+    const total = REFERENCE.costStages.reduce((a, x) => a + x.avgCostUsd, 0);
+    return REFERENCE.costStages.map((x) => ({ ...x, share: x.avgCostUsd / total, monthlyUsd: r.monthlyCalls * x.avgCostUsd }));
+  })();
+  const measured = r?.basis === 'your_calls';
 
   return (
     <div className="pc-body" style={{ marginTop: 0 }}>
       <p className="pc-sub" style={{ marginBottom: 18 }}>
-        Project the monthly dollar impact of your observed failure rates at any call volume. Cost math uses real per-call totals.
+        What a failure rate costs at your call volume. You choose the volume and the failure rate; what a call costs and where the money goes is measured on real calls.
+        Your own failure rate is not used: most calls in a workspace are demo calls with failures injected on purpose, which says nothing about real traffic.
       </p>
 
       <div className="pc-panel pc-section">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14, alignItems: 'center' }}>
-          <span className="pc-h" style={{ margin: 0 }}>Preset volumes</span>
+          <span className="pc-h" style={{ margin: 0 }}>Calls per day</span>
           {PRESETS.map((v) => (
-            <button key={v} onClick={() => setVolume(v)} className={`pc-chip ${volume === v ? 'on' : ''}`}>
-              {v.toLocaleString()}/d
-            </button>
+            <button key={v} onClick={() => setVolume(v)} className={`pc-chip ${volume === v ? 'on' : ''}`}>{v.toLocaleString()}</button>
           ))}
+          <input type="number" min={1} max={10000000} value={volume} aria-label="Calls per day"
+            onChange={(e) => setVolume(Math.max(1, Math.min(10000000, Number(e.target.value) || 1)))} className="pc-input" style={{ width: 130, marginLeft: 'auto' }} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
-          <label style={{ flex: 1, minWidth: 240 }}>
-            <span className="pc-sub" style={{ display: 'block', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', marginBottom: 6 }}>Calls per day</span>
-            <input type="range" min={100} max={2_000_000} step={100} value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-              className="pc-range"
-              style={{ '--pct': `${(volume / 2_000_000) * 100}%` }} />
-          </label>
-          <input type="number" value={volume} onChange={(e) => setVolume(Number(e.target.value))}
-            className="pc-input" style={{ width: 140 }} />
-          <button onClick={run} disabled={loading} className="pc-btn">{loading ? 'Projecting…' : 'Project'}</button>
-        </div>
+        <label style={{ display: 'block' }}>
+          <span style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12, color: 'var(--mute)' }}>
+            <span style={{ letterSpacing: '.14em', textTransform: 'uppercase' }}>Assumed failure rate</span>
+            <span className="mono">{ratePct}% of calls</span>
+          </span>
+          <input type="range" min={0.5} max={50} step={0.5} value={ratePct} aria-label="Assumed failure rate percent"
+            onChange={(e) => setRatePct(Number(e.target.value))} className="pc-range" style={{ '--pct': `${((ratePct - 0.5) / 49.5) * 100}%` }} />
+        </label>
       </div>
 
       {error && <p className="pc-sub" role="alert" style={{ color: 'var(--red)' }}>{error}</p>}
-      {ran && result?.projection?.length === 0 && (
-        <div className="pc-panel pc-section">
-          <p className="pc-sub">{result.sampleSize ? `None of your ${result.sampleSize} calls failed, so there is no failure cost to project.` : 'You have no finished calls yet.'} Run demo calls with "Simulate a failure" on the Dashboard, then come back.</p>
-        </div>
-      )}
 
-      {result?.projection?.length > 0 && (
+      {r && (
         <>
           <div className="pc-grid g3 pc-section">
             <div className="pc-meta-card">
-              <p className="k">Projected monthly waste</p>
-              <p className="v">${totalMonthly.toFixed(2)}</p>
-              <p className="h">at {volume.toLocaleString()}/day</p>
+              <p className="k">Monthly spend</p>
+              <p className="v">{usd(r.monthlySpendUsd)}</p>
+              <p className="h">{r.monthlyCalls.toLocaleString()} calls × {usd6(r.avgCallUsd)} per call</p>
             </div>
             <div className="pc-meta-card">
-              <p className="k">Sample size</p>
-              <p className="v">{result.sampleSize}</p>
-              <p className="h">your finished calls</p>
+              <p className="k">Failed calls per month</p>
+              <p className="v">{Math.round(r.monthlyFailures).toLocaleString()}</p>
+              <p className="h">at {r.failureRatePct}%</p>
             </div>
             <div className="pc-meta-card">
-              <p className="k">Worst offender</p>
-              <p className="v" style={{ fontSize: 22 }}>
-                {result.projection.reduce((a, b) => a.projectedMonthlyCostUsd > b.projectedMonthlyCostUsd ? a : b).faultType}
-              </p>
-              <p className="h">${result.projection.reduce((a, b) => a.projectedMonthlyCostUsd > b.projectedMonthlyCostUsd ? a : b).projectedMonthlyCostUsd.toFixed(2)}/mo</p>
+              <p className="k">Money lost to failures</p>
+              <p className="v" style={{ color: 'var(--red)' }}>{usd(r.monthlyImpactUsd)}</p>
+              <p className="h">{usd(r.wastedOnFailuresUsd)} spent on the failed calls + {usd(r.retryCostUsd)} to redo each once</p>
             </div>
           </div>
+
+          <p className="pc-sub" role="note" style={{ margin: '14px 0', fontSize: 12 }}>
+            {measured
+              ? `A healthy call costs the average of your healthy calls with no failure injected. Of your ${r.sampleSize} finished calls, ${r.failedInSample} failed and ${r.injectedInSample} had a failure injected on purpose; a failed call averaged ${usd6(r.avgFailedCallUsd)}.`
+              : `You have no healthy calls of your own yet, so the cost of a healthy call uses the measured average of ${r.reference.n} real demo calls (${usd6(r.reference.avgCallUsd)}, range ${usd6(r.reference.minCallUsd)} to ${usd6(r.reference.maxCallUsd)}). Analyze a few calls and these become your own.`}
+            {' '}A retry is assumed to cost as much as a healthy call. Nothing here counts lost customers or agent time.
+          </p>
 
           <div className="pc-panel pc-section">
-            <h3 className="pc-h">Per fault</h3>
-            <table className="pc-table">
-              <thead>
-                <tr><th>Fault</th><th>Observed rate</th><th>Avg $/call</th><th style={{ width: '35%' }}>Projected monthly</th></tr>
-              </thead>
-              <tbody>
-                {result.projection.map((p) => (
-                  <tr key={p.faultType}>
-                    <td><span className="pc-tag red">{p.faultType}</span></td>
-                    <td className="mono">{(p.observedFailureRate * 100).toFixed(1)}%</td>
-                    <td className="mono">${(p.avgCostPerCallUsd ?? 0).toFixed(6)}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="mono" style={{ width: 90 }}>${p.projectedMonthlyCostUsd.toFixed(2)}</span>
-                        <div className="pc-bar" style={{ flex: 1 }}><i className="red" style={{ width: `${(p.projectedMonthlyCostUsd / maxFaultCost) * 100}%` }} /></div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <h3 className="pc-h">Where each call's money goes</h3>
+            {r.stages.length === 0 && <p className="pc-sub" style={{ marginBottom: 10 }}>You have no healthy calls of your own yet, so this is the measured reference ({REFERENCE.measuredOn}, calls with no failure injected).</p>}
+            {(
 
-          {result.stages?.length > 0 && (
-            <div className="pc-panel pc-section">
-              <h3 className="pc-h">Per-stage cost breakdown</h3>
               <table className="pc-table">
-                <thead><tr><th>Stage</th><th>Provider</th><th>Runs</th><th>Avg $/call</th><th>Projected monthly</th></tr></thead>
+                <thead><tr><th>Stage</th><th>Provider</th><th>Calls measured</th><th>Cost per call</th><th style={{ width: '30%' }}>Share</th><th>At this volume, per month</th></tr></thead>
                 <tbody>
-                  {result.stages.map((s, i) => (
-                    <tr key={i}>
+                  {stageRows.map((s) => (
+                    <tr key={`${s.stage}-${s.provider}`}>
                       <td className="mono" style={{ textTransform: 'uppercase' }}>{s.stage}</td>
                       <td className="mono">{s.provider}</td>
                       <td className="mono">{s.n}</td>
-                      <td className="mono">${(s.avg_cost ?? 0).toFixed(6)}</td>
-                      <td className="mono">${(s.projectedMonthly ?? 0).toFixed(2)}</td>
+                      <td className="mono">{usd6(s.avgCostUsd)}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span className="mono" style={{ width: 40 }}>{Math.round(s.share * 100)}%</span>
+                          <div className="pc-bar" style={{ flex: 1 }}><i style={{ width: `${s.share * 100}%` }} /></div>
+                        </div>
+                      </td>
+                      <td className="mono">{usd(s.monthlyUsd)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+
+          {r.byFault.length > 0 && (
+            <div className="pc-panel pc-section">
+              <h3 className="pc-h">What a failed call cost, by cause (your calls)</h3>
+              <table className="pc-table">
+                <thead><tr><th>Cause</th><th>Failed calls</th><th>Average cost</th><th>Range</th></tr></thead>
+                <tbody>
+                  {r.byFault.map((f) => (
+                    <tr key={f.faultType}>
+                      <td><span className="pc-tag red">{f.faultType}</span></td>
+                      <td className="mono">{f.n}</td>
+                      <td className="mono">{usd6(f.avgCostUsd)}</td>
+                      <td className="mono">{usd6(f.minCostUsd)} – {usd6(f.maxCostUsd)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="pc-sub" style={{ marginTop: 10, fontSize: 12 }}>A failure that stops early (a dropped connection, a hang-up, an exception) spends almost nothing; one that fails late, after the model and the voice have run, spends nearly a full call.</p>
             </div>
           )}
 
@@ -398,13 +464,12 @@ function BlastRadius() {
                   <span style={{ letterSpacing: '.14em', textTransform: 'uppercase' }}>Failure reduction</span>
                   <span className="mono">{reductionPct}%</span>
                 </span>
-                <input type="range" min={0} max={100} step={5} value={reductionPct}
-                  onChange={(e) => setReductionPct(Number(e.target.value))}
-                  className="pc-range" style={{ '--pct': `${reductionPct}%` }} />
+                <input type="range" min={0} max={100} step={5} value={reductionPct} aria-label="Failure reduction percent"
+                  onChange={(e) => setReductionPct(Number(e.target.value))} className="pc-range" style={{ '--pct': `${reductionPct}%` }} />
               </label>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ fontFamily: 'var(--serif)', fontSize: 30, fontWeight: 500, margin: 0, color: 'var(--green)' }}>${savings.toFixed(2)}</p>
-                <p className="pc-sub">estimated monthly savings</p>
+                <p style={{ fontFamily: 'var(--serif)', fontSize: 30, fontWeight: 500, margin: 0, color: 'var(--green)' }}>{usd(savings)}</p>
+                <p className="pc-sub">saved per month · failure rate {(ratePct * (1 - reductionPct / 100)).toFixed(1)}%</p>
               </div>
             </div>
           </div>
@@ -465,7 +530,8 @@ function HallucinationSuite() {
   return (
     <div className="pc-body" style={{ marginTop: 0 }}>
       <p className="pc-sub" style={{ marginBottom: 18 }}>
-        Fixed adversarial prompt set. Each run replays every prompt against the current LLM config and scores responses with a grounding check.
+        Seven questions about things that do not exist (a fictional company, a fictional law, an invented astronaut). A well-behaved assistant declines; one that invents an answer is caught by a second model acting as judge.
+        The rate is a property of the model and the judge, so it moves a little from run to run: read the trend over several runs, not one number. A prompt whose check could not run is shown as not measured and left out of the rate.
       </p>
 
       <div className="pc-panel pc-section">
@@ -551,11 +617,13 @@ function HallucinationSuite() {
                           {(detail.results ?? []).map((r) => (
                             <div key={r.id} className="pc-panel" style={{ padding: 12 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                                {r.hallucinated ? <span className="pc-tag red">HALLUCINATED</span> : <span className="pc-tag green">GROUNDED</span>}
+                                {r.error ? <span className="pc-tag amber">NOT MEASURED</span> : r.hallucinated ? <span className="pc-tag red">INVENTED</span> : <span className="pc-tag green">DECLINED / GROUNDED</span>}
                                 <span className="mono" style={{ color: 'var(--mute)' }}>· {r.id}</span>
                               </div>
-                              <p style={{ marginTop: 6, fontSize: 13 }}>{r.response}</p>
-                              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--mute)', fontStyle: 'italic' }}>{r.reasoning}</p>
+                              {r.prompt && <p style={{ marginTop: 6, fontSize: 13 }}><b>Asked:</b> {r.prompt}</p>}
+                              {r.expected && <p style={{ marginTop: 2, fontSize: 12, color: 'var(--mute)' }}><b>A good answer:</b> {r.expected}</p>}
+                              <p style={{ marginTop: 6, fontSize: 13 }}><b>Replied:</b> {r.response || '—'}</p>
+                              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--mute)', fontStyle: 'italic' }}>{r.error ? 'The check did not run: ' : 'Judge: '}{r.reasoning}</p>
                             </div>
                           ))}
                         </div>

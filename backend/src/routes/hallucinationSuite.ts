@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { runHallucinationSuite, getHistory, getRun, getAggregate } from '../hallucinationSuite/runner.js';
+import { runHallucinationSuite, getHistory, getRun, getAggregate, SuiteUnavailable } from '../hallucinationSuite/runner.js';
 import { requireWorkspace } from '../auth/workspace.js';
 import { budgetGuard } from '../cost/budget.js';
 import { rateLimited } from './calls.js';
@@ -14,7 +14,12 @@ hallucinationRouter.post('/hallucination-suite/run', async (req, res) => {
   if (!(await budgetGuard()).ok) return res.status(402).json({ error: 'budget_cap', message: 'The demo has hit its spend cap for now.' });
   if (rateLimited('hsuite:' + ws, 20000)) return res.status(429).json({ error: 'rate_limited', message: 'Wait a few seconds between suite runs.' });
   if (!ipAllows(req, res, 5)) return;
-  res.json(await runHallucinationSuite(ws));
+  try {
+    res.json(await runHallucinationSuite(ws));
+  } catch (e) {
+    if (e instanceof SuiteUnavailable) return res.status(502).json({ error: 'llm_unreachable', message: e.message });
+    throw e;
+  }
 });
 
 hallucinationRouter.get('/hallucination-suite/history', async (_req, res) => {

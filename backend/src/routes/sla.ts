@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAdmin } from '../auth/adminGuard.js';
 import { query } from '../db/client.js';
 import { requireWorkspace } from '../auth/workspace.js';
+import { SLA as SLA_LIMITS } from '../pipeline/orchestrator.js';
 import { checkSla, getSlaConfig, setSlaConfig } from '../sla/monitor.js';
 
 export const slaRouter = Router();
@@ -9,6 +10,30 @@ export const slaRouter = Router();
 slaRouter.get('/sla', requireWorkspace, async (_req, res) => {
   const ws: string = res.locals.workspaceId;
   res.json({ config: await getSlaConfig(ws), status: await checkSla(ws) });
+});
+
+// Per-stage latency of the workspace's own finished calls (failures injected on purpose are left out: they would distort it) against the stage limits, so a slow stage is visible before it breaches.
+slaRouter.get('/sla/stages', requireWorkspace, async (_req, res) => {
+  const limits: Record<string, number> = { stt: SLA_LIMITS.stt, llm: SLA_LIMITS.llm, tts: SLA_LIMITS.tts };
+  const { rows } = await query(
+    `SELECT s.stage, COUNT(*)::int AS n,
+            percentile_cont(0.5) WITHIN GROUP (ORDER BY s.duration_ms)::float AS p50,
+            percentile_cont(0.95) WITHIN GROUP (ORDER BY s.duration_ms)::float AS p95,
+            MAX(s.duration_ms)::int AS max_ms,
+            COUNT(*) FILTER (WHERE s.status = 'timeout')::int AS timeouts,
+            COUNT(*) FILTER (WHERE s.status = 'error')::int AS errors
+     FROM call_stages s JOIN calls c ON c.id = s.call_id
+     WHERE c.owner_id = $1 AND c.status IN ('completed','failed') AND c.injected_fault IS NULL AND s.stage IN ('stt','llm','tts') AND s.duration_ms IS NOT NULL
+     GROUP BY s.stage`,
+    [res.locals.workspaceId],
+  );
+  const by = new Map((rows as any[]).map((r) => [r.stage, r]));
+  res.json({
+    stages: (['stt', 'llm', 'tts'] as const).map((stage) => {
+      const r = by.get(stage);
+      return { stage, limitMs: limits[stage], n: r?.n ?? 0, p50Ms: r?.p50 ?? null, p95Ms: r?.p95 ?? null, maxMs: r?.max_ms ?? null, timeouts: r?.timeouts ?? 0, errors: r?.errors ?? 0 };
+    }),
+  });
 });
 
 slaRouter.put('/sla', requireWorkspace, async (req, res) => {

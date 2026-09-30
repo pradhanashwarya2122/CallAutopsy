@@ -97,8 +97,10 @@ export const api = {
   calibration: () => j('/calibration'),
   calibrationTrend: () => j('/calibration/trend'),
   calibrationMistakes: () => j('/calibration/mistakes'),
-  calibrationRun: (sampleId: string) => j('/calibration/run', { method: 'POST', body: JSON.stringify({ sampleId }) }),
-  blastRadius: (callsPerDay: number) => j('/blast-radius', { method: 'POST', body: JSON.stringify({ callsPerDay }) }),
+  calibrationRun: (sampleIds: string[]) => j('/calibration/run', { method: 'POST', body: JSON.stringify({ sampleIds }) }),
+  blastRadius: (callsPerDay: number, failureRatePct: number) => j('/blast-radius', { method: 'POST', body: JSON.stringify({ callsPerDay, failureRatePct }) }),
+  slaStages: () => j('/sla/stages'),
+  abList: () => j('/ab-tests'),
   getSla: () => j('/sla'),
   setSla: (maxFailureRatePct: number, windowMinutes: number) =>
     j('/sla', { method: 'PUT', body: JSON.stringify({ maxFailureRatePct, windowMinutes }) }),

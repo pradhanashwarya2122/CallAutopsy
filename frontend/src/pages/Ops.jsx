@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import { useLiveCallFeed } from '../hooks/useLiveCallFeed';
 import PageChrome from '../components/PageChrome';
+import { REFERENCE } from '../lib/reference';
 
 /* ============================================================
    OPS — three tabs (SLA · Self-healing · Queue & chaos)
@@ -36,6 +37,57 @@ function Tabs({ tabs, defaultTab }) {
    1. SLASettings
    ============================================================ */
 const errText = (e, dflt) => (e instanceof ApiError ? e.message : dflt);
+
+
+const STAGE_NAME = { stt: 'Speech-to-text', llm: 'Language model', tts: 'Text-to-speech' };
+const ms = (v) => (v == null ? '—' : `${(v / 1000).toFixed(2)}s`);
+
+// How close each stage runs to its limit. Shows the workspace's own calls, or the measured reference until it has some.
+function StageHealth() {
+  const [rows, setRows] = useState(null);
+  useEffect(() => { api.slaStages().then((r) => setRows(r.stages)).catch(() => setRows([])); }, []);
+  if (!rows) return null;
+  const own = rows.some((r) => r.n > 0);
+  const limit = Object.fromEntries(rows.map((r) => [r.stage, r.limitMs]));
+  const table = own
+    ? rows.filter((r) => r.n > 0).map((r) => ({ key: r.stage, stage: r.stage, provider: null, n: r.n, p50: r.p50Ms, p95: r.p95Ms, max: r.maxMs, limit: r.limitMs, extra: r.timeouts + r.errors }))
+    : REFERENCE.stages.map((r) => ({ key: `${r.stage}-${r.provider}`, stage: r.stage, provider: r.provider, n: r.n, p50: r.p50Ms, p95: r.p95Ms, max: r.maxMs, limit: limit[r.stage] ?? ({ stt: 5000, llm: 8000, tts: 5000 })[r.stage], extra: null }));
+  return (
+    <div className="pc-panel pc-section">
+      <p className="pc-h">Stage latency against its limit</p>
+      <p className="pc-sub" style={{ marginBottom: 12 }}>
+        {own
+          ? 'Measured on your finished calls that had no failure injected (an injected delay would distort it). A stage that runs past its limit is diagnosed as a timeout, so the slowest 5% shows how much headroom each stage has.'
+          : `You have no finished calls without an injected failure yet, so this is the measured reference: healthy demo calls with no failure injected, ${REFERENCE.measuredOn}. Analyze a few calls and it becomes your own.`}
+      </p>
+      <table className="pc-table">
+        <thead><tr><th>Stage</th><th>Calls</th><th>Median</th><th>Slowest 5%</th><th>Slowest</th><th>Limit</th><th style={{ width: '22%' }}>Slowest 5% vs limit</th>{own && <th>Timeouts / errors</th>}</tr></thead>
+        <tbody>
+          {table.map((t) => {
+            const used = t.p95 != null && t.limit ? Math.min(1, t.p95 / t.limit) : 0;
+            return (
+              <tr key={t.key}>
+                <td>{STAGE_NAME[t.stage]}{t.provider && <span className="mono" style={{ color: 'var(--mute)', fontSize: 11 }}> · {t.provider}</span>}</td>
+                <td className="mono">{t.n}</td>
+                <td className="mono">{ms(t.p50)}</td>
+                <td className="mono">{ms(t.p95)}</td>
+                <td className="mono">{ms(t.max)}</td>
+                <td className="mono">{ms(t.limit)}</td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span className="mono" style={{ width: 40 }}>{Math.round(used * 100)}%</span>
+                    <div className="pc-bar" style={{ flex: 1 }}><i className={used > 0.8 ? 'red' : ''} style={{ width: `${used * 100}%` }} /></div>
+                  </div>
+                </td>
+                {own && <td className="mono">{t.extra}</td>}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 function SLASettings() {
   const [pct, setPct] = useState(5);
@@ -84,6 +136,8 @@ function SLASettings() {
           </div>
         </div>
       </div>
+
+      <StageHealth />
 
       <div className="pc-panel pc-section">
         {error && <p className="pc-sub" role="alert" style={{ color: 'var(--red)', marginBottom: 10 }}>{error}</p>}
@@ -155,9 +209,10 @@ function Healing() {
   const [dismissed, setDismissed] = useState(new Set());
   const [threshold, setThreshold] = useState(3);
   const [note, setNote] = useState('');
+  const [recent, setRecent] = useState([]);
 
   const refresh = async () => {
-    try { const r = await api.healing(); setSuggestions(r.suggestions); if (r.threshold) setThreshold(r.threshold); setNote((n) => (n.startsWith('Could not') ? '' : n)); }
+    try { const r = await api.healing(); setSuggestions(r.suggestions); setRecent(r.recent ?? []); if (r.threshold) setThreshold(r.threshold); setNote((n) => (n.startsWith('Could not') ? '' : n)); }
     catch (e) { setSuggestions([]); setNote(errText(e, 'Could not load suggestions.')); }
   };
   useEffect(() => { refresh(); }, []);
@@ -190,6 +245,29 @@ function Healing() {
           <span className="pc-sub">Looks at your failed calls from the last 24 hours, per failure type.</span>
         </div>
         {note && <p className="pc-sub" style={{ marginTop: 10 }}>{note}</p>}
+      </div>
+
+      <div className="pc-panel pc-section">
+        <p className="pc-h">Failures in the last 24 hours</p>
+        {recent.length === 0 ? <p className="pc-sub">None of your calls failed in the last 24 hours, so there is nothing to suggest a fix for.</p> : (
+          <table className="pc-table">
+            <thead><tr><th>Cause</th><th>Failed calls</th><th style={{ width: '40%' }}>Towards {threshold} (the trigger)</th></tr></thead>
+            <tbody>
+              {recent.map((x) => (
+                <tr key={x.fault_type}>
+                  <td><span className="pc-tag red">{x.fault_type}</span></td>
+                  <td className="mono">{x.n}</td>
+                  <td>{x.n >= threshold ? <span className="pc-tag green">ready for a suggestion</span> : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="mono" style={{ width: 40 }}>{x.n}/{threshold}</span>
+                      <div className="pc-bar" style={{ flex: 1 }}><i style={{ width: `${(x.n / threshold) * 100}%` }} /></div>
+                    </div>
+                  )}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {suggestions && suggestions.length > 0 && (

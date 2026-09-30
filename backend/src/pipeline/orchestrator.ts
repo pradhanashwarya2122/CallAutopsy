@@ -45,7 +45,7 @@ export interface RunCallOpts {
   labelSource?: 'control'; // a clean call made on purpose as ground truth "ok" (calibration runs)
 }
 
-const SLA = {
+export const SLA = {
   stt: Number(process.env.STAGE_SLA_STT_MS) || 5000,
   llm: Number(process.env.STAGE_SLA_LLM_MS) || 8000,
   tts: Number(process.env.STAGE_SLA_TTS_MS) || 5000,
