@@ -525,7 +525,7 @@ function StartGuide({ hasCalls, faultOn }) {
     ['Press Analyze, then read the verdict', 'You get the step that failed, the evidence, the time and the cost of each step.', hasCalls],
   ];
   return (
-    <ol className="ap-guide">
+    <ol className="ap-steps">
       {steps.map(([t, d, done], i) => (
         <li key={t} className={done && i > 0 ? 'done' : ''}><span>{i + 1}</span><div><b>{t}</b><em>{d}</em></div></li>
       ))}
