@@ -49,8 +49,9 @@ frontend/.vite/
 
 # Backend runtime storage — per-call audio blobs
 backend/storage/
+# Bundled demo calls (backend/samples/*.wav) ARE committed so a fresh deploy has audio.
+# Ignore locally generated mp3/ogg (e.g. from `npm run seed-samples`).
 backend/samples/*.mp3
-backend/samples/*.wav
 backend/samples/*.ogg
 !backend/samples/README.md
 

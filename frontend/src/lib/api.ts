@@ -1,3 +1,5 @@
+import { getWorkspaceId } from './workspace';
+
 // ---------------------------------------------------------------
 // API base resolution
 //
@@ -26,11 +28,11 @@ function resolveBase(): string {
 
 function resolveWs(): string {
   const fromEnv = import.meta.env.VITE_WS_URL;
-  if (fromEnv) return fromEnv;
-  const base = resolveBase();
-  return base.replace(/^http/, 'ws') + '/ws';
+  const url = fromEnv || resolveBase().replace(/^http/, 'ws') + '/ws';
+  return `${url}${url.includes('?') ? '&' : '?'}ws=${WORKSPACE}`;
 }
 
+const WORKSPACE = getWorkspaceId();
 export const BASE = resolveBase();
 export const WS_URL = resolveWs();
 
@@ -42,6 +44,14 @@ export const connectivity = {
   emit() { this.listeners.forEach((fn) => fn()); },
 };
 
+// A non-2xx answer from the backend. `message` is safe to show to the user.
+export class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 async function j(path: string, init?: RequestInit) {
   const url = BASE + path;
   try {
@@ -50,12 +60,12 @@ async function j(path: string, init?: RequestInit) {
     const res = await fetch(url, {
       ...init,
       signal: ctrl.signal,
-      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+      headers: { 'Content-Type': 'application/json', 'X-Workspace-Id': WORKSPACE, ...(init?.headers || {}) },
     });
     clearTimeout(t);
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`${res.status} ${res.statusText} ${text}`.trim());
+      const body = await res.json().catch(() => null);
+      throw new ApiError(res.status, body?.error ?? `http_${res.status}`, body?.message ?? `${res.status} ${res.statusText}`.trim());
     }
     if (!connectivity.online) {
       connectivity.online = true;
@@ -65,13 +75,15 @@ async function j(path: string, init?: RequestInit) {
     return res.json();
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (connectivity.online) {
+    // A 4xx means the backend answered (e.g. "not found"); only network errors and 5xx mean it is down.
+    const backendAnswered = err instanceof ApiError && err.status < 500;
+    if (!backendAnswered && connectivity.online) {
       connectivity.online = false;
       // Never expose the raw URL to the user — keep it as a mental model.
       connectivity.lastError = `Backend not responding (${msg.slice(0, 80)})`;
       connectivity.emit();
     }
-    console.error('[api]', url, msg);
+    if (!backendAnswered) console.error('[api]', url, msg);
     throw err;
   }
 }
@@ -179,8 +191,8 @@ export const api = {
   status: () => j('/status'),
   statusActivity: () => j('/status/activity'),
   statusProviders: () => j('/status/providers'),
-  pdfUrl: (id: string) => `${BASE}/calls/${id}/export.pdf`,
-  audioUrl: (id: string, kind: 'input' | 'tts') => `${BASE}/calls/${id}/audio/${kind}`,
+  pdfUrl: (id: string) => `${BASE}/calls/${id}/export.pdf?ws=${WORKSPACE}`,
+  audioUrl: (id: string, kind: 'input' | 'tts') => `${BASE}/calls/${id}/audio/${kind}?ws=${WORKSPACE}`,
   samples: () => j('/samples'),
   hallucinationAggregate: async () => {
     try {
@@ -198,134 +210,137 @@ export const api = {
   queueStats: () => j('/queue/stats'),
   queueDLQ: () => j('/queue/dlq'),
 
-  // ---- Adapters for the NEW-FRONTEND dashboard components (JSX files) ----
-  // These reshape backend payloads into the shapes the JSX components expect,
-  // so the components can stay as-is.
+  // ---- Dashboard: per-workspace data. No demo fallbacks; an empty account shows an empty state. ----
 
-  async getDashboardStats() {
-    try {
-      const [status, cost] = await Promise.all([j('/status'), j('/cost/summary').catch(() => ({}))]);
-      const list = await j('/calls').catch(() => ({ calls: [] }));
-      let avgSec = 0;
-      const done = (list.calls ?? []).filter((c: any) => c.ended_at && c.started_at);
-      if (done.length) {
-        const totalMs = done.reduce((s: number, c: any) =>
-          s + (new Date(c.ended_at).getTime() - new Date(c.started_at).getTime()), 0);
-        avgSec = totalMs / done.length / 1000;
-      }
-      const total = status.totalCalls ?? 0;
-      // Backend empty? Show demo numbers so the dashboard doesn't render all zeros.
-      if (total === 0) {
-        const { DEMO_STATS } = await import('./demoFallback.js');
-        return DEMO_STATS;
-      }
-      return {
-        total_calls: total,
-        failures: status.failedCalls ?? 0,
-        failure_rate: status.failureRatePct ?? 0,
-        sla_target_rate: status.sla?.threshold ?? 5,
-        avg_latency_s: avgSec,
-        total_cost_usd: cost.allTimeSpentUsd ?? cost.todaySpentUsd ?? 0,
-      };
-    } catch {
-      const { DEMO_STATS } = await import('./demoFallback.js');
-      return DEMO_STATS;
-    }
+  mySummary: () => j('/me/summary') as Promise<MySummary>,
+
+  async myCalls(limit = 12): Promise<CaseRow[]> {
+    const r = await j(`/calls?limit=${limit}`);
+    return (r.calls ?? []).map((c: any): CaseRow => ({
+      id: c.id,
+      created_at: c.started_at,
+      status: c.status,
+      cause_of_death: c.status === 'failed' ? causeOf(c.predicted_category) ?? 'unknown' : null,
+      stt_provider: c.stt_provider_used ?? null,
+      failover: !!c.stt_failover_occurred,
+      cost_usd: Number(c.total_cost_usd ?? 0),
+      injected_fault: c.injected_fault ?? null,
+      source: c.input_source,
+      sample_id: c.sample_id ?? null,
+    }));
   },
 
-  async listCases({ limit = 8 }: { limit?: number } = {}) {
-    try {
-      const r = await j('/calls');
-      const rows = (r.calls ?? []).slice(0, limit).map((c: any) => ({
-        id: c.id,
-        created_at: c.started_at,
-        cause_of_death: causeOf(c.predicted_category),
-        stt_provider: c.stt_provider_used ?? '—',
-        cost_usd: Number(c.total_cost_usd ?? 0),
-      }));
-      if (rows.length === 0) {
-        const { DEMO_CASES } = await import('./demoFallback.js');
-        return DEMO_CASES.slice(0, limit);
-      }
-      return rows;
-    } catch {
-      const { DEMO_CASES } = await import('./demoFallback.js');
-      return DEMO_CASES.slice(0, limit);
-    }
+  async callDetail(id: string): Promise<CaseDetail> {
+    const r = await j(`/calls/${id}`);
+    const call = r.call ?? {};
+    const stages: StageRow[] = (r.stages ?? []).map((s: any) => ({
+      stage: s.stage,
+      provider: s.provider ?? null,
+      latency_s: (s.duration_ms ?? 0) / 1000,
+      cost_usd: Number(s.cost_usd ?? 0),
+      status: s.status,
+    }));
+    const started = call.started_at ? new Date(call.started_at).getTime() : NaN;
+    const ended = call.ended_at ? new Date(call.ended_at).getTime() : NaN;
+    const finished = call.status === 'completed' || call.status === 'failed' || call.status === 'aborted';
+    return {
+      id: call.id ?? id,
+      created_at: call.started_at,
+      status: call.status,
+      finished,
+      cause_of_death: call.status === 'failed' ? causeOf(call.predicted_category) ?? 'unknown' : null,
+      confidence: call.classifier_confidence == null ? null : Number(call.classifier_confidence),
+      duration_s: Number.isFinite(ended - started) ? (ended - started) / 1000 : null,
+      cost_usd: call.total_cost_usd == null ? stages.reduce((n, s) => n + s.cost_usd, 0) : Number(call.total_cost_usd),
+      transcript: call.redacted_transcript || null,
+      stages,
+      stt_provider: call.stt_provider_used ?? null,
+      failover: !!call.stt_failover_occurred,
+      injected_fault: call.injected_fault ?? null,
+      source: call.input_source,
+      sample_id: call.sample_id ?? null,
+      has_reply_audio: stages.some((s) => s.stage === 'tts' && s.status === 'ok'),
+      autopsy: parseAutopsy(r.autopsy?.report_text),
+    };
   },
 
-  async listSamples() {
-    try {
-      const r = await j('/samples');
-      const rows = (r.samples ?? []).map((s: any) => ({
-        id: s.id,
-        name: s.label ?? s.id,
-        url: `${BASE}/samples/${s.id}`,
-        duration_s: s.duration_s ?? 4,
-      }));
-      if (rows.length === 0) {
-        const { DEMO_SAMPLES } = await import('./demoFallback.js');
-        return DEMO_SAMPLES;
-      }
-      return rows;
-    } catch {
-      const { DEMO_SAMPLES } = await import('./demoFallback.js');
-      return DEMO_SAMPLES;
-    }
+  async sampleList(): Promise<SampleRow[]> {
+    const r = await j('/samples');
+    return (r.samples ?? []).map((s: any) => ({
+      id: s.id,
+      label: s.label ?? s.id,
+      says: s.says ?? null,
+      duration_s: typeof s.duration_s === 'number' ? s.duration_s : null,
+      url: `${BASE}/samples/${encodeURIComponent(s.id)}`,
+    }));
   },
 
-  async getCase(id: string) {
-    try {
-      const r = await j(`/calls/${id}`);
-      const call = r.call ?? {};
-      const stages = (r.stages ?? []).map((s: any) => ({
-        stage: s.stage,
-        provider: s.provider ?? '—',
-        latency_s: (s.duration_ms ?? 0) / 1000,
-        cost_usd: Number(s.cost_usd ?? 0),
-        error: s.status && s.status !== 'ok' ? s.status : undefined,
-      }));
-      if (stages.length === 0) {
-        const { demoDetail } = await import('./demoFallback.js');
-        return demoDetail(id);
-      }
-      const started = call.started_at ? new Date(call.started_at).getTime() : NaN;
-      const ended = call.ended_at ? new Date(call.ended_at).getTime() : NaN;
-      const ttsOk = stages.some((s: any) => s.stage === 'tts' && !s.error);
-      return {
-        id: call.id ?? id,
-        created_at: call.started_at,
-        cause_of_death: causeOf(call.predicted_category),
-        confidence: call.classifier_confidence == null ? undefined : Number(call.classifier_confidence),
-        duration_s: Number.isFinite(ended - started) ? (ended - started) / 1000 : undefined,
-        cost_usd: call.total_cost_usd == null ? undefined : Number(call.total_cost_usd),
-        transcript: call.redacted_transcript ?? undefined,
-        audio_url: ttsOk ? `${BASE}/calls/${id}/audio/tts` : undefined,
-        stages,
-      };
-    } catch {
-      const { demoDetail } = await import('./demoFallback.js');
-      return demoDetail(id);
-    }
-  },
-
-  async submitRecording(blob: Blob, fault: { fault: string; temperature?: number; corruption_pct?: number; delay_ms?: number }) {
+  // Start an analysis from an uploaded/recorded file or a bundled sample. Resolves to the new call id.
+  async analyze(input: { file?: Blob & { name?: string }; sampleId?: string; fault?: FaultChoice }): Promise<{ callId: string }> {
     const fd = new FormData();
-    fd.append('audio', blob, 'recording.webm');
-    fd.append('faultType', fault.fault);
-    const faultParams: any = {};
-    if (fault.fault === 'hallucination') {
-      faultParams.hallucination = { intensity: 'aggressive', temperature: fault.temperature ?? 0.9 };
-    } else if (fault.fault === 'bad_stt') {
-      faultParams.bad_stt = { corruptionPct: fault.corruption_pct ?? 100, stride: 4 };
-    } else if (fault.fault === 'timeout') {
-      faultParams.timeout = { stage: 'llm', extraDelayMs: fault.delay_ms ?? 3000 };
-    } else if (fault.fault === 'tts_glitch') {
-      faultParams.tts_glitch = { truncatePct: 30, injectNulls: true };
+    if (input.file) fd.append('audio', input.file, input.file.name || 'recording.webm');
+    else if (input.sampleId) fd.append('sampleId', input.sampleId);
+    const f = input.fault;
+    if (f && f.type !== 'none') {
+      fd.append('faultType', f.type);
+      fd.append('faultParams', JSON.stringify(faultParamsFor(f)));
     }
-    fd.append('faultParams', JSON.stringify(faultParams));
-    const res = await fetch(BASE + '/calls', { method: 'POST', body: fd });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    const res = await fetch(BASE + '/calls', { method: 'POST', headers: { 'X-Workspace-Id': WORKSPACE }, body: fd });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(res.status, body?.error ?? `http_${res.status}`, body?.message ?? `Upload failed (${res.status}).`);
+    return body;
   },
 };
+
+// ---- Dashboard types + helpers ----
+
+export interface MySummary {
+  total_calls: number; failures: number; in_flight: number; failure_rate: number;
+  avg_latency_s: number; total_cost_usd: number; sla_target_rate: number;
+  daily_used: number; daily_limit: number; max_upload_bytes: number;
+}
+export interface CaseRow {
+  id: string; created_at: string; status: string; cause_of_death: string | null;
+  stt_provider: string | null; failover: boolean; cost_usd: number;
+  injected_fault: string | null; source: string; sample_id: string | null;
+}
+export interface StageRow { stage: 'stt' | 'llm' | 'tts'; provider: string | null; latency_s: number; cost_usd: number; status: string }
+export interface Autopsy { cause?: string; chain?: string; factors?: string; recommendation?: string }
+export interface CaseDetail extends Omit<CaseRow, 'cost_usd'> {
+  finished: boolean; confidence: number | null; duration_s: number | null; cost_usd: number;
+  transcript: string | null; stages: StageRow[]; has_reply_audio: boolean; autopsy: Autopsy | null;
+}
+export interface SampleRow { id: string; label: string; says: string | null; duration_s: number | null; url: string }
+export interface FaultChoice {
+  type: 'none' | 'bad_stt' | 'hallucination' | 'tts_glitch' | 'timeout' | 'user_hangup' | 'network_drop' | 'exception';
+  stage?: 'stt' | 'llm' | 'tts'; corruptionPct?: number; intensity?: 'mild' | 'aggressive'; truncatePct?: number; extraDelayMs?: number;
+}
+
+function faultParamsFor(f: FaultChoice): Record<string, unknown> {
+  switch (f.type) {
+    case 'bad_stt': return { bad_stt: { corruptionPct: f.corruptionPct ?? 60, stride: 4 } };
+    case 'hallucination': return { hallucination: { intensity: f.intensity ?? 'aggressive' } };
+    case 'tts_glitch': return { tts_glitch: { truncatePct: f.truncatePct ?? 30, injectNulls: true } };
+    case 'timeout': return { timeout: { stage: f.stage ?? 'llm', extraDelayMs: f.extraDelayMs ?? 3000 } };
+    case 'user_hangup': return { user_hangup: { stage: f.stage ?? 'stt' } };
+    case 'network_drop': return { network_drop: { stage: f.stage ?? 'stt' } };
+    case 'exception': return { exception: { stage: f.stage ?? 'stt' } };
+    default: return {};
+  }
+}
+
+// The backend writes the postmortem as four "## Heading" sections.
+function parseAutopsy(text: string | null | undefined): Autopsy | null {
+  if (!text) return null;
+  const out: Autopsy = {};
+  for (const chunk of text.split(/^##\s+/m).map((c) => c.trim()).filter(Boolean)) {
+    const [head, ...rest] = chunk.split('\n');
+    const body = rest.join('\n').trim();
+    const h = head.trim().toLowerCase();
+    if (h.startsWith('cause')) out.cause = body;
+    else if (h.startsWith('chain')) out.chain = body;
+    else if (h.startsWith('contributing')) out.factors = body;
+    else if (h.startsWith('recommend')) out.recommendation = body;
+  }
+  return Object.keys(out).length ? out : null;
+}

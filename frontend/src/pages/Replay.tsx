@@ -8,11 +8,20 @@ export function Replay() {
   const { id } = useParams();
   const [data, setData] = useState<any>(null);
   const [step, setStep] = useState(0);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (id) api.getCall(id).then(setData);
+    if (id) api.getCall(id).then(setData).catch(() => setFailed(true));
   }, [id]);
 
+  if (failed && !data) {
+    return (
+      <div>
+        <Link to="/app" className="font-mono text-xs text-neutral-500 hover:text-neutral-900">← Dashboard</Link>
+        <p className="mt-6 text-sm">Could not load this replay. The case may not exist in your workspace.</p>
+      </div>
+    );
+  }
   if (!data) return <Skeleton h={40} />;
   const stages = data.stages ?? [];
   const cur = stages[step];

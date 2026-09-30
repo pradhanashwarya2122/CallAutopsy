@@ -125,8 +125,8 @@ cp .env.example .env
 # edit .env — fill in DEEPGRAM_API_KEY, OPENAI_API_KEY, DATABASE_URL, REDIS_URL
 psql "$DATABASE_URL" -f src/db/schema.sql
 npm run healthcheck      # verifies Postgres + Redis reachable
-npm run seed-samples     # generates 3 demo .mp3 clips via OpenAI TTS
-npm run seed-demo-data   # inserts 60 synthetic calls so every page has content
+# demo calls ship in backend/samples/*.wav (see "Demo audio" below); nothing to seed
+npm run seed-demo-data   # optional: inserts synthetic calls for the Analyze/Ops pages (not shown on your Dashboard)
 npm run dev              # starts backend on :3000
 
 # frontend, in another terminal
@@ -153,10 +153,26 @@ Then I open http://localhost:5173.
 6. Jump to **Calibration**. Confusion matrix + precision/recall bars. "88% accuracy, measured against ground truth, not estimated."
 7. Jump to **Blast radius**. Enter 10,000 calls/day. "At production scale that's $X/month of avoidable spend."
 
+## Demo audio: where it comes from and how to add your own
+
+The Dashboard needs real audio to analyze. Three ways to get it:
+
+1. **Bundled demo calls** (nothing to do). `backend/samples/` ships four short `.wav` recordings (a refund request, a table booking, a weather question, and a noisy line). They appear under "Try a demo call" on the Dashboard with a one-click **Analyze** button.
+2. **Drop in your own.** Drag any `.wav` / `.mp3` / `.m4a` / `.ogg` / `.webm` / `.flac` file (up to 5 MB) onto the Dashboard, or click **Record** and speak. Good sources of realistic test audio: your own voice memos, a real call recording you have the right to use, or public speech datasets such as LibriSpeech and Mozilla Common Voice.
+3. **Generate more.** `npm run generate-samples` (in `backend/`) regenerates the bundled clips with offline TTS (needs `espeak-ng` and `ffmpeg`); add a line to `scripts/generate-samples.sh` for new ones. `npm run seed-samples` instead makes natural-sounding `.mp3` clips with OpenAI TTS (needs `OPENAI_API_KEY`; git-ignored).
+
+The Dashboard's **Simulate a failure** section deliberately breaks one analysis (garbled audio, invented facts, a cut-off reply, a slow stage, ...) so you can watch it get diagnosed. It is off by default and switches itself off after one use.
+
+## Your data is per-browser
+
+There are no accounts. The first time you open the Dashboard your browser generates a random **workspace key** (a UUID kept in `localStorage`) and sends it with every request. Calls, audio, PDFs and live WebSocket events are all scoped to it, so one visitor never sees another's calls. Click **My workspace** in the top bar to copy your key, open the same workspace on another device, or start fresh.
+
+This is isolation, not authentication: the key is a bearer secret. Anyone who has it can see that workspace, and clearing site data loses it if you did not save it. Each workspace is limited to 25 analyses per rolling 24 hours (`MAX_CALLS_PER_WORKSPACE_PER_DAY`) and 5 MB per upload (`MAX_UPLOAD_BYTES`). The Analyze, A/B and Ops pages still show system-wide data.
+
 ## What's deliberately out of scope
 
 - Multi-turn conversation. Every call is single-turn — voice in, voice out. Adding conversation history would double the surface area without changing what the tool is actually about.
-- Authentication. This is a demo. Every endpoint is open. If I were shipping this for real, I'd put it behind Cloudflare Access or wrap every route in a bearer-token middleware.
+- Real authentication. Dashboard data is isolated per browser (see "Your data is per-browser"), but there are no logins, and the admin/chaos/outage and Analyze/A/B/Ops endpoints are still open. For a real launch I'd add accounts (or Cloudflare Access) and an admin token.
 - Metrics scraping. The observability story here is per-call rows in Postgres + on-demand SQL, not a Prometheus histogram. Different tool for a different job.
 
 ## What I'd add next

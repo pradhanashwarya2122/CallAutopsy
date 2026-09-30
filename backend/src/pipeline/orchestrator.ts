@@ -36,6 +36,7 @@ export interface RunCallOpts {
   audioExt?: string;
   config?: { llmModel?: string; preferredSttProvider?: 'deepgram' | 'whisper' };
   abRunId?: string;
+  ownerId?: string;
 }
 
 const SLA = {
@@ -84,18 +85,20 @@ function throwForStage(faultType: FaultType | null, params: FaultParams | undefi
 export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
   const callId = opts.callId ?? randomUUID();
   const startedAt = new Date();
+  // Owned calls broadcast only to their owner's sockets; system calls (chaos/A-B) go to everyone.
+  const emit = (event: any) => broadcast(event, opts.ownerId);
 
   if (opts.callId) {
     await query(`UPDATE calls SET status='in_progress', started_at=$2 WHERE id=$1`, [callId, startedAt]);
   } else {
     await query(
-      `INSERT INTO calls (id, started_at, status, input_source, sample_id, injected_fault, ab_run_id)
-       VALUES ($1,$2,'in_progress',$3,$4,$5,$6)`,
-      [callId, startedAt, opts.inputSource, opts.sampleId ?? null, opts.faultType ?? null, opts.abRunId ?? null],
+      `INSERT INTO calls (id, started_at, status, input_source, sample_id, injected_fault, ab_run_id, owner_id)
+       VALUES ($1,$2,'in_progress',$3,$4,$5,$6,$7)`,
+      [callId, startedAt, opts.inputSource, opts.sampleId ?? null, opts.faultType ?? null, opts.abRunId ?? null, opts.ownerId ?? null],
     );
   }
   saveInputAudio(callId, opts.audio, opts.audioExt ?? 'bin').catch(() => {});
-  broadcast({ type: 'call.started', callId, faultType: opts.faultType, inputSource: opts.inputSource });
+  emit({ type: 'call.started', callId, faultType: opts.faultType, inputSource: opts.inputSource });
 
   const stages: StageRecord[] = [];
   let sttResult: SttOutcome | null = null;
@@ -144,7 +147,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
         const endedAtStage = new Date();
         await insertStage(callId, 'stt', null, startedAtStage, endedAtStage, status, { error: (e as Error).message }, 0);
         stages.push({ stage: 'stt', durationMs: endedAtStage.getTime() - startedAtStage.getTime(), status, errorType: exceptionType });
-        broadcast({ type: 'call.stage', callId, stage: 'stt', status });
+        emit({ type: 'call.stage', callId, stage: 'stt', status });
         throw e;
       }
       const endedAtStage = new Date();
@@ -154,7 +157,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
         { ...sttResult.rawMeta, failoverOccurred: sttResult.failoverOccurred, transcript_len: sttResult.transcript.length },
         cost);
       stages.push({ stage: 'stt', durationMs: endedAtStage.getTime() - startedAtStage.getTime(), status });
-      broadcast({ type: 'call.stage', callId, stage: 'stt', status, provider: sttResult.provider });
+      emit({ type: 'call.stage', callId, stage: 'stt', status, provider: sttResult.provider });
     }
 
     // LLM
@@ -190,7 +193,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
         const endedAtStage = new Date();
         await insertStage(callId, 'llm', 'openai', startedAtStage, endedAtStage, status, { error: (e as Error).message }, 0);
         stages.push({ stage: 'llm', durationMs: endedAtStage.getTime() - startedAtStage.getTime(), status, errorType: exceptionType });
-        broadcast({ type: 'call.stage', callId, stage: 'llm', status });
+        emit({ type: 'call.stage', callId, stage: 'llm', status });
         throw e;
       }
       const endedAtStage = new Date();
@@ -198,7 +201,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
       totalCost += cost;
       await insertStage(callId, 'llm', 'openai', startedAtStage, endedAtStage, status, llmMeta, cost);
       stages.push({ stage: 'llm', durationMs: endedAtStage.getTime() - startedAtStage.getTime(), status });
-      broadcast({ type: 'call.stage', callId, stage: 'llm', status });
+      emit({ type: 'call.stage', callId, stage: 'llm', status });
 
       const shouldCheck = faultType === 'hallucination';
       if (shouldCheck && llmText.length > 40) {
@@ -236,7 +239,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
         const endedAtStage = new Date();
         await insertStage(callId, 'tts', 'openai', startedAtStage, endedAtStage, status, { error: (e as Error).message }, 0);
         stages.push({ stage: 'tts', durationMs: endedAtStage.getTime() - startedAtStage.getTime(), status, errorType: exceptionType });
-        broadcast({ type: 'call.stage', callId, stage: 'tts', status });
+        emit({ type: 'call.stage', callId, stage: 'tts', status });
         throw e;
       }
       const endedAtStage = new Date();
@@ -246,7 +249,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
         model: ttsResult.model, charCount: ttsResult.charCount, bytes: ttsResult.bytes,
       }, cost);
       stages.push({ stage: 'tts', durationMs: endedAtStage.getTime() - startedAtStage.getTime(), status });
-      broadcast({ type: 'call.stage', callId, stage: 'tts', status });
+      emit({ type: 'call.stage', callId, stage: 'tts', status });
       saveTtsAudio(callId, ttsResult.audio).catch(() => {});
     }
   } catch (err) {
@@ -283,7 +286,7 @@ export async function runCall(opts: RunCallOpts): Promise<{ callId: string }> {
   );
 
   addSessionSpend(totalCost);
-  broadcast({
+  emit({
     type: 'call.completed', callId, status: overallStatus, category: classification.category,
     faultType, totalCost, ttsAvailable: !!ttsResult,
   });

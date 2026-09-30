@@ -1,16 +1,20 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
+import { isWorkspaceId } from '../auth/workspace.js';
 
 let wss: WebSocketServer | null = null;
+const socketOwner = new WeakMap<WebSocket, string>();
 
-// WebSocket is mounted at /ws. Cross-origin is accepted implicitly (the `ws`
-// library does not enforce Origin checks by default), which matches our
-// permissive CORS policy for the REST API. If you tighten this later, add an
-// Origin allow-list in verifyClient.
+// WebSocket is mounted at /ws. Browsers cannot set headers on a WebSocket, so the
+// client identifies its workspace with ?ws=<uuid>. Events for a call are delivered
+// only to sockets of that call's owner; ownerless (system) events go to everyone.
 export function attachWebSocket(server: Server) {
   wss = new WebSocketServer({ server, path: '/ws', perMessageDeflate: false });
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws, req) => {
+    const ws_id = new URL(req.url ?? '', 'http://localhost').searchParams.get('ws');
+    if (isWorkspaceId(ws_id)) socketOwner.set(ws, ws_id.toLowerCase());
+
     ws.send(JSON.stringify({ type: 'hello', ts: Date.now() }));
 
     // Keep intermediaries from killing idle connections (Cloudflare / Railway
@@ -26,12 +30,12 @@ export function attachWebSocket(server: Server) {
   });
 }
 
-export function broadcast(event: any) {
+export function broadcast(event: any, ownerId?: string | null) {
   if (!wss) return;
-  const payload = JSON.stringify(event);
+  const payload = JSON.stringify(ownerId ? { ...event, owned: true } : event);
   wss.clients.forEach((c) => {
-    if (c.readyState === WebSocket.OPEN) {
-      try { c.send(payload); } catch {}
-    }
+    if (c.readyState !== WebSocket.OPEN) return;
+    if (ownerId && socketOwner.get(c) !== ownerId.toLowerCase()) return;
+    try { c.send(payload); } catch {}
   });
 }

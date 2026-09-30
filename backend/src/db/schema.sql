@@ -104,3 +104,8 @@ CREATE TABLE IF NOT EXISTS user_presets (
 INSERT INTO sla_config (id, max_failure_rate_pct, window_minutes)
 VALUES (1, 5, 60)
 ON CONFLICT (id) DO NOTHING;
+
+-- Per-user data isolation: every user-created call is stamped with the browser's workspace id.
+-- NULL owner = system-generated (chaos / A-B / seeded demo).
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS owner_id UUID;
+CREATE INDEX IF NOT EXISTS idx_calls_owner_started ON calls (owner_id, started_at DESC);

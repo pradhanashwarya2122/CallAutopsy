@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, ApiError } from '../lib/api';
 import { CauseOfDeathTag } from '../components/CauseOfDeathTag';
 import { StageTimeline } from '../components/StageTimeline';
 import { Skeleton, TableSkeleton } from '../components/Skeleton';
@@ -33,6 +33,7 @@ function StructuredReport({ text }: { text: string }) {
 export function CallDetail() {
   const { id } = useParams();
   const [data, setData] = useState<any>(null);
+  const [missing, setMissing] = useState(false);
   const [autoPlayed, setAutoPlayed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -41,7 +42,10 @@ export function CallDetail() {
     const load = async () => {
       try {
         setData(await api.getCall(id));
-      } catch {}
+        setMissing(false);
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) setMissing(true);
+      }
     };
     load();
     const t = setInterval(load, 3000);
@@ -58,6 +62,14 @@ export function CallDetail() {
     }
   }, [data, autoPlayed]);
 
+  if (missing && !data)
+    return (
+      <div>
+        <Link to="/app" className="font-mono text-xs text-neutral-500 hover:text-neutral-900">← Dashboard</Link>
+        <p className="mt-6 text-sm">Case not found. It may belong to a different workspace, or it no longer exists.</p>
+      </div>
+    );
+
   if (!data)
     return (
       <div className="space-y-4">
@@ -73,7 +85,7 @@ export function CallDetail() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
-        <Link to="/" className="font-mono text-xs text-neutral-500 hover:text-neutral-900">
+        <Link to="/app" className="font-mono text-xs text-neutral-500 hover:text-neutral-900">
           ← Dashboard
         </Link>
         <Link
