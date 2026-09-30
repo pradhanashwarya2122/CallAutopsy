@@ -114,3 +114,7 @@ export const FACTS = {
     tone: 'Animated delivery (voice only, low confidence). The words show no clear emotion.',
   },
 };
+
+// The 19 demo calls (15 recorded + 4 short clips) as they ran through the live pipeline on 2026-09-30
+// (backend/bench/results/regression-live.json): [call, diagnosis, STT provider, seconds start to finish, cost in USD].
+export const RECORDED = [["call-1", "ok", "deepgram", 6.8, 0.00313], ["call-2", "ok", "deepgram", 12.6, 0.00282], ["call-3", "ok", "deepgram", 6.6, 0.00404], ["call-4", "ok", "deepgram", 8.1, 0.00589], ["call-5", "ok", "deepgram", 12.6, 0.00447], ["stress-01", "ok", "deepgram", 6.5, 0.00334], ["stress-02", "ok", "deepgram", 6.6, 0.0045], ["stress-03", "ok", "deepgram", 6.6, 0.00487], ["stress-04", "ok", "deepgram", 6.6, 0.0038], ["stress-05", "ok", "deepgram", 6.6, 0.00477], ["stress-06", "ok", "deepgram", 6.7, 0.00481], ["stress-07", "ok", "deepgram", 8.2, 0.00554], ["stress-08", "ok", "deepgram", 6.6, 0.00434], ["stress-09", "ok", "deepgram", 8.1, 0.00625], ["stress-10", "ok", "deepgram", 8.2, 0.00674], ["refund-request", "ok", "deepgram", 5.1, 0.00277], ["book-table", "ok", "deepgram", 5, 0.00151], ["weather-today", "ok", "deepgram", 3.5, 0.00206], ["noisy-line", "bad_stt", "deepgram", 5, 0.00182]];
