@@ -295,6 +295,10 @@ export const DEMO_CALLS = [
     "level": 1,
     "speaker": null,
     "environment": null,
+    "tags": [],
+    "summary": "Clear duplicate-charge refund request. One intent, no noise.",
+    "challenge": "Healthy baseline: clear speech, complete sentences, one intent, no background noise.",
+    "says": "Hi, I'm calling because I was charged twice for the same order. It's order 4 8 2 1 3, and I was charged forty-seven dollars and ninety-nine cents both times. Could you please check the transaction and refund the duplicate charge?",
     "seconds": 15.4,
     "measured": {
       "wer": 0,
@@ -312,6 +316,10 @@ export const DEMO_CALLS = [
     "level": 2,
     "speaker": null,
     "environment": null,
+    "tags": [],
+    "summary": "Payment deducted but order still pending, from a busy café with traffic outside.",
+    "challenge": "Environmental degradation: speech is clear but sits over café chatter, traffic and clatter, with uneven volume.",
+    "says": "Hey, I'm calling about my payment. The money was deducted, about sixty-two dollars, but my order still says pending. It's order 7 3 9 0 5. Can you help me with this?",
     "seconds": 11,
     "measured": {
       "wer": 18.5,
@@ -329,6 +337,10 @@ export const DEMO_CALLS = [
     "level": 3,
     "speaker": null,
     "environment": null,
+    "tags": [],
+    "summary": "Confused customer who thinks they were charged twice but is not sure.",
+    "challenge": "Speaking style: fillers, restarts, pauses, uncertainty and a self-corrected amount, quietly spoken.",
+    "says": "Uh, yeah, so... basically, I paid for the order yesterday, but... um, I think the payment went through twice? Maybe. I'm not... I'm not completely sure what happened. Wait, let me check. It says forty... no, forty-eight something? I believe. I just don't want to pay twice.",
     "seconds": 17.5,
     "measured": {
       "wer": 15.6,
@@ -346,6 +358,10 @@ export const DEMO_CALLS = [
     "level": 4,
     "speaker": null,
     "environment": null,
+    "tags": [],
+    "summary": "Failed payment, retry, a possible double charge, a wrong amount and a wrong order number, all corrected mid-call.",
+    "challenge": "Context over time: details spread across the call, corrected amount and order number, repetition, a prior support contact and a final request.",
+    "says": "Hi, I placed an order five days ago, and the payment failed the first time, so I tried again. But my banking app shows I was charged twice, forty-three fifty each. Actually, wait... let me check that. Sorry, I gave you the wrong amount. It's fifty-three forty each. The order number is 6 1 8 4 2. No, sorry, 6 1 8 2 4. I contacted support last week and nothing happened, and the order still says processing. Did you get all that? Please look into the duplicate charge, and refund it if it's real.",
     "seconds": 32.1,
     "measured": {
       "wer": 9.2,
@@ -363,6 +379,10 @@ export const DEMO_CALLS = [
     "level": 5,
     "speaker": null,
     "environment": null,
+    "tags": [],
+    "summary": "Duplicate charge, an ambiguous failed/pending first payment, a missing order and an unknown fee, from a frustrated customer.",
+    "challenge": "Reasoning load: six related intents, conflicting payment state (failed vs pending), unclear which charge matches which attempt, and an unrecognised fee.",
+    "says": "Okay, I was charged twice. That's the part I don't understand. I thought the first payment failed, so I tried again, and the second one went through. But my banking app shows the first one as pending. So did it fail or not? And the order, 9 2 6 7 1, still hasn't arrived, and there's another fee I don't recognize, eight fifty. I just want to know what actually happened, and get the extra money back.",
     "seconds": 20.6,
     "measured": {
       "wer": 16.4,
@@ -380,6 +400,14 @@ export const DEMO_CALLS = [
     "level": 1,
     "speaker": "Young adult male · fast · calm",
     "environment": "Clean studio-like recording, close microphone",
+    "tags": [
+      "Fast speech",
+      "Single intent",
+      "No noise"
+    ],
+    "summary": "Cancelled subscription still billed. One simple request, fast but very clear.",
+    "challenge": "A second clean baseline with a different voice: should transcribe almost perfectly and read as a single, simple intent.",
+    "says": "Hi there. I'm calling because I was billed for a premium subscription that I cancelled last month. The reference on the invoice is 3 1 0 7 4, and the charge was nineteen dollars ninety-nine. Could you please refund it?",
     "seconds": 12.9,
     "measured": {
       "wer": 2.9,
@@ -397,6 +425,16 @@ export const DEMO_CALLS = [
     "level": 3,
     "speaker": "Middle-aged female · slow · hesitant, embarrassed",
     "environment": "Quiet indoor room, audible breathing",
+    "tags": [
+      "Fillers (um/uh)",
+      "Long pause",
+      "Sentence restart",
+      "Self-correction",
+      "Forgets then recalls order number"
+    ],
+    "summary": "Missing order. She forgets the order number, pauses to find it, and corrects the delivery day.",
+    "challenge": "Hesitation, a 3-second pause before a number, a restarted sentence and a corrected date (Tuesday to Wednesday). Tests entity extraction after a pause.",
+    "says": "Um, hi. I'm calling about, uh, an order that hasn't arrived. It was supposed to be here on Tuesday... no, wait, sorry, it was Wednesday. And I was, I was hoping you could... I mean, could you check where it is? The order number is... um... hold on, I had it written down somewhere. Okay, sorry. It's 5 2 9 1 8. Yes, 5 2 9 1 8. Thank you. I'm sorry, I'm terrible with these things.",
     "seconds": 35.1,
     "measured": {
       "wer": 0,
@@ -414,6 +452,16 @@ export const DEMO_CALLS = [
     "level": 3,
     "speaker": "Older adult male · slow, slightly loud · patient",
     "environment": "Living room: distant TV chatter, occasional thumps and clinks",
+    "tags": [
+      "Slow speech",
+      "Distant chatter",
+      "Repeats key detail",
+      "Agent asks to repeat",
+      "Unsure about charge"
+    ],
+    "summary": "A charge he does not recognise. He repeats the amount because he thinks the agent did not catch it.",
+    "challenge": "Slow elderly speech over TV chatter with occasional thumps, deliberate repetition of the amount, and honest uncertainty about who made the purchase.",
+    "says": "Customer: Hello? Yes, hello. There is a charge on my card that I do not recognise.\nCustomer: It is for twenty-nine dollars and ninety-five cents. From some company I cannot read.\nAgent: I'm sorry, could you repeat the amount for me?\nCustomer: Twenty-nine... ninety-five. Twenty-nine dollars, ninety-five cents. Did you get that?\nAgent: Got it, thank you. And when did it appear?\nCustomer: Oh, it was on, let me think, last Friday I believe. I did not buy anything. Maybe it is my grandson, I am not sure.",
     "seconds": 38.1,
     "measured": {
       "wer": 1.3,
@@ -431,6 +479,16 @@ export const DEMO_CALLS = [
     "level": 4,
     "speaker": "Young adult female · fast · impatient",
     "environment": "Open-plan office: subtle background conversation, keyboards, air conditioning",
+    "tags": [
+      "Fast speech",
+      "Talks over the agent",
+      "Agent interrupts",
+      "'Sorry, go ahead'",
+      "Self-correction (49 to 59)"
+    ],
+    "summary": "Payment stuck pending. She talks over the agent, apologises, then cuts in again.",
+    "challenge": "Real speech overlap between two speakers, quick turn-taking, an impatient tone and a corrected amount ($49 to $59) in the middle of an interruption.",
+    "says": "Agent: Thank you for calling support. Before we begin I'll need to verify a few details, starting with—\nCustomer: Yeah, yeah, my order's 8 4 1 6 0, I paid forty-nine dollars... sorry, fifty-nine dollars, and it still says pending.\nAgent: Okay, and can you confirm the name on the—\nCustomer: Sorry, go ahead.\nAgent: I just need the name on the account, please.\nCustomer: It's Jordan Lee. Can we please just fix the payment?\nAgent: Absolutely. Let me look into it now.",
     "seconds": 23.6,
     "measured": {
       "wer": 8.6,
@@ -448,6 +506,15 @@ export const DEMO_CALLS = [
     "level": 3,
     "speaker": "Middle-aged male · calm, clear · tired",
     "environment": "Narrow-band telephone line with static crackle and compression",
+    "tags": [
+      "Telephone quality",
+      "Static/compression",
+      "Transaction number",
+      "Monetary amount"
+    ],
+    "summary": "Incorrect charge: authorised $82 but billed $128.50. Clear speech over a poor phone line.",
+    "challenge": "Telephone band-limiting and crackle can hide digits in the transaction number and the two amounts.",
+    "says": "Good afternoon. I'm calling about an incorrect charge on my account. The transaction number is 7 7 4 0 2 1, and the amount was one hundred twenty-eight dollars fifty. I only authorised eighty-two dollars, so I'd like the difference refunded.",
     "seconds": 21.6,
     "measured": {
       "wer": 3.1,
@@ -465,6 +532,16 @@ export const DEMO_CALLS = [
     "level": 4,
     "speaker": "Young adult female · higher-pitched · rushed, distracted",
     "environment": "Busy café: chatter, cups, espresso hiss, a plate crash mid-sentence",
+    "tags": [
+      "Café noise",
+      "Sudden loud noise",
+      "Repeats a sentence",
+      "Higher voice",
+      "Pending payment"
+    ],
+    "summary": "Payment pending for two days. A loud crash cuts her off and she has to repeat herself.",
+    "challenge": "Continuous café ambience plus one sudden crash that masks part of a sentence, followed by a repeated sentence.",
+    "says": "Hi, sorry, it's really loud in here. I'm calling about a payment that's been pending for two days. It says pending in my banking app but the order still hasn't— sorry, hold on. Sorry. The order still hasn't shipped. I said, the order still hasn't shipped. It's order 6 6 0 3 7, and the amount was thirty-six seventy.",
     "seconds": 26.7,
     "measured": {
       "wer": 0,
@@ -482,6 +559,15 @@ export const DEMO_CALLS = [
     "level": 4,
     "speaker": "Older adult female · soft, slow · calm but confused",
     "environment": "Quiet room with mild echo",
+    "tags": [
+      "Wrong date then corrected",
+      "Wrong amount then corrected",
+      "Forgets order number",
+      "Reverb/echo"
+    ],
+    "summary": "Billing problem. She corrects the date and the amount, forgets the order number, then states everything clearly.",
+    "challenge": "The system must keep the corrected values (14 March, $46.80, order 20759) and drop the first, wrong ones (12th, $48).",
+    "says": "Hello, dear. I think there's a problem with my bill. I was charged on the twelfth of March... oh, no, the fourteenth. Yes, the fourteenth. It was forty-eight dollars... no, sorry, forty-six eighty. That's right, forty-six eighty. And my order number, oh, I've forgotten it. Give me a moment. Yes. It's 2 0 7 5 9. Two, oh, seven, five, nine. That's the one. So the fourteenth, forty-six eighty, order 2 0 7 5 9.",
     "seconds": 40.8,
     "measured": {
       "wer": 4.8,
@@ -499,6 +585,16 @@ export const DEMO_CALLS = [
     "level": 4,
     "speaker": "Adult male · quiet, nervous, uncertain",
     "environment": "Intermittent bumps and horns over faint electronic hiss; uneven microphone distance",
+    "tags": [
+      "Long pauses (2-3 s)",
+      "Nervous",
+      "Failed vs pending unclear",
+      "Intermittent noise",
+      "Broadband hiss"
+    ],
+    "summary": "He is not sure whether his payment failed or is pending, and says so.",
+    "challenge": "A careful system must NOT claim the payment failed or succeeded: the customer never established it. Long pauses and quiet speech add transcription risk.",
+    "says": "Um, hi. So, I made a payment yesterday... And I thought it failed, because it showed an error at first. Actually, I'm not completely sure. Let me check. Okay. On my banking app it just says pending. So, maybe it didn't fail? I don't know. I don't want to pay twice, though. Could you tell me which it is?",
     "seconds": 33.7,
     "measured": {
       "wer": 0,
@@ -516,6 +612,16 @@ export const DEMO_CALLS = [
     "level": 5,
     "speaker": "Adult female · higher-pitched · frustrated but composed",
     "environment": "Street: traffic swells, distant voices, a horn",
+    "tags": [
+      "Frustrated",
+      "Agent interrupted",
+      "Repeats an issue",
+      "Corrects order number",
+      "Four related problems"
+    ],
+    "summary": "Wrong charge, missing order, a possible duplicate payment and an extra fee, revealed one by one.",
+    "challenge": "Multi-intent handling over traffic noise: issues arrive gradually, one is repeated, the order number is corrected (4821 to 4917), and she interrupts the agent once.",
+    "says": "Customer: Hi. I've been charged for something I didn't order, and honestly I'm pretty fed up.\nAgent: I'm sorry to hear that. Let me pull up your account and—\nCustomer: It's twenty-two ninety-nine, it came out on Monday.\nCustomer: And that's not all. My order number is 4821... wait, that's the old one. The current order is 4917, and it never showed up.\nCustomer: I think I was also charged twice for it, because my bank shows two payments.\nCustomer: And there's an extra fee of six dollars that I don't recognise.\nCustomer: Like I said, I was charged for something I didn't order.\nCustomer: I just want the wrong charge reversed and someone to tell me where my order is.",
     "seconds": 42.2,
     "measured": {
       "wer": 3.6,
@@ -533,6 +639,18 @@ export const DEMO_CALLS = [
     "level": 5,
     "speaker": "Middle-aged male · deep, tired · stressed and rushed",
     "environment": "Moving train with announcement, engine rumble and a brake squeal, over a compressed phone line",
+    "tags": [
+      "Moderate noise",
+      "Phone compression",
+      "Interruption + overlap",
+      "Correction",
+      "Contradiction",
+      "Late detail",
+      "Multiple issues"
+    ],
+    "summary": "Missing order, a possible double payment and a refund, from a moving train.",
+    "challenge": "Everything at once: transit noise and a brake squeal, a compressed line, hesitation, an overlap, an interruption, a corrected order number, a contradictory payment status, and a key detail (the card belongs to his wife) revealed last.",
+    "says": "Customer: Yeah, hi... uh, I'm on the train so, sorry if it cuts out.\nCustomer: I ordered a phone case... two phone cases, sorry, three, last week, and it never arrived.\nAgent: I can help with that. Can I get the order number, please?\nCustomer: Yeah, it's, um, 3 8 5 2 0... well, hang on.\nCustomer: Sorry. 3 8 5 2 0. No wait, that's the old one. 3 8 5 0 2.\nAgent: Thanks. I can see a payment of forty-one dollars, and—\nCustomer: And I got charged twice for it, I think.\nCustomer: The, uh, the first payment failed, but then the bank shows both as pending, so... I don't know.\nCustomer: Oh, and I forgot, the card is my wife's card, not mine. Does that matter?\nCustomer: So, yeah, I need to know where the order is and I want the extra payment back.",
     "seconds": 53.1,
     "measured": {
       "wer": 4.1,
@@ -541,6 +659,66 @@ export const DEMO_CALLS = [
       "speakers": 2,
       "intent": "missing_order"
     }
+  },
+  {
+    "id": "refund-request.wav",
+    "label": "Refund request (quick test)",
+    "group": "quick",
+    "category": "healthy",
+    "level": 1,
+    "speaker": null,
+    "environment": null,
+    "tags": [],
+    "summary": "Short clean clip.",
+    "challenge": "Short clean clip for quick tests.",
+    "says": "Hi, I was charged twice on my last invoice and I would like a refund please.",
+    "seconds": 5.5,
+    "measured": null
+  },
+  {
+    "id": "book-table.wav",
+    "label": "Book a table (quick test)",
+    "group": "quick",
+    "category": "healthy",
+    "level": 1,
+    "speaker": null,
+    "environment": null,
+    "tags": [],
+    "summary": "Short clean clip.",
+    "challenge": "Short clean clip for quick tests.",
+    "says": "Book me a table for two at seven pm tonight.",
+    "seconds": 3.1,
+    "measured": null
+  },
+  {
+    "id": "weather-today.wav",
+    "label": "Weather question (quick test)",
+    "group": "quick",
+    "category": "healthy",
+    "level": 1,
+    "speaker": null,
+    "environment": null,
+    "tags": [],
+    "summary": "Short clean clip.",
+    "challenge": "Short clean clip for quick tests.",
+    "says": "What's the weather going to be like today?",
+    "seconds": 2.8,
+    "measured": null
+  },
+  {
+    "id": "noisy-line.wav",
+    "label": "Noisy line (quick test)",
+    "group": "quick",
+    "category": "noisy",
+    "level": 2,
+    "speaker": null,
+    "environment": null,
+    "tags": [],
+    "summary": "Short clip, fast voice over static.",
+    "challenge": "Short noisy clip for quick tests.",
+    "says": "Uh, hi, I need to check my, uh, account balance. (with static)",
+    "seconds": 3.4,
+    "measured": null
   }
 ];
 export const QUICK_CLIPS = 4;

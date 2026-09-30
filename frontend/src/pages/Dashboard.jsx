@@ -382,12 +382,12 @@ function DemoPicker({ samples, error, onRetry, missing, busy, onRun }) {
   };
 
   if (samples === null) return <Skeleton className="h-10 w-full" />;
-  if (error) return <p className="ap-sub" role="alert" style={{ fontSize: 12, margin: 0 }}>{error} <button type="button" className="ap-btn ghost" onClick={onRetry}>Try again</button></p>;
   if (samples.length === 0) return <p className="ap-sub" style={{ fontSize: 12, margin: 0 }}>No demo calls on this server. Record or upload one instead.</p>;
 
   return (
     <>
-      {missing > 0 && <p className="ap-warn" role="status">This server has {missing} fewer demo calls than the app expects (15 recordings). The backend needs redeploying with its latest <code>samples</code> folder.</p>}
+      {error && <p className="ap-warn" role="alert">{error} <button type="button" className="ap-btn ghost" onClick={onRetry}>Try again</button></p>}
+      {missing > 0 && <p className="ap-warn" role="status">{missing} of these recordings are not on your server yet (it runs an older build), so they are served by this website and analysed as uploaded files. Redeploy the backend to run them as built-in demo calls.</p>}
       <div className="ap-tabs" role="tablist" aria-label="Demo call categories">
         {groups.map(([g, label, list]) => (
           <button key={g} type="button" role="tab" aria-selected={tab === g} className={tab === g ? 'on' : ''} onClick={() => { setTab(g); if (!list.some((x) => x.id === selectedId)) setSelectedId(list[0].id); }}>
@@ -1061,7 +1061,17 @@ export default function Dashboard() {
   }, [notice]);
 
   const onFile = useCallback((file, source = 'upload') => startAnalysis({ file, source }), [startAnalysis]);
-  const onSample = useCallback((s) => startAnalysis({ sampleId: s.id }), [startAnalysis]);
+  // A recording the server lacks (older deploy) is fetched from the website and sent as an uploaded file, so it still analyses.
+  const onSample = useCallback(async (s) => {
+    if (!s.bundled) return startAnalysis({ sampleId: s.id });
+    try {
+      const r = await fetch(s.url);
+      if (!r.ok) throw new Error('missing');
+      return startAnalysis({ file: new File([await r.blob()], s.id, { type: 'audio/wav' }), source: 'upload' });
+    } catch {
+      setNotice({ tone: 'err', msg: 'Could not load that recording. Check your connection and try again.' });
+    }
+  }, [startAnalysis]);
 
   const empty = cases !== null && cases.length === 0;
 
