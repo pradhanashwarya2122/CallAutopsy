@@ -1,373 +1,414 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AB, CONFUSION, DETECTORS, FACTS, LIMITS, RUNS } from '../lib/landingData.js';
 
-// Standalone landing page. The dashboard is NOT rendered here.
-// Visitors reach it via the nav CTA, the section CTAs, or the buttons
-// inside the landing.html iframe (which top-navigate to /app).
+// Landing page. Every figure comes from lib/landingData.js and was measured on the real pipeline; nothing here is invented.
+// Every call to action routes to /app.
 
 const NAV = [
-  { id: 'product', label: 'Product' },
-  { id: 'use-cases', label: 'Use Cases' },
-  { id: 'case-studies', label: 'Case Studies' },
-];
-
-const PRODUCT = [
-  { t: 'Diagnose', d: 'Inject a fault (bad STT, hallucination, timeout, TTS glitch, network drop) and see which stage of the voice pipeline died.' },
-  { t: 'Debug', d: 'Per-call detail, failed-stage timeline and latency percentiles show where a call broke and how slow the survivors were.' },
-  { t: 'Reduce costs', d: 'Run the same fault through two configs and compare real cost and failure rate side by side before you ship a change.' },
-];
-
-const USE_CASES = [
-  { t: 'STT bake-off', d: 'Deepgram vs Whisper on the same clip, under the same fault.' },
-  { t: 'LLM cost vs quality', d: 'gpt-4o-mini vs gpt-4o head to head, with failure rate next to cost per call.' },
-  { t: 'Regression check', d: 'Re-run a saved scenario after a config change and confirm nothing got worse.' },
-  { t: 'Resilience testing', d: 'Find out which fault your bot handles worst before your callers do.' },
-];
-
-const STUDIES = [
-  { tag: 'Walkthrough', t: 'Fast and cheap vs premium', d: 'Deepgram with gpt-4o-mini against Whisper with gpt-4o. Run 10 calls per side, read the verdict, decide if the premium stack earns its price.' },
-  { tag: 'Walkthrough', t: 'Hallucination under load', d: 'Force fabricated answers on both configs and compare how often each one fails, and at what cost per call.' },
-  { tag: 'Walkthrough', t: 'Timeout autopsy', d: 'Delay a stage past its deadline and use the cause-of-death timeline to see which stage gave out first.' },
+  { id: 'detection', label: 'Detection' },
+  { id: 'real-run', label: 'A real run' },
+  { id: 'accuracy', label: 'Accuracy' },
+  { id: 'compare', label: 'Compare' },
+  { id: 'analysis', label: 'Analysis' },
 ];
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
-.lp{--paper:#F8F5EF;--line:#e3d9c7;--ink:#141210;--mut:#6b6357;--red:#d0161c;font-family:'Newsreader',Georgia,serif;color:var(--ink);background:var(--paper);min-height:100vh}
+.lp{--paper:#F8F5EF;--tan:#f3ecdc;--line:#e3d9c7;--ink:#141210;--mut:#6b6357;--red:#d0161c;--ok:#2f6b4f;font-family:'Newsreader',Georgia,serif;font-size:18px;line-height:1.5;color:var(--ink);background:var(--paper);min-height:100vh;-webkit-font-smoothing:antialiased}
 .lp *{box-sizing:border-box}
 .lp .mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
-.lp .nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:24px;height:64px;padding:0 clamp(16px,3vw,48px);background:rgba(248,245,239,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
-.lp .brand{display:flex;align-items:baseline;gap:16px;background:none;border:0;padding:0;cursor:pointer;color:var(--ink);font-family:inherit;text-align:left}
-.lp .brand b{font-size:24px;font-weight:700;letter-spacing:-.02em}
-.lp .brand span{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);white-space:nowrap}
-.lp .links{display:flex;align-items:center;gap:28px}
-.lp .links a{font-size:17px;color:var(--ink);text-decoration:none;padding:4px 0;border-bottom:2px solid transparent;transition:border-color .15s,color .15s}
-.lp .links a:hover{color:var(--red);border-color:var(--red)}
-.lp .cta{font-family:'Newsreader',serif;font-size:17px;padding:9px 20px;background:#0d0c0b;color:#fff;border:0;border-radius:3px;cursor:pointer;transition:background .15s,transform .1s}
-.lp .cta:hover{background:var(--red)}
-.lp .cta:active{transform:scale(.985)}
-.lp .cta.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)}
-.lp .cta.ghost:hover{background:var(--ink);color:#fff}
 .lp a:focus-visible,.lp button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
-.lp .sec{padding:72px clamp(16px,6vw,96px);border-top:1px solid var(--line);scroll-margin-top:64px}
-.lp .sec.alt{background:#f3ecdc}
-.lp .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin:0 0 10px}
-.lp h2{font-size:clamp(32px,4vw,46px);font-weight:700;letter-spacing:-.03em;line-height:1.08;margin:0 0 12px}
-.lp .lede{font-size:20px;color:#3b352d;max-width:640px;margin:0 0 36px;line-height:1.4}
-.lp .grid{display:grid;gap:14px}
-.lp .g3{grid-template-columns:repeat(3,1fr)}
-.lp .g4{grid-template-columns:repeat(4,1fr)}
-.lp .card{background:#fbf7ee;border:1px solid var(--line);padding:20px 22px;box-shadow:0 1px 2px rgba(70,50,15,.06),0 10px 24px -16px rgba(70,50,15,.35)}
-.lp .card h3{font-size:24px;font-weight:600;letter-spacing:-.01em;margin:0 0 8px}
-.lp .card p{font-size:17px;line-height:1.45;color:#4a443b;margin:0}
-.lp .card .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin:0 0 10px}
-.lp .num{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--red);margin:0 0 10px}
-.lp .band{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:40px clamp(16px,6vw,96px);background:#0d0c0b;color:#fff}
-.lp .band p{font-size:28px;font-weight:600;letter-spacing:-.02em;margin:0}
-.lp .band .cta{background:#fff;color:#0d0c0b}
-.lp .band .cta:hover{background:var(--red);color:#fff}
-.lp .foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:20px clamp(16px,6vw,96px);font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.04em;color:var(--mut);border-top:1px solid var(--line)}
-@media(max-width:1100px){.lp .brand span{display:none}.lp .g4{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:820px){.lp .links{display:none}.lp .g3,.lp .g4{grid-template-columns:1fr}.lp .sec{padding:48px 20px}}
-@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+.lp .nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:24px;height:60px;padding:0 clamp(16px,4vw,56px);background:rgba(248,245,239,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.lp .brand{display:flex;align-items:baseline;gap:14px;background:none;border:0;padding:0;cursor:pointer;color:var(--ink);font-family:inherit}
+.lp .brand b{font-size:23px;font-weight:700;letter-spacing:-.02em}
+.lp .brand span{font:11px 'IBM Plex Mono',monospace;color:var(--red);letter-spacing:.05em}
+.lp .links{display:flex;align-items:center;gap:26px}
+.lp .links a{font-size:17px;color:var(--ink);text-decoration:none;border-bottom:2px solid transparent;padding:4px 0}
+.lp .links a:hover,.lp .links a.on{color:var(--red);border-color:var(--red)}
+.lp .cta{font:inherit;font-size:17px;padding:10px 22px;background:#0d0c0b;color:#fff;border:1px solid #0d0c0b;border-radius:2px;cursor:pointer;text-decoration:none;display:inline-block;transition:background .15s}
+.lp .cta:hover{background:var(--red);border-color:var(--red)}
+.lp .cta.ghost{background:transparent;color:var(--ink);border-color:var(--ink)}
+.lp .cta.ghost:hover{background:var(--ink);color:#fff}
+.lp .sec{padding:84px clamp(16px,6vw,96px);scroll-margin-top:60px}
+.lp .sec.alt{background:var(--tan)}
+.lp .lab{font:12.5px 'IBM Plex Mono',monospace;color:var(--red);margin:0 0 14px;letter-spacing:.05em;text-transform:uppercase}
+.lp h2{font-size:clamp(32px,4.2vw,54px);font-weight:600;letter-spacing:-.035em;line-height:1.05;margin:0 0 16px;max-width:16em;text-wrap:balance}
+.lp .lede{font-size:20px;color:#4a443b;max-width:38em;margin:0 0 40px}
+.lp .note{font:13px/1.55 'IBM Plex Mono',monospace;color:var(--mut);max-width:60em;margin:18px 0 0}
+.lp .tag{display:inline-block;font:11px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);border:1px solid var(--line);padding:2px 8px;background:var(--paper)}
 
-/* ---- feature tiles (moved out of iframe, native) ---- */
-.lp .features{padding:56px clamp(16px,6vw,96px);border-top:1px solid var(--line);background:var(--paper)}
-.lp .features .row{display:grid;grid-template-columns:repeat(4,1fr);gap:0;align-items:start}
-.lp .features .col{padding:0 26px;border-left:1px solid var(--line);display:flex;gap:16px}
-.lp .features .col:first-child{border-left:0;padding-left:0}
-.lp .features .ico{flex:none;width:44px;height:44px;border-radius:8px;border:1px solid #eab8b4;background:#f8ded9;color:var(--red);display:grid;place-items:center}
-.lp .features .col h3{font-family:'Newsreader',serif;font-size:22px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
-.lp .features .col p{font-size:14.5px;line-height:1.5;color:#4a443b;margin:0}
-@media(max-width:1100px){.lp .features .row{grid-template-columns:repeat(2,1fr);gap:32px 0}.lp .features .col{border-left:0;padding:0}}
-@media(max-width:640px){.lp .features .row{grid-template-columns:1fr}}
+/* hero */
+.lp .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,470px);gap:56px;align-items:center;padding:64px clamp(16px,6vw,96px) 72px;min-height:min(80vh,780px)}
+.lp .hero h1{font-size:clamp(42px,5vw,74px);font-weight:600;letter-spacing:-.045em;line-height:.98;margin:0 0 26px;text-wrap:balance}
+.lp .hero h1 em{font-style:italic;font-weight:400;color:var(--red);letter-spacing:-.03em}
+.lp .hero .sub{font-size:21px;color:#4a443b;max-width:31em;margin:0 0 30px}
+.lp .btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:38px}
+.lp .facts{display:flex;flex-wrap:wrap;row-gap:14px}
+.lp .facts div{padding:0 22px;border-left:1px solid var(--ink)}
+.lp .facts div:first-child{padding-left:0;border-left:0}
+.lp .facts b{display:block;font-size:30px;letter-spacing:-.02em}
+.lp .facts span{font:11.5px 'IBM Plex Mono',monospace;color:var(--mut)}
 
-/* ---- how-it-works ---- */
-.lp .how{padding:72px clamp(16px,6vw,96px);border-top:1px solid var(--line);display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:start;background:#faf6ea}
-@media(max-width:1100px){.lp .how{grid-template-columns:1fr;gap:40px}}
-.lp .how h2{font-size:clamp(30px,3.4vw,42px);margin:6px 0 10px}
-.lp .how .subtitle{font-size:17px;color:#4a443b;margin:0 0 32px;max-width:520px}
-.lp .steps{display:grid;grid-template-columns:repeat(2,1fr);gap:26px 20px}
-.lp .step{display:flex;gap:14px}
-.lp .step .n{flex:none;width:34px;height:34px;border-radius:50%;background:#8F1414;color:#fff;display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;letter-spacing:.02em}
-.lp .step .n.dark{background:#1a1815}
-.lp .step h4{font-family:'Newsreader',serif;font-size:19px;font-weight:600;margin:5px 0 4px;letter-spacing:-.01em}
-.lp .step p{font-size:14px;color:#4a443b;margin:0;line-height:1.5}
+/* case card (the recorded run) */
+.lp .case{background:#fdfbf6;border:1px solid #cfc3aa;box-shadow:0 26px 44px -30px rgba(60,45,20,.6);font-family:'IBM Plex Mono',monospace}
+.lp .case.bad{border-color:#d9a9a4}
+.lp .ch{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px;border-bottom:3px double #cfc3aa;font-size:11.5px}
+.lp .ch .st{font-size:10.5px;letter-spacing:.06em;color:var(--ok)}
+.lp .ch .st.bad{color:var(--red)}
+.lp .cb{padding:16px}
+.lp .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.lp .tabs button{font:12px 'IBM Plex Mono',monospace;padding:6px 12px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+.lp .tabs button[aria-pressed=true]{background:var(--ink);color:#fff}
+.lp .tabs button:hover:not([aria-pressed=true]){background:var(--tan)}
+.lp .tk{display:grid;grid-template-columns:34px 1fr 62px;gap:10px;align-items:center;min-height:30px;font-size:12px}
+.lp .tk .tn,.lp .tk .ts{color:var(--mut)}.lp .tk .ts{text-align:right}
+.lp .tk.timeout .ts{color:var(--red)}
+.lp .tb{position:relative;height:14px;background:repeating-linear-gradient(90deg,#d8cdb6 0 1px,transparent 1px 25%),var(--tan)}
+.lp .tb i{position:absolute;top:0;bottom:0;background:var(--ok);transform-origin:left;animation:grow .9s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--dl,0s)}
+.lp .tk.timeout .tb i{background:repeating-linear-gradient(45deg,var(--red) 0 3px,#fce4e0 3px 7px)}
+.lp .tk.timeout .tb i:after{content:'';position:absolute;right:-1px;top:-3px;bottom:-3px;width:2px;background:var(--red)}
+@keyframes grow{from{transform:scaleX(0)}}
+.lp .sla{position:absolute;top:-4px;bottom:-4px;width:0;border-left:1px dashed var(--red)}
+.lp .axis{display:grid;grid-template-columns:34px 1fr 62px;gap:10px;font-size:10px;color:#8a7350;margin-top:2px}
+.lp .axis div{position:relative;height:14px}.lp .axis em{position:absolute;font-style:normal}
+.lp .ev{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
+.lp .ev h6,.lp .vd small{margin:0 0 4px;font:400 10px 'IBM Plex Mono',monospace;color:#8a7350;letter-spacing:.08em;text-transform:uppercase;display:block}
+.lp .ev p{display:flex;gap:8px;margin:0;padding:4px 0;border-bottom:1px dashed var(--line);font-size:12px;line-height:1.4;color:#3b352d}
+.lp .ev p b{flex:none;font-weight:500;color:var(--red)}
+.lp .vd{margin-top:12px;padding:10px 12px;background:#eef3ee;border:1px solid #cddccd}
+.lp .case.bad .vd{background:#fce4e0;border-color:#f3c3bc}
+.lp .vd b{display:block;font-size:20px;font-weight:600;color:var(--ok);margin:2px 0 6px}
+.lp .case.bad .vd b{color:#B5261C}
+.lp .lf{display:flex;align-items:baseline;font-size:12px;line-height:1.7}.lp .lf i{flex:1;border-bottom:1px dotted #b8ad97;margin:0 6px}.lp .lf b{display:inline;font-size:12px;margin:0;font-weight:500;color:inherit}
+.lp .cfoot{padding:8px 16px;border-top:1px solid var(--line);font-size:10.5px;color:#8a7350;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 
-/* ---- example autopsy card ---- */
-.lp .autopsy{background:#fbf9f4;border:1px solid #E2DDD1;border-radius:10px;padding:22px 24px;box-shadow:0 20px 40px -24px rgba(60,45,20,.35)}
-.lp .autopsy .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
-.lp .autopsy .head h3{font-family:'Newsreader',serif;font-weight:600;font-size:24px;letter-spacing:-.01em;margin:0}
-.lp .autopsy .head a{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:var(--red);text-decoration:none}
-.lp .autopsy .ts{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a7350;margin:0 0 14px}
-.lp .autopsy .cod{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;background:#fce4e0;border:1px solid #f3c3bc;border-radius:8px;padding:12px 14px;margin-bottom:14px}
-.lp .autopsy .cod .icon{flex:none;width:30px;height:30px;border-radius:5px;background:#E5493E;color:#fff;display:grid;place-items:center}
-.lp .autopsy .cod .msg small{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:#a12a26;margin-bottom:2px}
-.lp .autopsy .cod .msg b{display:block;font-family:'IBM Plex Mono',monospace;font-weight:600;color:#B5261C;font-size:14px;letter-spacing:-.01em;margin-bottom:2px}
-.lp .autopsy .cod .msg span{display:block;font-size:11.5px;line-height:1.4;color:#7d2419;max-width:260px}
-.lp .autopsy .cod .pill{border-left:1px solid rgba(226,55,43,.22);padding-left:14px;text-align:right}
-.lp .autopsy .cod .pill small{display:block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.06em;color:#a12a26;margin-bottom:2px;text-transform:uppercase}
-.lp .autopsy .cod .pill b{font-family:'IBM Plex Mono',monospace;font-weight:600;color:#B5261C;font-size:16px}
-.lp .autopsy .stages{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid #EFE9DA;border-radius:6px;margin-bottom:14px}
-.lp .autopsy .stages > div{padding:9px 12px;border-left:1px solid #EFE9DA}
-.lp .autopsy .stages > div:first-child{border-left:0}
-.lp .autopsy .stages small{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8a7350;letter-spacing:.06em;text-transform:uppercase}
-.lp .autopsy .stages b{display:block;font-size:13px;margin-top:2px}
-.lp .autopsy .stages span{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4a443b}
-.lp .autopsy .tabs{display:flex;gap:14px;border-bottom:1px solid #EFE9DA;padding-bottom:6px;margin-bottom:12px}
-.lp .autopsy .tabs span{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a7350;letter-spacing:.06em}
-.lp .autopsy .tabs span.on{color:var(--ink);font-weight:600;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:-7px}
-.lp .autopsy .pair{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch}
-.lp .autopsy .pair .arrow{align-self:center;color:#8a7350}
-.lp .autopsy .clip{border:1px solid #EFE9DA;border-radius:6px;padding:10px 12px;background:#f4f0e5}
-.lp .autopsy .clip.hall{background:#fce4e0;border-color:#f3c3bc}
-.lp .autopsy .clip .lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8a7350;letter-spacing:.05em;margin:0 0 6px}
-.lp .autopsy .clip.hall .lbl{color:#a12a26}
-.lp .autopsy .clip .quote{font-size:12px;line-height:1.5;color:#4a443b;margin:6px 0 0}
-.lp .autopsy .clip.hall .quote{color:#7d2419}
-.lp .autopsy .bars{display:flex;gap:2px;align-items:center;height:30px}
-.lp .autopsy .bars i{flex:1;background:#8a7350;border-radius:1px}
-.lp .autopsy .clip.hall .bars i{background:#c0301f}
+/* tables */
+.lp .tbl{width:100%;border-collapse:collapse;font-size:16px}
+.lp .tbl th{font:11.5px 'IBM Plex Mono',monospace;text-align:left;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:400;padding:10px 14px 10px 0;border-bottom:1px solid var(--ink)}
+.lp .tbl td{padding:12px 14px 12px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.lp .tbl td.k{font:13px 'IBM Plex Mono',monospace;white-space:nowrap}
+.lp .tbl td.n{font:13px 'IBM Plex Mono',monospace;color:var(--mut);width:36px}
+.lp .tbl .miss{color:var(--red)}
+.lp .tbl .hit{color:var(--ok)}
+.lp .scroll{overflow-x:auto}
+
+/* grids */
+.lp .two{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+.lp .lim{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--ink);margin-top:40px}
+.lp .lim div{padding:16px 22px 18px 0;margin-right:22px;border-bottom:1px solid var(--line)}
+.lp .lim h3{font-size:19px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.lp .lim p{font-size:16px;margin:0;color:#4a443b}
+.lp .verd{border:1px solid var(--ink);background:#fbf9f4;padding:18px 22px;margin-bottom:28px}
+.lp .verd small{font:11px 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--red)}
+.lp .verd p{font-size:24px;font-weight:600;letter-spacing:-.02em;margin:4px 0 0}
+.lp .ab td.c{font:13px 'IBM Plex Mono',monospace;white-space:nowrap}
+.lp .ab td.w{font-weight:600;color:var(--ok)}
+.lp .rules{margin:0;padding-left:20px;font-size:16px;color:#3b352d}
+.lp .rules li{margin-bottom:8px}
+.lp .stat{border-top:1px solid var(--ink);padding-top:12px;margin-bottom:22px}
+.lp .stat b{display:block;font-size:34px;letter-spacing:-.025em;line-height:1.1}
+.lp .stat b s{text-decoration:none;color:var(--mut);font-size:22px}
+.lp .stat span{font-size:15.5px;color:#4a443b}
+.lp .read{border:1px solid var(--line);background:#fdfbf6;padding:6px 18px;font:13px 'IBM Plex Mono',monospace}
+.lp .read div{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.lp .read div:last-child{border:0}
+.lp .read span{color:var(--mut)}
+
+.lp .band{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:52px clamp(16px,6vw,96px);background:var(--red);color:#fff}
+.lp .band p{font-size:clamp(26px,3.4vw,40px);font-weight:700;letter-spacing:-.025em;margin:0;max-width:20em}
+.lp .band .cta{background:#fff;color:#0d0c0b;border-color:#fff}.lp .band .cta:hover{background:#0d0c0b;color:#fff}
+.lp .foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:20px clamp(16px,6vw,96px);font:13px 'IBM Plex Mono',monospace;color:var(--mut)}
+
+.lp [data-rv]{opacity:0;transform:translateY(20px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+.lp [data-rv].in{opacity:1;transform:none}
+
+@media(max-width:1000px){.lp .hero{grid-template-columns:1fr;gap:40px}.lp .two{grid-template-columns:1fr;gap:40px}.lp .lim{grid-template-columns:1fr 1fr}.lp .brand span{display:none}}
+@media(max-width:760px){.lp .links a{display:none}.lp .sec{padding:60px 20px}.lp .lim{grid-template-columns:1fr}.lp .lim div{margin-right:0}}
+@media(prefers-reduced-motion:reduce){.lp *{animation:none!important;transition:none!important}.lp [data-rv]{opacity:1;transform:none}}
 `;
 
-/* ---- inline SVG icon components ---- */
-const TriIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l10 18H2L12 3z" /><path d="M12 10v5M12 18v.1" /></svg>
-);
-const DocIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h9l4 4v14H6z" /><path d="M15 3v4h4M9 12h6M9 16h6" /></svg>
-);
-const ClipIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1M9 11h6M9 15h6" /></svg>
-);
-const DolIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M14.5 9c-.5-1-1.5-1.5-2.5-1.5S9.5 8.3 9.5 9.5c0 3 5.5 1.5 5.5 4.5 0 1.2-1 2-2.5 2-1.2 0-2.2-.6-2.7-1.6M12 6v1.5M12 16.5V18" /></svg>
-);
-const RightArrow = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-);
+const money = (v) => '$' + v.toFixed(6);
+const secs = (v) => v.toFixed(3) + 's';
+const pct = (v) => Math.round(v * 100) + '%';
 
-const FEATURES = [
-  { icon: TriIcon,  t: '7 Realistic Failure Types',  d: 'bad_stt, hallucination, tts_glitch, timeout, user_hangup, network_drop, exception' },
-  { icon: DocIcon,  t: 'Automatic Classification',   d: 'Identify root cause across STT, LLM, and TTS with high accuracy.' },
-  { icon: ClipIcon, t: 'Detailed Autopsy Reports',   d: 'Human-readable, technical reports with evidence, transcripts, and timelines.' },
-  { icon: DolIcon,  t: 'Real Dollar Cost Tracking',  d: 'See the true cost of every failure and reduce wasted spend.' },
-];
+/* One recorded run: a timeline of the three stages, the evidence, the verdict and the cost. */
+function RunCard({ initial = 'timeout', compact = false }) {
+  const [key, setKey] = useState(initial);
+  const r = RUNS[key];
+  const bad = r.category !== 'ok';
+  const ticks = [0, 0.25, 0.5, 0.75].map((f) => Math.round(f * r.span));
+  const llmSla = 8; // LLM limit in seconds, measured from the LLM stage start
+  const llm = r.stages.find((s) => s.id === 'llm');
+  return (
+    <aside className={`case ${bad ? 'bad' : ''}`} aria-label={`Recorded run: ${r.label}`}>
+      <div className="ch">
+        <b style={{ fontWeight: 500 }}>Recorded run</b>
+        <span className={`st ${bad ? 'bad' : ''}`}>{bad ? 'FAILED' : 'COMPLETED'}</span>
+      </div>
+      <div className="cb">
+        <div className="tabs" role="group" aria-label="Choose a recorded run">
+          {Object.entries(RUNS).map(([k, v]) => (
+            <button key={k} aria-pressed={k === key} onClick={() => setKey(k)}>{v.label}</button>
+          ))}
+        </div>
+        <div key={key}>
+          {r.stages.map((s, j) => (
+            <div key={s.id} className={`tk ${s.status}`}>
+              <span className="tn">{s.name}</span>
+              <div className="tb">
+                <i style={{ left: `${(s.start / r.span) * 100}%`, width: `${((s.end - s.start) / r.span) * 100}%`, '--dl': `${j * 0.35}s` }} />
+                {s.id === 'llm' && bad && <span className="sla" style={{ left: `${((llm.start + llmSla) / r.span) * 100}%` }} title="LLM limit (8 s)" />}
+              </div>
+              <span className="ts">{secs(s.end - s.start)}</span>
+            </div>
+          ))}
+          <div className="axis"><span /><div>{ticks.map((t, i) => <em key={i} style={{ left: `${(t / r.span) * 100}%` }}>{t}s</em>)}</div><span /></div>
+        </div>
+        {!compact && (
+          <div className="ev">
+            <h6>Evidence</h6>
+            {r.evidence.map((e, i) => <p key={e}><b>E{i + 1}</b>{e}</p>)}
+          </div>
+        )}
+        <div className="vd">
+          <small>Diagnosis</small>
+          <b>{r.verdict}</b>
+          <div className="lf"><span>Rule result</span><i /><b>{r.reason}</b></div>
+          <div className="lf"><span>Rule confidence</span><i /><b>{r.confidence.toFixed(2)}</b></div>
+          <div className="lf"><span>Total cost</span><i /><b>{money(r.total)}</b></div>
+        </div>
+      </div>
+      <div className="cfoot"><span>{r.fault ? `injected fault: ${r.fault}` : 'no fault injected'}</span><span>measured 30 Sep 2026</span></div>
+    </aside>
+  );
+}
 
-const STEPS = [
-  { n: '01', t: 'Inject a failure',      d: 'Configure fault type and parameters.',    dark: false },
-  { n: '02', t: 'Run a voice call',      d: 'Use a sample or record live audio.',      dark: true  },
-  { n: '03', t: 'Analyze pipeline',      d: 'STT → LLM → TTS with detailed metrics.', dark: true  },
-  { n: '04', t: 'Get autopsy report',    d: 'Root cause, evidence, cost, and recommendations.', dark: true  },
-];
+function Hero({ enter }) {
+  return (
+    <section className="hero" id="top">
+      <div>
+        <h1>Your voice agent failed. <em>Find out exactly why.</em></h1>
+        <p className="sub">
+          CallAutopsy sends a call through speech-to-text, the language model and text-to-speech with a fault injected, or reads a call you upload.
+          It names the stage that broke, shows the evidence and reports what the call cost.
+        </p>
+        <div className="btns">
+          <button className="cta" onClick={enter}>Run an autopsy →</button>
+          <a className="cta ghost" href="#real-run">See a real one</a>
+        </div>
+        <div className="facts">
+          <div><b>7</b><span>injectable faults</span></div>
+          <div><b>18 / 18</b><span>rule-based faults diagnosed</span></div>
+          <div><b>{money(RUNS.clean.total).slice(0, 7)}</b><span>measured cost, one call</span></div>
+        </div>
+      </div>
+      <RunCard initial="timeout" compact />
+    </section>
+  );
+}
+
+function Detection() {
+  return (
+    <section className="sec alt" id="detection">
+      <p className="lab" data-rv>How it decides</p>
+      <h2 data-rv>Seven detectors, checked in a fixed order.</h2>
+      <p className="lede" data-rv>
+        The first detector that fires names the cause, so a call gets one primary diagnosis. The order matters: a reply that is too slow is called a timeout before anything else can be blamed.
+      </p>
+      <div className="scroll" data-rv>
+        <table className="tbl">
+          <thead><tr><th>#</th><th>Cause</th><th>What triggers it</th><th>Decided by</th><th>Confidence</th></tr></thead>
+          <tbody>
+            {DETECTORS.map((d, i) => (
+              <tr key={d.k}>
+                <td className="n">{i + 1}</td>
+                <td className="k">{d.k}</td>
+                <td>{d.signal}</td>
+                <td className="k">{d.by}</td>
+                <td className="k">{d.conf.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="note" data-rv>
+        Confidence is the fixed value of the rule that fired, not a probability. Only the hallucination check uses a second model; every other detector is arithmetic on measured times, confidences and signals.
+        A call that trips none of them is reported as healthy.
+      </p>
+    </section>
+  );
+}
+
+function RealRun() {
+  return (
+    <section className="sec" id="real-run">
+      <p className="lab" data-rv>One call, end to end</p>
+      <h2 data-rv>The same call, healthy and with a timeout injected.</h2>
+      <p className="lede" data-rv>
+        Both runs use the same recording: a caller reporting a duplicate charge. The only difference is the fault. Switch between them and compare the stage times, the evidence and the cost.
+      </p>
+      <div className="two">
+        <div data-rv><RunCard initial="timeout" /></div>
+        <div data-rv>
+          <p className="lab">What to notice</p>
+          <div className="stat"><b>13.350s <s>vs 1.435s</s></b><span>the LLM stage with the fault and without it</span></div>
+          <div className="stat"><b>$0.003960 <s>vs $0.003611</s></b><span>total cost with the fault and without it. The failed call still cost money.</span></div>
+          <div className="stat"><b>14.6s</b><span>when the late reply reached text-to-speech. TTS still ran and succeeded, so the failure shows only in the timings.</span></div>
+          <p className="note">
+            Each call also runs a parallel analysis of the audio ({RUNS.timeout.analysis.seconds.toFixed(3)}s, {money(RUNS.timeout.analysis.cost)}). It is included in the total but is not part of the call's pipeline time.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Accuracy() {
+  return (
+    <section className="sec alt" id="accuracy">
+      <p className="lab" data-rv>Measured accuracy</p>
+      <h2 data-rv>18 of 18 for the rule-based faults. 0 of 3 for hallucination.</h2>
+      <p className="lede" data-rv>
+        Each fault was injected into three different calls through the live pipeline, and the diagnosis was compared with the fault that was injected.
+      </p>
+      <div className="scroll" data-rv>
+        <table className="tbl">
+          <thead><tr><th>Injected</th><th>Call 1</th><th>Call 2</th><th>Call 3</th></tr></thead>
+          <tbody>
+            {CONFUSION.map((row) => (
+              <tr key={row.k}>
+                <td className="k">{row.k}</td>
+                {row.got.map((g, i) => <td key={i} className={`k ${g === row.k ? 'hit' : 'miss'}`}>{g === row.k ? '✓ ' : '✕ '}{g}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="note" data-rv>Injected faults and calibration control calls are the only calls that can be scored, because only they have a known right answer. Real production calls have none.</p>
+      <div className="lim" data-rv>
+        {LIMITS.map(([t, d]) => <div key={t}><h3>{t}</h3><p>{d}</p></div>)}
+      </div>
+    </section>
+  );
+}
+
+function Compare() {
+  return (
+    <section className="sec" id="compare">
+      <p className="lab" data-rv>Compare two stacks</p>
+      <h2 data-rv>A winner only when the gap is real.</h2>
+      <p className="lede" data-rv>
+        A live comparison on the same call, {AB.runs} runs per side: {AB.a.stack} against {AB.b.stack}.
+      </p>
+      <div className="two">
+        <div data-rv>
+          <div className="verd"><small>Verdict</small><p>{AB.headline}</p></div>
+          <div className="scroll">
+            <table className="tbl ab">
+              <thead><tr><th>Measure</th><th>A</th><th>B</th><th>Counts?</th></tr></thead>
+              <tbody>
+                {AB.rows.map((r) => (
+                  <tr key={r.label}>
+                    <td>{r.label}<div className="note" style={{ margin: '4px 0 0' }}>{r.why}</div></td>
+                    <td className={`c ${r.counts === 'A' ? 'w' : ''}`}>{r.a}</td>
+                    <td className={`c ${r.counts === 'B' ? 'w' : ''}`}>{r.b}</td>
+                    <td className="c">{r.counts ? `Yes, ${r.counts} wins` : 'No'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="note">Config B failed one of its three calls with a timeout. The rules did not count that, because one failure in three is smaller than the required gap. It also means three runs is too few to trust the speed and cost result for anything but a quick check.</p>
+        </div>
+        <div data-rv>
+          <p className="lab">The rules the verdict follows</p>
+          <ol className="rules">{AB.rules.map((r) => <li key={r}>{r}</li>)}</ol>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Analysis() {
+  const a = FACTS.analysisCall;
+  return (
+    <section className="sec alt" id="analysis">
+      <p className="lab" data-rv>What it reads from a call</p>
+      <h2 data-rv>Beyond the fault: who spoke, how it sounded, what was said.</h2>
+      <p className="lede" data-rv>Every call, including one you upload, gets an audio analysis that does not depend on a failure.</p>
+      <div className="two">
+        <div data-rv>
+          <div className="stat"><b>{FACTS.speakers[0]} <s>vs {FACTS.speakers[1]}</s></b><span>calls with the speaker count right, CallAutopsy against the speech recogniser alone</span></div>
+          <div className="stat"><b>{FACTS.wordSpeaker[0]} <s>vs {FACTS.wordSpeaker[1]}</s></b><span>word-level speaker accuracy on the four two-voice calls. Tuned on those same calls, so read it as a ceiling.</span></div>
+          <div className="stat"><b>{FACTS.interruptions}</b><span>scripted interruptions found, with no false alarms. Mono audio hides most overlap, so the count is a lower bound.</span></div>
+          <div className="stat"><b>{FACTS.audioQuality}</b><span>labelled recording conditions identified (in-sample).</span></div>
+        </div>
+        <div data-rv>
+          <p className="lab">The clean call, as analysed</p>
+          <div className="read">
+            <div><span>Speakers</span><b>{a.speakers}</b></div>
+            <div><span>Words · pace</span><b>{a.words} · {a.wpm} wpm</b></div>
+            <div><span>Signal-to-noise · condition</span><b>{a.snr} dB · {a.condition}</b></div>
+            <div><span>Overlap</span><b>{a.overlap}s</b></div>
+            <div><span>Finding</span><b style={{ textAlign: 'right', fontWeight: 400 }}>{a.finding}</b></div>
+            <div><span>Delivery</span><b style={{ textAlign: 'right', fontWeight: 400 }}>{a.tone}</b></div>
+          </div>
+          <p className="note">The delivery reading describes how the voice sounds, not how the caller feels. The demo calls use synthetic voices with scripted delivery styles.</p>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function LandingHome() {
-  const [scale, setScale] = useState(1);
   const nav = useNavigate();
+  const root = useRef(null);
+  const [active, setActive] = useState('');
 
   useEffect(() => {
-    const compute = () => setScale(Math.min(1, window.innerWidth / 1536));
-    compute();
-    window.addEventListener('resize', compute);
-    return () => window.removeEventListener('resize', compute);
+    const el = root.current;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const items = [...el.querySelectorAll('[data-rv]')];
+    if (reduce || !('IntersectionObserver' in window)) { items.forEach((n) => n.classList.add('in')); }
+    const rv = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); rv.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+    if (!reduce) items.forEach((n) => rv.observe(n));
+    const so = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) setActive(e.target.id); }), { rootMargin: '-40% 0px -55% 0px' });
+    NAV.forEach((n) => { const t = document.getElementById(n.id); if (t) so.observe(t); });
+    return () => { rv.disconnect(); so.disconnect(); };
   }, []);
 
-  // Listen for postMessage from the iframe if it ever wants to signal us.
-  useEffect(() => {
-    const onMsg = (e) => {
-      if (e?.data?.type === 'enter-app') nav('/app');
-    };
-    window.addEventListener('message', onMsg);
-    return () => window.removeEventListener('message', onMsg);
-  }, [nav]);
-
-  const NATIVE_HEIGHT = 550;
-  const height = NATIVE_HEIGHT * scale;
   const enter = () => nav('/app');
   const top = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   return (
-    <div className="lp">
+    <div className="lp" ref={root}>
       <style>{CSS}</style>
-
       <header className="nav">
         <button className="brand" onClick={top} aria-label="CallAutopsy, back to top">
           <b>CallAutopsy</b>
-          <span>Diagnose · Debug · Reduce Costs</span>
+          <span>Find the failing stage. See what it cost.</span>
         </button>
         <nav className="links" aria-label="Sections">
-          {NAV.map((n) => <a key={n.id} href={`#${n.id}`}>{n.label}</a>)}
-          <button className="cta" onClick={enter}>Try the Live Demo</button>
+          {NAV.map((n) => <a key={n.id} href={`#${n.id}`} className={active === n.id ? 'on' : ''}>{n.label}</a>)}
+          <button className="cta" onClick={enter}>Run an autopsy →</button>
         </nav>
       </header>
 
-      <section
-        style={{
-          width: '100%',
-          height,
-          overflow: 'hidden',
-          position: 'relative',
-          background: '#F8F5EF',
-        }}
-      >
-        <iframe
-          src="/landing.html"
-          scrolling="no"
-          title="CallAutopsy landing"
-          style={{
-            width: '1536px',
-            height: `${NATIVE_HEIGHT}px`,
-            border: 0,
-            display: 'block',
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-          }}
-        />
-      </section>
-
-      {/* ---- feature tiles (extracted from iframe into native React) ---- */}
-      <section className="features" id="features">
-        <div className="row">
-          {FEATURES.map(({ icon: I, t, d }) => (
-            <div key={t} className="col">
-              <div className="ico"><I /></div>
-              <div>
-                <h3>{t}</h3>
-                <p>{d}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ---- how it works + example autopsy report ---- */}
-      <section className="how" id="how-it-works">
-        <div>
-          <p className="eyebrow">01 · How it works</p>
-          <h2>Inject. Run. Diagnose. Fix.</h2>
-          <p className="subtitle">Simulate real-world failures and get a complete autopsy for every failed call.</p>
-          <div className="steps">
-            {STEPS.map((s) => (
-              <div key={s.n} className="step">
-                <span className={`n ${s.dark ? 'dark' : ''}`}>{s.n}</span>
-                <div>
-                  <h4>{s.t}</h4>
-                  <p>{s.d}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <aside className="autopsy" aria-label="Example autopsy report">
-          <p className="eyebrow" style={{ margin: 0 }}>Example autopsy report</p>
-          <div className="head">
-            <h3>Case #3E2F9C2A</h3>
-            <a href="#" onClick={(e) => { e.preventDefault(); enter(); }}>View full report →</a>
-          </div>
-          <p className="ts">2026-09-27 14:32:11Z</p>
-
-          <div className="cod">
-            <div className="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 3l10 18H2L12 3z" /><path d="M12 10v5M12 18v.1" /></svg>
-            </div>
-            <div className="msg">
-              <small>CAUSE OF DEATH</small>
-              <b>Hallucination</b>
-              <span>Model generated incorrect information not grounded in audio.</span>
-            </div>
-            <div className="pill"><small>Total Cost</small><b>$0.004312</b></div>
-            <div className="pill"><small>Total Latency</small><b>2.384s</b></div>
-          </div>
-
-          <div className="stages">
-            <div><small>STT</small><b>Deepgram</b><span>0.821s · $0.001231</span></div>
-            <div><small>LLM</small><b>OpenAI</b><span>1.103s · $0.006441</span></div>
-            <div><small>TTS</small><b>OpenAI</b><span>0.460s · $0.000640</span></div>
-          </div>
-
-          <div className="tabs">
-            <span className="on">Transcript</span>
-            <span>Timeline</span>
-            <span>Technical Details</span>
-            <span>Recommendation</span>
-          </div>
-
-          <div className="pair">
-            <div className="clip">
-              <p className="lbl">User (audio)</p>
-              <div className="bars" aria-hidden="true">
-                {Array.from({ length: 26 }).map((_, i) => (
-                  <i key={i} style={{ height: `${20 + Math.abs(Math.sin(i * 0.9)) * 60}%` }} />
-                ))}
-              </div>
-              <p className="quote">"Can you tell me the refund policy?"</p>
-            </div>
-            <div className="arrow"><RightArrow /></div>
-            <div className="clip hall">
-              <p className="lbl">Model Response (hallucination)</p>
-              <div className="bars" aria-hidden="true">
-                {Array.from({ length: 26 }).map((_, i) => (
-                  <i key={i} style={{ height: `${20 + Math.abs(Math.cos(i * 1.1)) * 60}%` }} />
-                ))}
-              </div>
-              <p className="quote">"Sure, you are eligible for a 50% refund within 30 days of purchase, and you will also receive a free replacement."</p>
-            </div>
-          </div>
-        </aside>
-      </section>
-
-      <section className="sec" id="product">
-        <p className="eyebrow">Product</p>
-        <h2>Find out why the call failed.</h2>
-        <p className="lede">Inject a fault, run two configurations, and get a plain verdict on which one holds up and what it costs.</p>
-        <div className="grid g3">
-          {PRODUCT.map((p, i) => (
-            <div key={p.t} className="card">
-              <p className="num">0{i + 1}</p>
-              <h3>{p.t}</h3>
-              <p>{p.d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="sec alt" id="use-cases">
-        <p className="eyebrow">Use Cases</p>
-        <h2>Compare before you commit.</h2>
-        <p className="lede">Every decision about your voice stack becomes a side-by-side run.</p>
-        <div className="grid g4">
-          {USE_CASES.map((u) => (
-            <div key={u.t} className="card">
-              <h3>{u.t}</h3>
-              <p>{u.d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="sec" id="case-studies">
-        <p className="eyebrow">Case Studies</p>
-        <h2>Worked examples.</h2>
-        <p className="lede">Three scenarios you can reproduce in the live demo in under a minute.</p>
-        <div className="grid g3">
-          {STUDIES.map((s) => (
-            <div key={s.t} className="card">
-              <p className="tag">{s.tag}</p>
-              <h3>{s.t}</h3>
-              <p>{s.d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <Hero enter={enter} />
+      <Detection />
+      <RealRun />
+      <Accuracy />
+      <Compare />
+      <Analysis />
 
       <section className="band">
-        <p>Same failure. Two configurations. One clear answer.</p>
-        <button className="cta" onClick={enter}>Get Started</button>
+        <p>Run it on a call of your own.</p>
+        <button className="cta" onClick={enter}>Run an autopsy →</button>
       </section>
-
       <footer className="foot">
         <span>CallAutopsy</span>
-        <span>Diagnose · Debug · Reduce Costs</span>
+        <span>Figures are measurements from the live pipeline, dated 30 Sep 2026</span>
       </footer>
     </div>
   );

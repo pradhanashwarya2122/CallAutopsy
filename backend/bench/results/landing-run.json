@@ -1,0 +1,514 @@
+{
+ "capturedAt": "2026-09-30",
+ "runs": {
+  "timeout": {
+   "call": {
+    "id": "7983e3f1-91a3-4a31-8996-e4a0a7412cd6",
+    "started_at": "2026-09-30T14:22:08.928Z",
+    "ended_at": "2026-09-30T14:22:27.735Z",
+    "updated_at": "2026-09-30T14:22:08.908Z",
+    "status": "failed",
+    "input_source": "sample",
+    "sample_id": "call-1-clean-baseline.wav",
+    "injected_fault": "timeout",
+    "stt_provider_used": "deepgram",
+    "stt_failover_occurred": false,
+    "predicted_category": "timeout",
+    "classifier_confidence": "0.95",
+    "ab_run_id": null,
+    "redacted_transcript": "Hi. I'm calling because I was charged twice for the same order. It's order 48213, and I was charged $47.99 both times. Could you please check the transaction and refund the duplicate charge?",
+    "total_cost_usd": "0.003959829166666666",
+    "analysis": {
+     "signal": {
+      "snr_db": 39.9,
+      "condition": {
+       "flags": [],
+       "label": "clean_wideband"
+      },
+      "duration_s": 15.4,
+      "hf_ratio_db": -23.9,
+      "level_sd_db": 7.7,
+      "sample_rate": 16000,
+      "band_limited": false,
+      "clipping_ratio": 0,
+      "noise_floor_db": -55.4,
+      "speech_level_db": -15.6,
+      "dynamics_compressed": false
+     },
+     "speech": {
+      "speakers": 1,
+      "overlap_s": 0,
+      "duration_s": 15.3625,
+      "turn_count": 1,
+      "word_count": 33,
+      "pause_count": 1,
+      "filler_count": 0,
+      "overlap_count": 0,
+      "avg_confidence": 0.9990160387878788,
+      "longest_pause_s": 0.8,
+      "long_pause_count": 0,
+      "words_per_minute": 133,
+      "backchannel_count": 0,
+      "interruption_count": 0,
+      "low_confidence_ratio": 0,
+      "low_confidence_words": []
+     },
+     "findings": [
+      {
+       "id": "two_intents",
+       "area": "content",
+       "title": "Two related issues raised",
+       "detail": "duplicate charge and refund request",
+       "severity": "info"
+      }
+     ],
+     "tone": {
+      "vocal": {
+       "cues": [
+        "wide pitch movement (12 semitones)",
+        "large loudness swings (9.1 dB)"
+       ],
+       "reason": "2 cues agree on an animated delivery.",
+       "arousal": "high",
+       "hesitant": false,
+       "confidence": "low"
+      },
+      "lexical": {
+       "emotion": "neutral",
+       "valence": "neutral",
+       "evidence": "I was charged twice for the same order.",
+       "intensity": "low"
+      },
+      "overall": {
+       "basis": "The words show no clear emotion; this describes only how the voice sounds, not necessarily how the caller feels.",
+       "label": "animated delivery",
+       "agreement": "voice_only",
+       "confidence": "low"
+      }
+     },
+     "turns": [
+      {
+       "end": 14.88,
+       "text": "Hi. I'm calling because I was charged twice for the same order. It's order 48213, and I was charged $47.99 both times. Could you please check the transaction and refund the duplicate charge?",
+       "start": 0,
+       "speaker": 0,
+       "uncertain": false,
+       "confidence": 0.9
+      }
+     ]
+    },
+    "ab_side": null,
+    "label_source": null
+   },
+   "stages": [
+    {
+     "id": "026bb55b-7035-4e7b-86b4-1bb7cba5257e",
+     "call_id": "7983e3f1-91a3-4a31-8996-e4a0a7412cd6",
+     "stage": "stt",
+     "provider": "deepgram",
+     "started_at": "2026-09-30T14:22:08.930Z",
+     "ended_at": "2026-09-30T14:22:10.140Z",
+     "duration_ms": 1210,
+     "status": "ok",
+     "raw_meta": {
+      "duration": 15.3625,
+      "wordCount": 33,
+      "confidence": 1,
+      "avgConfidence": 0.9990160387878788,
+      "transcript_len": 190,
+      "failoverOccurred": false
+     },
+     "cost_usd": "0.0011009791666666668"
+    },
+    {
+     "id": "21919108-5a34-41b6-9415-e2d60e1de4b8",
+     "call_id": "7983e3f1-91a3-4a31-8996-e4a0a7412cd6",
+     "stage": "llm",
+     "provider": "openai",
+     "started_at": "2026-09-30T14:22:10.185Z",
+     "ended_at": "2026-09-30T14:22:23.535Z",
+     "duration_ms": 13350,
+     "status": "timeout",
+     "raw_meta": {
+      "model": "gpt-4o-mini",
+      "temperature": 0.7,
+      "prompt_tokens": 121,
+      "completion_tokens": 34
+     },
+     "cost_usd": "0.00003855"
+    },
+    {
+     "id": "014192d4-3441-4e5e-8ec8-23c8f394b38c",
+     "call_id": "7983e3f1-91a3-4a31-8996-e4a0a7412cd6",
+     "stage": "analysis",
+     "provider": "openai",
+     "started_at": "2026-09-30T14:22:20.436Z",
+     "ended_at": "2026-09-30T14:22:27.732Z",
+     "duration_ms": 7296,
+     "status": "ok",
+     "raw_meta": {
+      "model": "gpt-4o-mini",
+      "prompt_tokens": 1322,
+      "completion_tokens": 395
+     },
+     "cost_usd": "0.0004353"
+    },
+    {
+     "id": "5215d19b-8241-4b69-80d3-5fc353bae8b2",
+     "call_id": "7983e3f1-91a3-4a31-8996-e4a0a7412cd6",
+     "stage": "tts",
+     "provider": "openai",
+     "started_at": "2026-09-30T14:22:23.538Z",
+     "ended_at": "2026-09-30T14:22:27.729Z",
+     "duration_ms": 4191,
+     "status": "ok",
+     "raw_meta": {
+      "bytes": 173184,
+      "model": "tts-1",
+      "charCount": 159,
+      "truncated": false
+     },
+     "cost_usd": "0.002385"
+    }
+   ],
+   "autopsy": null
+  },
+  "clean": {
+   "call": {
+    "id": "c4c8277f-d953-401a-8ea2-63af3bc7565c",
+    "started_at": "2026-09-30T14:22:30.114Z",
+    "ended_at": "2026-09-30T14:22:37.068Z",
+    "updated_at": "2026-09-30T14:22:30.093Z",
+    "status": "completed",
+    "input_source": "sample",
+    "sample_id": "call-1-clean-baseline.wav",
+    "injected_fault": null,
+    "stt_provider_used": "deepgram",
+    "stt_failover_occurred": false,
+    "predicted_category": "ok",
+    "classifier_confidence": "0.9",
+    "ab_run_id": null,
+    "redacted_transcript": "Hi. I'm calling because I was charged twice for the same order. It's order 48213, and I was charged $47.99 both times. Could you please check the transaction and refund the duplicate charge?",
+    "total_cost_usd": "0.0036106291666666668",
+    "analysis": {
+     "signal": {
+      "snr_db": 39.9,
+      "condition": {
+       "flags": [],
+       "label": "clean_wideband"
+      },
+      "duration_s": 15.4,
+      "hf_ratio_db": -23.9,
+      "level_sd_db": 7.7,
+      "sample_rate": 16000,
+      "band_limited": false,
+      "clipping_ratio": 0,
+      "noise_floor_db": -55.4,
+      "speech_level_db": -15.6,
+      "dynamics_compressed": false
+     },
+     "speech": {
+      "speakers": 1,
+      "overlap_s": 0,
+      "duration_s": 15.3625,
+      "turn_count": 1,
+      "word_count": 33,
+      "pause_count": 1,
+      "filler_count": 0,
+      "overlap_count": 0,
+      "avg_confidence": 0.9990160387878788,
+      "longest_pause_s": 0.8,
+      "long_pause_count": 0,
+      "words_per_minute": 133,
+      "backchannel_count": 0,
+      "interruption_count": 0,
+      "low_confidence_ratio": 0,
+      "low_confidence_words": []
+     },
+     "findings": [
+      {
+       "id": "two_intents",
+       "area": "content",
+       "title": "Two related issues raised",
+       "detail": "duplicate charge and refund request",
+       "severity": "info"
+      }
+     ],
+     "tone": {
+      "vocal": {
+       "cues": [
+        "wide pitch movement (12 semitones)",
+        "large loudness swings (9.1 dB)"
+       ],
+       "reason": "2 cues agree on an animated delivery.",
+       "arousal": "high",
+       "hesitant": false,
+       "confidence": "low"
+      },
+      "lexical": {
+       "emotion": "neutral",
+       "valence": "neutral",
+       "evidence": "I was charged twice for the same order.",
+       "intensity": "low"
+      },
+      "overall": {
+       "basis": "The words show no clear emotion; this describes only how the voice sounds, not necessarily how the caller feels.",
+       "label": "animated delivery",
+       "agreement": "voice_only",
+       "confidence": "low"
+      }
+     },
+     "turns": [
+      {
+       "end": 14.88,
+       "text": "Hi. I'm calling because I was charged twice for the same order. It's order 48213, and I was charged $47.99 both times. Could you please check the transaction and refund the duplicate charge?",
+       "start": 0,
+       "speaker": 0,
+       "uncertain": false,
+       "confidence": 0.9
+      }
+     ]
+    },
+    "ab_side": null,
+    "label_source": null
+   },
+   "stages": [
+    {
+     "id": "b8bbfeea-5440-40f3-a493-1149680232a7",
+     "call_id": "c4c8277f-d953-401a-8ea2-63af3bc7565c",
+     "stage": "analysis",
+     "provider": "openai",
+     "started_at": "2026-09-30T14:22:28.693Z",
+     "ended_at": "2026-09-30T14:22:34.242Z",
+     "duration_ms": 5549,
+     "status": "ok",
+     "raw_meta": {
+      "model": "gpt-4o-mini",
+      "prompt_tokens": 1322,
+      "completion_tokens": 395
+     },
+     "cost_usd": "0.0004353"
+    },
+    {
+     "id": "f82430b9-475a-4764-a369-34b57b204795",
+     "call_id": "c4c8277f-d953-401a-8ea2-63af3bc7565c",
+     "stage": "stt",
+     "provider": "deepgram",
+     "started_at": "2026-09-30T14:22:30.119Z",
+     "ended_at": "2026-09-30T14:22:31.509Z",
+     "duration_ms": 1390,
+     "status": "ok",
+     "raw_meta": {
+      "duration": 15.3625,
+      "wordCount": 33,
+      "confidence": 1,
+      "avgConfidence": 0.9990160387878788,
+      "transcript_len": 190,
+      "failoverOccurred": false
+     },
+     "cost_usd": "0.0011009791666666668"
+    },
+    {
+     "id": "1daf5808-fb68-4a73-85f5-fbfe20fb7065",
+     "call_id": "c4c8277f-d953-401a-8ea2-63af3bc7565c",
+     "stage": "llm",
+     "provider": "openai",
+     "started_at": "2026-09-30T14:22:31.552Z",
+     "ended_at": "2026-09-30T14:22:32.987Z",
+     "duration_ms": 1435,
+     "status": "ok",
+     "raw_meta": {
+      "model": "gpt-4o-mini",
+      "temperature": 0.7,
+      "prompt_tokens": 121,
+      "completion_tokens": 27
+     },
+     "cost_usd": "0.000034349999999999995"
+    },
+    {
+     "id": "4f3ba03f-d139-4958-8b2a-5f3ec6be2535",
+     "call_id": "c4c8277f-d953-401a-8ea2-63af3bc7565c",
+     "stage": "tts",
+     "provider": "openai",
+     "started_at": "2026-09-30T14:22:32.989Z",
+     "ended_at": "2026-09-30T14:22:34.241Z",
+     "duration_ms": 1252,
+     "status": "ok",
+     "raw_meta": {
+      "bytes": 137856,
+      "model": "tts-1",
+      "charCount": 136,
+      "truncated": false
+     },
+     "cost_usd": "0.00204"
+    }
+   ],
+   "autopsy": null
+  }
+ },
+ "ab": {
+  "status": "done",
+  "progress": {
+   "finished": 6,
+   "expected": 6
+  },
+  "run": {
+   "id": "a4fd3454-4d52-4c90-94b8-bd46f32111b8",
+   "config_a": {
+    "llmModel": "gpt-4o-mini",
+    "preferredSttProvider": "deepgram"
+   },
+   "config_b": {
+    "llmModel": "gpt-4o",
+    "preferredSttProvider": "whisper"
+   },
+   "fault_type": null,
+   "sample_id": "call-1-clean-baseline.wav",
+   "iterations": 3,
+   "created_at": "2026-09-30T14:23:18.526Z"
+  },
+  "calls": [
+   {
+    "id": "f3397847-340f-4388-b8cd-fe49c0a6af05",
+    "side": "A",
+    "stt_provider_used": "deepgram",
+    "failover": false,
+    "predicted_category": "ok",
+    "status": "completed",
+    "total_cost_usd": "0.003580629166666667",
+    "latency_s": 5.126,
+    "wer": 0
+   },
+   {
+    "id": "5c053f24-bd9c-48a4-b05f-6e42be5c185e",
+    "side": "B",
+    "stt_provider_used": "whisper",
+    "failover": false,
+    "predicted_category": "ok",
+    "status": "completed",
+    "total_cost_usd": "0.005128549965667724",
+    "latency_s": 6.063,
+    "wer": 0
+   },
+   {
+    "id": "3570a9ad-485b-4252-bfe0-bbd3a8a18057",
+    "side": "A",
+    "stt_provider_used": "deepgram",
+    "failover": false,
+    "predicted_category": "ok",
+    "status": "completed",
+    "total_cost_usd": "0.003580629166666667",
+    "latency_s": 3.83,
+    "wer": 0
+   },
+   {
+    "id": "e85d5579-b577-4b9e-9610-46191ab8af16",
+    "side": "B",
+    "stt_provider_used": "whisper",
+    "failover": false,
+    "predicted_category": "timeout",
+    "status": "failed",
+    "total_cost_usd": "0.005044349965667725",
+    "latency_s": 11.122,
+    "wer": 0
+   },
+   {
+    "id": "d868709d-e3f5-4f91-b6e5-2b18b1da3e61",
+    "side": "A",
+    "stt_provider_used": "deepgram",
+    "failover": false,
+    "predicted_category": "ok",
+    "status": "completed",
+    "total_cost_usd": "0.0035824291666666673",
+    "latency_s": 3.423,
+    "wer": 0
+   },
+   {
+    "id": "fd367a50-526e-4f14-aa88-56792aff1640",
+    "side": "B",
+    "stt_provider_used": "whisper",
+    "failover": false,
+    "predicted_category": "ok",
+    "status": "completed",
+    "total_cost_usd": "0.0048121499656677245",
+    "latency_s": 5.239,
+    "wer": 0
+   }
+  ],
+  "summary": {
+   "configA": {
+    "n": 3,
+    "failed": 0,
+    "failureRate": 0,
+    "avgCostUsd": 0.003581229166666667,
+    "totalCostUsd": 0.010743687500000002,
+    "avgLatencyS": 4.126333333333333,
+    "avgWordErrorRate": 0,
+    "avgSttConfidence": 0.9990160387878788,
+    "failoverCount": 0,
+    "sampleTranscript": "Hi. I'm calling because I was charged twice for the same order. It's order 48213, and I was charged $47.99 both times. Could you please check the transaction and refund the duplicate charge?",
+    "primaryIntent": "duplicate_charge"
+   },
+   "configB": {
+    "n": 3,
+    "failed": 1,
+    "failureRate": 0.3333333333333333,
+    "avgCostUsd": 0.004970349965667724,
+    "totalCostUsd": 0.009940699931335449,
+    "avgLatencyS": 5.651,
+    "avgWordErrorRate": 0,
+    "avgSttConfidence": null,
+    "failoverCount": 0,
+    "sampleTranscript": "Hi, I'm calling because I was charged twice for the same order. It's order 48213, and I was charged $47.99 both times. Could you please check the transaction and refund the duplicate charge?",
+    "primaryIntent": "duplicate_charge"
+   }
+  },
+  "verdict": {
+   "winner": "A",
+   "headline": "Config A is faster and cheaper, with no quality difference.",
+   "reasons": [
+    "Pipeline time: A 4.1s vs B 5.7s, and every run of the better side beats every run of the other.",
+    "Cost per call: A $0.0036 vs B $0.0050, and every run of the better side beats every run of the other."
+   ],
+   "metrics": [
+    {
+     "id": "failures",
+     "label": "Failed calls",
+     "a": 0,
+     "b": 0.3333333333333333,
+     "better": "none",
+     "significant": false,
+     "why": "A failed 0 of 3, B failed 1 of 3: too small a difference to count."
+    },
+    {
+     "id": "accuracy",
+     "label": "Transcript errors (word error rate)",
+     "a": 0,
+     "b": 0,
+     "better": "none",
+     "significant": false,
+     "why": "A 0% vs B 0%: the gap is smaller than the 3% needed to count."
+    },
+    {
+     "id": "speed",
+     "label": "Pipeline time",
+     "a": 4.126333333333333,
+     "b": 5.651,
+     "better": "A",
+     "significant": true,
+     "why": "A 4.1s vs B 5.7s, and every run of the better side beats every run of the other."
+    },
+    {
+     "id": "cost",
+     "label": "Cost per call",
+     "a": 0.003581229166666667,
+     "b": 0.004970349965667724,
+     "better": "A",
+     "significant": true,
+     "why": "A $0.0036 vs B $0.0050, and every run of the better side beats every run of the other."
+    }
+   ],
+   "caveats": []
+  }
+ }
+}
