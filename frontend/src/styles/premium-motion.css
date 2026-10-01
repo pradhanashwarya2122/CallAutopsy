@@ -1,0 +1,146 @@
+/* premium-motion.css  (import AFTER dashboard.css) */
+:root {
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --ease-snap: cubic-bezier(.34, 1.35, .5, 1);
+  --ease-soft: cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ================= HERO LAYOUT ================= */
+.ap-stage-wrap { display: grid; gap: 20px; align-items: start; }
+
+.ap-stage-wrap.hero {
+  grid-template-columns: minmax(0, 660px);
+  justify-content: center;
+  padding: 24px 0 64px;
+}
+.ap-stage-wrap.docked { grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); }
+.ap-analyze-shell { will-change: transform; position: relative; }
+
+.ap-stage-wrap.hero .ap-analyze-shell {
+  border-radius: 20px;
+  background: var(--panel, #fff);
+  box-shadow:
+    0 0 0 1px rgba(30,136,255,.20),
+    0 30px 70px -20px rgba(30,80,200,.32),
+    0 10px 24px -10px rgba(0,0,0,.14);
+  animation: heroIn .9s var(--ease-out) both, heroGlow 5s ease-in-out 1s infinite;
+}
+.ap-stage-wrap.hero .ap-analyze-shell::before {
+  content: ''; position: absolute; inset: -22px; z-index: -1; pointer-events: none;
+  border-radius: 32px;
+  background: radial-gradient(60% 60% at 50% 40%, rgba(30,136,255,.20), rgba(106,92,214,.08) 55%, transparent 75%);
+  animation: haloBreath 5s ease-in-out infinite;
+}
+.ap-stage-wrap.hero .ap-analyze-shell .ap-panel { padding: 10px 14px 16px; }
+.ap-stage-wrap.hero .ap-analyze-shell .ap-h { font-size: 22px; text-align: center; }
+.ap-stage-wrap.hero .ap-analyze-shell .ap-step { text-align: center; }
+
+@keyframes heroIn { from { opacity: 0; transform: translateY(28px) scale(.97); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes heroGlow { 50% { box-shadow: 0 0 0 1px rgba(30,136,255,.32), 0 34px 80px -20px rgba(30,80,200,.42), 0 10px 24px -10px rgba(0,0,0,.14); } }
+@keyframes haloBreath { 50% { opacity: .65; transform: scale(1.03); } }
+
+/* Dim everything else while in hero mode */
+.ap-head, .ap-meta, .ap-rail, .ap-nav, .ap-fig {
+  transition: opacity .7s var(--ease-soft), filter .7s var(--ease-soft);
+}
+.ap-root.is-hero .ap-meta,
+.ap-root.is-hero .ap-rail,
+.ap-root.is-hero .ap-fig { opacity: .35; filter: blur(3px); pointer-events: none; }
+.ap-root.is-hero .ap-head { opacity: .6; filter: blur(.6px); }
+.ap-root.is-hero .ap-nav { opacity: .75; }
+
+/* ================= ENTRANCES ================= */
+.ap-reveal { animation: slideInR .7s .3s var(--ease-out) both; }
+.ap-reveal-l { animation: slideInL .7s .45s var(--ease-out) both; }
+@keyframes slideInR { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: none; } }
+@keyframes slideInL { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+@keyframes riseIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes popIn { 0% { opacity: 0; transform: scale(.9); } 60% { transform: scale(1.03); } 100% { opacity: 1; transform: none; } }
+
+.ap-topbar { animation: riseIn .6s var(--ease-out) both; }
+.ap-head > div > * { animation: riseIn .7s var(--ease-out) both; }
+.ap-head > div > *:nth-child(1) { animation-delay: .05s; }
+.ap-head > div > *:nth-child(2) { animation-delay: .12s; }
+.ap-head > div > *:nth-child(3) { animation-delay: .19s; }
+.ap-head > div > *:nth-child(4) { animation-delay: .26s; }
+.ap-meta > * { animation: riseIn .5s var(--ease-out) both; }
+.ap-meta > *:nth-child(2) { animation-delay: .05s; } .ap-meta > *:nth-child(3) { animation-delay: .1s; }
+.ap-meta > *:nth-child(4) { animation-delay: .15s; } .ap-meta > *:nth-child(5) { animation-delay: .2s; }
+.ap-meta > *:nth-child(6) { animation-delay: .25s; }
+
+/* Stagger results column and lists */
+.ap-right > * > *, .ap-mid > * { animation: riseIn .6s var(--ease-out) both; }
+.ap-right > * > *:nth-child(2), .ap-mid > *:nth-child(2) { animation-delay: .08s; }
+.ap-right > * > *:nth-child(3), .ap-mid > *:nth-child(3) { animation-delay: .16s; }
+.ap-right > * > *:nth-child(4) { animation-delay: .24s; }
+.ap-right > * > *:nth-child(5) { animation-delay: .32s; }
+
+.ap-row { animation: riseIn .45s var(--ease-out) both; }
+.ap-row:nth-child(2) { animation-delay: .04s; } .ap-row:nth-child(3) { animation-delay: .08s; }
+.ap-row:nth-child(4) { animation-delay: .12s; } .ap-row:nth-child(5) { animation-delay: .16s; }
+.ap-row:nth-child(6) { animation-delay: .2s; }  .ap-row:nth-child(n+7) { animation-delay: .24s; }
+
+.ap-demolist > button { animation: riseIn .4s var(--ease-out) both; }
+.ap-demolist > button:nth-child(2) { animation-delay: .04s; } .ap-demolist > button:nth-child(3) { animation-delay: .08s; }
+.ap-demolist > button:nth-child(4) { animation-delay: .12s; } .ap-demolist > button:nth-child(n+5) { animation-delay: .16s; }
+.ap-demo { animation: riseIn .45s var(--ease-out) both; }
+.ap-fact { animation: riseIn .5s var(--ease-out) both; }
+.ap-fact:nth-child(2) { animation-delay: .05s; } .ap-fact:nth-child(3) { animation-delay: .1s; }
+.ap-fact:nth-child(4) { animation-delay: .15s; } .ap-fact:nth-child(5) { animation-delay: .2s; }
+
+/* Verdict / stages / data */
+.ap-verdict { animation: popIn .6s var(--ease-snap) both; }
+.ap-verdict > svg { animation: popIn .7s .15s var(--ease-snap) both; }
+.ap-stage { animation: popIn .55s var(--ease-snap) both; }
+.ap-stages > div:nth-child(3) .ap-stage { animation-delay: .12s; }
+.ap-stages > div:nth-child(5) .ap-stage { animation-delay: .24s; }
+.ap-arrow { animation: riseIn .5s .2s var(--ease-out) both; }
+.ap-stage .bar i { transform-origin: left; animation: growX 1s .3s var(--ease-out) both; }
+@keyframes growX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.ap-bars i { transform-origin: bottom; animation: growY .6s var(--ease-out) both; }
+.ap-bars i:nth-child(4n+2) { animation-delay: .04s; } .ap-bars i:nth-child(4n+3) { animation-delay: .08s; }
+.ap-bars i:nth-child(4n) { animation-delay: .12s; }
+@keyframes growY { from { transform: scaleY(.1); } to { transform: scaleY(1); } }
+.ap-bars i { transition: background-color .2s var(--ease-soft); }
+.ap-donut { animation: donutIn .9s var(--ease-out) both; }
+@keyframes donutIn { from { opacity: 0; transform: rotate(-120deg) scale(.7); } to { opacity: 1; transform: none; } }
+.ap-tag, .ap-badge, .ap-pill { animation: popIn .4s var(--ease-snap) both; }
+
+/* ================= POPOVERS, TOASTS, FOLDS ================= */
+.ap-pop { transform-origin: top left; animation: popIn .3s var(--ease-snap) both; }
+.ap-about-body, .ap-fold[open] > *:not(summary) { animation: riseIn .4s var(--ease-out) both; }
+.ap-msg { animation: riseIn .35s var(--ease-out) both; }
+.ap-flash { animation: toastIn .5s var(--ease-snap) both; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(20px) scale(.95); } to { opacity: 1; transform: none; } }
+
+/* ================= MICRO-INTERACTIONS ================= */
+.ap-btn, .ap-play, .ap-recbtn, .ap-pn button, .ap-nav a, .ap-ws-btn, .ap-tabs button,
+.ap-demolist button, .ap-row, .ap-drop, .ap-about-toggle, .ap-fold > summary {
+  transition: transform .25s var(--ease-out), box-shadow .25s var(--ease-out),
+              background-color .25s var(--ease-soft), border-color .25s var(--ease-soft),
+              color .25s var(--ease-soft), opacity .25s var(--ease-soft);
+}
+.ap-btn:not(:disabled):hover, .ap-play:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(30,80,200,.45); }
+.ap-btn:not(:disabled):active, .ap-play:active, .ap-recbtn:active { transform: scale(.95); transition-duration: .08s; }
+.ap-recbtn:hover { transform: scale(1.08); }
+.ap-recbtn.live { animation: recPulse 1.4s ease-out infinite; }
+@keyframes recPulse { 0% { box-shadow: 0 0 0 0 rgba(226,55,43,.5); } 100% { box-shadow: 0 0 0 16px rgba(226,55,43,0); } }
+.ap-drop:not(:disabled):hover { transform: translateY(-2px); }
+.ap-drop.over { transform: scale(1.02); }
+.ap-drop svg { transition: transform .35s var(--ease-snap); }
+.ap-drop:hover svg { transform: translateY(-3px); }
+.ap-row:hover { transform: translateX(4px); }
+.ap-demolist button:hover { transform: translateX(3px); }
+.ap-nav a:hover { transform: translateY(-1px); }
+.ap-panel { transition: box-shadow .35s var(--ease-out), border-color .35s var(--ease-soft); }
+.ap-panel:hover { box-shadow: 0 16px 40px -22px rgba(30,60,160,.28); }
+.ap-spin { animation-timing-function: linear; }
+.ap-live .dot { animation: liveDot 2s ease-in-out infinite; }
+.ap-live:not(.on) .dot { animation: none; }
+@keyframes liveDot { 50% { transform: scale(1.4); opacity: .6; } }
+
+/* ================= RESPONSIVE + ACCESSIBILITY ================= */
+@media (max-width: 900px) { .ap-stage-wrap.docked { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
+}
