@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import { getWorkspaceId, isValidWorkspaceId, switchWorkspace } from '../lib/workspace';
@@ -9,6 +9,7 @@ import { Skeleton } from '../components/Skeleton';
 import CallAnalysisPanels, { Turns } from '../components/CallAnalysis.jsx';
 import { CATEGORY_LABEL, GROUP_LABEL } from '../lib/sampleGroups';
 import '../styles/dashboard.css';
+import '../styles/premium-motion.css';
 
 const NAV = [
   { label: 'Analyze', to: '/analyze' },
@@ -404,7 +405,7 @@ function DemoPicker({ samples, error, onRetry, missing, busy, onRun }) {
         ))}
       </div>
       {selected && (
-        <div className="ap-demo">
+        <div className="ap-demo" key={selected.id}>
           <div className="hd">
             {selected.category && <span className={`ap-cat ${selected.category}`}>{CATEGORY_LABEL[selected.category] || selected.category}</span>}
             {selected.level && <span className="lvl" title={`Difficulty ${selected.level} of 5`}>{'●'.repeat(selected.level)}<i>{'●'.repeat(5 - selected.level)}</i></span>}
@@ -977,6 +978,11 @@ export default function Dashboard() {
   const [flash, setFlash] = useState(null);
   const [retryTick, setRetryTick] = useState(0);
 
+  // Hero (centered) -> docked (left column) layout state, animated with FLIP.
+  const [docked, setDocked] = useState(false);
+  const panelRef = useRef(null);
+  const firstRect = useRef(null);
+
   const refresh = useCallback(async () => {
     try {
       const [s, c] = await Promise.all([api.mySummary(), api.myCalls(12)]);
@@ -995,6 +1001,38 @@ export default function Dashboard() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Returning users (who already have calls) skip the hero and see the two-column layout straight away.
+  useEffect(() => {
+    if (cases !== null && cases.length > 0 && !docked) setDocked(true);
+  }, [cases, docked]);
+
+  // Record the panel's position BEFORE docking, then dock.
+  const dock = useCallback(() => {
+    if (docked) return;
+    if (panelRef.current) firstRect.current = panelRef.current.getBoundingClientRect();
+    setDocked(true);
+  }, [docked]);
+
+  // FLIP: once the layout has changed, animate from the old rectangle to the new one.
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    const first = firstRect.current;
+    if (!docked || !el || !first) return;
+    firstRect.current = null;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const last = el.getBoundingClientRect();
+    el.animate(
+      [
+        {
+          transformOrigin: 'top left',
+          transform: `translate(${first.left - last.left}px, ${first.top - last.top}px) scale(${first.width / last.width}, ${first.height / last.height})`,
+        },
+        { transformOrigin: 'top left', transform: 'none' },
+      ],
+      { duration: 750, easing: 'cubic-bezier(0.34, 1.3, 0.5, 1)', fill: 'both' }
+    );
+  }, [docked]);
 
   // The socket does the real work; this is only a safety net (and the main path when the socket is down).
   useEffect(() => {
@@ -1039,6 +1077,7 @@ export default function Dashboard() {
   }, [selectedId, retryTick]);
 
   const startAnalysis = useCallback(async (input) => {
+    dock(); // trigger the hero -> left-column animation immediately
     setBusy(true);
     setNotice(null);
     try {
@@ -1052,7 +1091,7 @@ export default function Dashboard() {
     } finally {
       setBusy(false);
     }
-  }, [fault, refresh]);
+  }, [fault, refresh, dock]);
 
   useEffect(() => {
     if (!notice || notice.tone !== 'ok') return undefined;
@@ -1076,7 +1115,7 @@ export default function Dashboard() {
   const empty = cases !== null && cases.length === 0;
 
   return (
-    <div className="ap-root ap-full">
+    <div className={`ap-root ap-full ${docked ? '' : 'is-hero'}`}>
       <div className="ap-fig ap-fig-l" aria-hidden="true" />
       <div className="ap-rail" style={{ top: 560 }} aria-hidden="true">Voice<br />Diagnostics<br />Autopsy</div>
 
@@ -1106,45 +1145,53 @@ export default function Dashboard() {
 
       <div className="ap-meta"><StatsRibbon summary={summary} /></div>
 
-      <div className="ap-top">
+      <div className={`ap-top ap-stage-wrap ${docked ? 'docked' : 'hero'}`}>
         <div className="ap-left">
-          <AnalyzePanel
-            samples={samples}
-            samplesError={samplesError}
-            onRetrySamples={reloadSamples}
-            missingSamples={missingSamples}
-            summary={summary}
-            busy={busy}
-            notice={notice}
-            fault={fault}
-            onFault={setFault}
-            onFile={onFile}
-            onSample={onSample}
-            onNotice={setNotice}
-          />
-          <RecentCalls cases={cases} error={loadError} selectedId={selectedId} onSelect={setSelectedId} onRetry={refresh} />
-        </div>
-
-        <div className="ap-right">
-          {cases === null ? (
-            <Skeleton className="h-48 w-full" />
-          ) : empty ? (
-            <Guide />
-          ) : (
-            <>
-              <CallDetails detail={detail} state={detailState} cases={cases} selectedId={selectedId} onSelect={setSelectedId} />
-              <Verdict detail={detail} state={detailState} onRetry={() => setRetryTick((n) => n + 1)} />
-              {detail && detail.finished && detail.analysis && <CallAnalysisPanels analysis={detail.analysis} />}
-              {detailState !== 'error' && (
-                <div className="ap-mid">
-                  <StageTimeline detail={detail} state={detailState} />
-                  {detail && detail.finished && <AudioPanel detail={detail} script={(samples || []).find((x) => x.id === detail.sample_id)?.says || null} />}
-                  {detail && detail.finished && <CostBreakdown detail={detail} />}
-                </div>
-              )}
-            </>
+          <div ref={panelRef} className="ap-analyze-shell">
+            <AnalyzePanel
+              samples={samples}
+              samplesError={samplesError}
+              onRetrySamples={reloadSamples}
+              missingSamples={missingSamples}
+              summary={summary}
+              busy={busy}
+              notice={notice}
+              fault={fault}
+              onFault={setFault}
+              onFile={onFile}
+              onSample={onSample}
+              onNotice={setNotice}
+            />
+          </div>
+          {docked && (
+            <div className="ap-reveal-l">
+              <RecentCalls cases={cases} error={loadError} selectedId={selectedId} onSelect={setSelectedId} onRetry={refresh} />
+            </div>
           )}
         </div>
+
+        {docked && (
+          <div className="ap-right ap-reveal">
+            {cases === null ? (
+              <Skeleton className="h-48 w-full" />
+            ) : empty ? (
+              <Guide />
+            ) : (
+              <>
+                <CallDetails detail={detail} state={detailState} cases={cases} selectedId={selectedId} onSelect={setSelectedId} />
+                <Verdict key={detail?.id || 'none'} detail={detail} state={detailState} onRetry={() => setRetryTick((n) => n + 1)} />
+                {detail && detail.finished && detail.analysis && <CallAnalysisPanels analysis={detail.analysis} />}
+                {detailState !== 'error' && (
+                  <div className="ap-mid">
+                    <StageTimeline detail={detail} state={detailState} />
+                    {detail && detail.finished && <AudioPanel detail={detail} script={(samples || []).find((x) => x.id === detail.sample_id)?.says || null} />}
+                    {detail && detail.finished && <CostBreakdown detail={detail} />}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {flash && (
